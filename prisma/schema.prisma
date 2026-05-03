@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum GoalPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+model Category {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  color         String         @default("#2563eb")
+  entries       Entry[]
+  activeTimers  ActiveTimer[]
+  plannedBlocks PlannedBlock[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Entry {
+  id              String    @id @default(cuid())
+  title           String
+  notes           String?
+  startTime       DateTime
+  endTime         DateTime?
+  durationMinutes Int       @default(0)
+  categoryId      String?
+  category        Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([startTime])
+  @@index([categoryId])
+}
+
+model ActiveTimer {
+  id         Int       @id @default(1)
+  title      String
+  notes      String?
+  startedAt  DateTime  @default(now())
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([categoryId])
+}
+
+model PlannedBlock {
+  id         String    @id @default(cuid())
+  title      String
+  notes      String?
+  startTime  DateTime
+  endTime    DateTime
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([startTime])
+  @@index([categoryId])
+}
+
+model Goal {
+  id            String     @id @default(cuid())
+  title         String
+  description   String?
+  targetMinutes Int
+  period        GoalPeriod @default(WEEKLY)
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model Routine {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  timeOfDay   String
+  days        Json
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
