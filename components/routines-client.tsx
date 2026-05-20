@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Repeat, Save, Settings, Trash2 } from "lucide-react";
+import { useAppLanguage } from "@/components/use-app-language";
 
 type Routine = {
   id: string;
@@ -51,6 +52,7 @@ function getRoutineDraft(routine: Routine): RoutineDraft {
 
 export function RoutinesClient({ routines }: RoutinesClientProps) {
   const router = useRouter();
+  const { t } = useAppLanguage();
 
   // The create form has its own draft, while existing routines keep per-card drafts keyed by routine id.
   // This prevents one card's settings edits from leaking into another routine.
@@ -173,7 +175,7 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
 
   async function deleteRoutine(routine: Routine) {
     // Deleting is permanent, so keep a native confirmation until a custom modal exists.
-    const confirmed = window.confirm(`Delete "${routine.title}"?`);
+    const confirmed = window.confirm(`${t.routinesPage.deleteConfirm} "${routine.title}"?`);
 
     if (!confirmed) {
       return;
@@ -190,8 +192,8 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
     <div className="space-y-6">
       <section className="rounded-[2rem] border border-white/80 bg-white/90 p-5 shadow-xl shadow-gray-200/80">
         <div className="mb-5">
-          <p className="text-sm font-semibold text-gray-500">Routines</p>
-          <h1 className="text-3xl font-black tracking-tight text-gray-950">Build repeatable anchors</h1>
+          <p className="text-sm font-semibold text-gray-500">{t.routinesPage.label}</p>
+          <h1 className="text-3xl font-black tracking-tight text-gray-950">{t.routinesPage.title}</h1>
         </div>
 
         {/* Creation stays lightweight: make the routine first, then manage advanced state on the card. */}
@@ -200,7 +202,7 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
             <input
               value={draft.title}
               onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-              placeholder="Routine title"
+              placeholder={t.routinesPage.routineTitle}
               className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400 focus:bg-white"
             />
             <input
@@ -213,7 +215,7 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
           <input
             value={draft.description}
             onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-            placeholder="Optional description"
+            placeholder={t.common.optionalDescription}
             className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400 focus:bg-white"
           />
           <div className="flex flex-wrap gap-2">
@@ -229,7 +231,7 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
                     isSelected ? "bg-gray-950 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                   }`}
                 >
-                  {day}
+                  {t.routinesPage.days[day as keyof typeof t.routinesPage.days]}
                 </button>
               );
             })}
@@ -240,7 +242,7 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-950 px-5 py-3 text-sm font-black text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
             <Plus size={17} />
-            Add routine
+            {t.routinesPage.addRoutine}
           </button>
         </form>
       </section>
@@ -271,10 +273,10 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
                         ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                         : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                     }`}
-                    title={routine.isActive ? "Disable routine" : "Enable routine"}
+                    title={routine.isActive ? t.routinesPage.disableRoutine : t.routinesPage.enableRoutine}
                   >
                     <Repeat size={14} />
-                    {routine.isActive ? "Active" : "Disabled"}
+                    {routine.isActive ? t.routinesPage.active : t.routinesPage.disabled}
                   </button>
                   <h2 className="text-xl font-black text-gray-950">{routine.title}</h2>
                   {routine.description ? <p className="mt-1 text-sm text-gray-500">{routine.description}</p> : null}
@@ -286,7 +288,7 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
                     onClick={() => openRoutineSettings(routine)}
                     disabled={pendingAction !== null}
                     className="grid size-10 place-items-center rounded-full bg-gray-100 text-gray-700 transition hover:bg-gray-200 disabled:opacity-50"
-                    title={`Edit ${routine.title}`}
+                    title={`${t.routinesPage.editRoutine}: ${routine.title}`}
                   >
                     <Settings size={17} />
                   </button>
@@ -295,7 +297,7 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
                     onClick={() => void deleteRoutine(routine)}
                     disabled={pendingAction !== null}
                     className="grid size-10 place-items-center rounded-full bg-rose-50 text-rose-600 transition hover:bg-rose-100 disabled:opacity-50"
-                    title={`Delete ${routine.title}`}
+                    title={`${t.routinesPage.deleteRoutine}: ${routine.title}`}
                   >
                     <Trash2 size={17} />
                   </button>
@@ -307,7 +309,9 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
                 </span>
                 <span className="text-sm font-bold text-gray-500">
                   {/* Empty day arrays are allowed, but the card should say so clearly. */}
-                  {routine.days.length > 0 ? routine.days.join(", ") : "No days selected"}
+                  {routine.days.length > 0
+                    ? routine.days.map((day) => t.routinesPage.days[day as keyof typeof t.routinesPage.days] ?? day).join(", ")
+                    : t.routinesPage.noDaysSelected}
                 </span>
               </div>
               {isEditing ? (
@@ -329,7 +333,7 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
                   <input
                     value={current.description}
                     onChange={(event) => updateEditDraft(routine, { description: event.target.value })}
-                    placeholder="Optional description"
+                    placeholder={t.common.optionalDescription}
                     className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400 focus:bg-white"
                   />
                   <div className="flex flex-wrap gap-2">
@@ -345,7 +349,7 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
                             isSelected ? "bg-gray-950 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                           }`}
                         >
-                          {day}
+                          {t.routinesPage.days[day as keyof typeof t.routinesPage.days]}
                         </button>
                       );
                     })}
@@ -356,7 +360,7 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
                       onClick={() => setEditingId(null)}
                       className="rounded-2xl bg-gray-100 px-4 py-3 text-sm font-bold text-gray-600 transition hover:bg-gray-200"
                     >
-                      Cancel
+                      {t.common.cancel}
                     </button>
                     <button
                       type="button"
@@ -365,7 +369,7 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
                       className="inline-flex items-center gap-2 rounded-2xl bg-gray-950 px-5 py-3 text-sm font-black text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"
                     >
                       <Save size={17} />
-                      Save
+                      {t.common.save}
                     </button>
                   </div>
                 </div>
@@ -375,7 +379,7 @@ export function RoutinesClient({ routines }: RoutinesClientProps) {
         })}
         {routines.length === 0 ? (
           <div className="rounded-[2rem] border border-dashed border-gray-300 bg-white/80 p-6 text-sm font-semibold text-gray-500">
-            No routines yet.
+            {t.routinesPage.noRoutinesYet}
           </div>
         ) : null}
       </section>

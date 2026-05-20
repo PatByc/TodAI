@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { ManualEntryForm } from "@/components/manual-entry-form";
+import { LocalizedText } from "@/components/LocalizedText";
 
 export const dynamic = "force-dynamic";
 
@@ -159,8 +160,12 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
     <div className="space-y-6">
       <section className="rounded-[2rem] border border-white/80 bg-white/90 p-5 shadow-xl shadow-gray-200/80 sm:p-7">
         <div className="mb-5">
-          <p className="text-sm font-semibold text-gray-500">History</p>
-          <h1 className="text-3xl font-black tracking-tight text-gray-950">Review previous days</h1>
+          <p className="text-sm font-semibold text-gray-500">
+            <LocalizedText en="History" pl="Historia" />
+          </p>
+          <h1 className="text-3xl font-black tracking-tight text-gray-950">
+            <LocalizedText en="Review previous days" pl="Przejrzyj poprzednie dni" />
+          </h1>
         </div>
         <form className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
           <input
@@ -176,29 +181,33 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
             className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400 focus:bg-white"
           />
           <button className="rounded-2xl bg-gray-950 px-5 py-3 text-sm font-black text-white transition hover:bg-gray-800">
-            Update range
+            <LocalizedText en="Update range" pl="Zmień zakres" />
           </button>
         </form>
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <SummaryCard label="Tracked time" value={formatMinutes(totalMinutes)} />
-        <SummaryCard label="Entries" value={String(entries.length)} />
-        <SummaryCard label="Avg success score" value={`${averageScore}/10`} />
+        <SummaryCard label={<LocalizedText en="Tracked time" pl="Zarejestrowany czas" />} value={formatMinutes(totalMinutes)} />
+        <SummaryCard label={<LocalizedText en="Entries" pl="Wpisy" />} value={String(entries.length)} />
+        <SummaryCard label={<LocalizedText en="Avg success score" pl="Średni wynik sukcesu" />} value={`${averageScore}/10`} />
       </section>
 
       <section className="rounded-[2rem] border border-white/80 bg-white/90 p-5 shadow-xl shadow-gray-200/80">
-        <p className="text-sm font-semibold text-gray-500">Success score</p>
-        <h2 className="text-xl font-black text-gray-950">Planned vs actual day</h2>
+        <p className="text-sm font-semibold text-gray-500">
+          <LocalizedText en="Success score" pl="Wynik sukcesu" />
+        </p>
+        <h2 className="text-xl font-black text-gray-950">
+          <LocalizedText en="Planned vs actual day" pl="Plan kontra wykonanie dnia" />
+        </h2>
         <div className="mt-5 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b">
-                <th className="py-2">Day</th>
-                <th className="py-2">Planned</th>
-                <th className="py-2">Actual</th>
-                <th className="py-2">Score</th>
-                <th className="py-2">Normalized</th>
+                <th className="py-2"><LocalizedText en="Day" pl="Dzień" /></th>
+                <th className="py-2"><LocalizedText en="Planned" pl="Planowane" /></th>
+                <th className="py-2"><LocalizedText en="Actual" pl="Wykonane" /></th>
+                <th className="py-2"><LocalizedText en="Score" pl="Wynik" /></th>
+                <th className="py-2"><LocalizedText en="Normalized" pl="Znormalizowane" /></th>
               </tr>
             </thead>
             <tbody>
@@ -222,14 +231,21 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
           </table>
         </div>
         <p className="mt-4 text-xs font-semibold text-gray-400">
-          Score is based on actual tracked minutes compared with planned minutes for the same day.
+          <LocalizedText
+            en="Score is based on actual tracked minutes compared with planned minutes for the same day."
+            pl="Wynik bazuje na zapisanych minutach porównanych z planowanymi minutami z tego samego dnia."
+          />
         </p>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1fr_0.8fr]">
         <div className="rounded-[2rem] border border-white/80 bg-white/90 p-5 shadow-xl shadow-gray-200/80">
-          <p className="text-sm font-semibold text-gray-500">Daily totals</p>
-          <h2 className="text-xl font-black text-gray-950">Selected range</h2>
+          <p className="text-sm font-semibold text-gray-500">
+            <LocalizedText en="Daily totals" pl="Suma dzienna" />
+          </p>
+          <h2 className="text-xl font-black text-gray-950">
+            <LocalizedText en="Selected range" pl="Wybrany zakres" />
+          </h2>
           <div className="mt-5 space-y-3">
             {dailyTotals.map((day) => (
               <div key={day.key}>
@@ -251,22 +267,34 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
         </div>
 
         <div className="rounded-[2rem] border border-white/80 bg-white/90 p-5 shadow-xl shadow-gray-200/80">
-          <p className="text-sm font-semibold text-gray-500">Category summary</p>
-          <h2 className="text-xl font-black text-gray-950">Where time went</h2>
+          <p className="text-sm font-semibold text-gray-500">
+            <LocalizedText en="Category summary" pl="Podsumowanie kategorii" />
+          </p>
+          <h2 className="text-xl font-black text-gray-950">
+            <LocalizedText en="Where time went" pl="Na co poszedł czas" />
+          </h2>
           <div className="mt-5 space-y-3">
             {categoryRows.map(([name, category]) => (
               <div key={name} className="rounded-2xl bg-gray-50 p-3">
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <span className="flex min-w-0 items-center gap-2 font-bold">
                     <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: category.color }} />
-                    <span className="truncate">{name}</span>
+                    <span className="truncate">
+                      {name === "Uncategorized" ? <LocalizedText en="Uncategorized" pl="Bez kategorii" /> : name}
+                    </span>
                   </span>
                   <span className="shrink-0 text-sm font-bold text-gray-500">{formatMinutes(category.minutes)}</span>
                 </div>
-                <p className="text-xs font-semibold text-gray-400">{category.entries} entries</p>
+                <p className="text-xs font-semibold text-gray-400">
+                  {category.entries} <LocalizedText en="entries" pl="wpisy" />
+                </p>
               </div>
             ))}
-            {categoryRows.length === 0 ? <p className="text-sm text-gray-500">No tracked time in this range.</p> : null}
+            {categoryRows.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                <LocalizedText en="No tracked time in this range." pl="Brak zarejestrowanego czasu w tym zakresie." />
+              </p>
+            ) : null}
           </div>
         </div>
       </section>
@@ -281,17 +309,21 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
       />
 
       <section className="rounded-[2rem] border border-white/80 bg-white/90 p-5 shadow-xl shadow-gray-200/80">
-        <p className="text-sm font-semibold text-gray-500">Entries</p>
-        <h2 className="text-xl font-black text-gray-950">Range detail</h2>
+        <p className="text-sm font-semibold text-gray-500">
+          <LocalizedText en="Entries" pl="Wpisy" />
+        </p>
+        <h2 className="text-xl font-black text-gray-950">
+          <LocalizedText en="Range detail" pl="Szczegóły zakresu" />
+        </h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b">
-                <th className="py-2">Title</th>
-                <th className="py-2">Category</th>
-                <th className="py-2">Start</th>
-                <th className="py-2">Finish</th>
-                <th className="py-2">Duration</th>
+                <th className="py-2"><LocalizedText en="Title" pl="Tytuł" /></th>
+                <th className="py-2"><LocalizedText en="Category" pl="Kategoria" /></th>
+                <th className="py-2"><LocalizedText en="Start" pl="Start" /></th>
+                <th className="py-2"><LocalizedText en="Finish" pl="Koniec" /></th>
+                <th className="py-2"><LocalizedText en="Duration" pl="Czas trwania" /></th>
               </tr>
             </thead>
             <tbody>
@@ -306,14 +338,18 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
               ))}
             </tbody>
           </table>
-          {entries.length === 0 ? <p className="py-4 text-sm text-gray-500">No entries in this range.</p> : null}
+          {entries.length === 0 ? (
+            <p className="py-4 text-sm text-gray-500">
+              <LocalizedText en="No entries in this range." pl="Brak wpisów w tym zakresie." />
+            </p>
+          ) : null}
         </div>
       </section>
     </div>
   );
 }
 
-function SummaryCard({ label, value }: { label: string; value: string }) {
+function SummaryCard({ label, value }: { label: React.ReactNode; value: string }) {
   return (
     <div className="rounded-[2rem] border border-white/80 bg-white/90 p-5 shadow-xl shadow-gray-200/80">
       <p className="text-sm font-semibold text-gray-500">{label}</p>

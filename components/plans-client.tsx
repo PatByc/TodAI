@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarPlus, Pencil, Save, Trash2 } from "lucide-react";
+import { useAppLanguage } from "@/components/use-app-language";
 
 type Category = {
   id: string;
@@ -69,6 +70,7 @@ function getBlockDraft(block: PlannedBlock): PlanDraft {
 
 export function PlansClient({ plannedBlocks, categories }: PlansClientProps) {
   const router = useRouter();
+  const { t } = useAppLanguage();
   const [newPlan, setNewPlan] = useState(() => createDefaultDraft(categories));
   const [editingId, setEditingId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, PlanDraft>>({});
@@ -133,7 +135,7 @@ export function PlansClient({ plannedBlocks, categories }: PlansClientProps) {
   }
 
   async function deletePlan(block: PlannedBlock) {
-    const confirmed = window.confirm(`Delete "${block.title}" from your plan?`);
+    const confirmed = window.confirm(`${t.common.delete} "${block.title}" ${t.plans.deleteConfirmSuffix}`);
 
     if (!confirmed) {
       return;
@@ -149,14 +151,14 @@ export function PlansClient({ plannedBlocks, categories }: PlansClientProps) {
     <div className="space-y-6">
       <section className="rounded-[2rem] border border-white/80 bg-white/90 p-5 shadow-xl shadow-gray-200/80">
         <div className="mb-5">
-          <p className="text-sm font-semibold text-gray-500">Plans</p>
-          <h1 className="text-3xl font-black tracking-tight text-gray-950">Plan future time blocks</h1>
+          <p className="text-sm font-semibold text-gray-500">{t.plans.label}</p>
+          <h1 className="text-3xl font-black tracking-tight text-gray-950">{t.plans.title}</h1>
         </div>
         <form onSubmit={(event) => void createPlan(event)} className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_auto]">
           <input
             value={newPlan.title}
             onChange={(event) => setNewPlan({ ...newPlan, title: event.target.value })}
-            placeholder="Focus block title"
+            placeholder={t.plans.focusBlockTitle}
             className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400 focus:bg-white"
           />
           <input
@@ -177,14 +179,14 @@ export function PlansClient({ plannedBlocks, categories }: PlansClientProps) {
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-950 px-5 py-3 text-sm font-black text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
             <CalendarPlus size={17} />
-            Add
+            {t.common.add}
           </button>
           <select
             value={newPlan.categoryId}
             onChange={(event) => setNewPlan({ ...newPlan, categoryId: event.target.value })}
             className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400 focus:bg-white lg:col-span-2"
           >
-            <option value="">No category</option>
+            <option value="">{t.common.noCategory}</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -194,7 +196,7 @@ export function PlansClient({ plannedBlocks, categories }: PlansClientProps) {
           <input
             value={newPlan.notes}
             onChange={(event) => setNewPlan({ ...newPlan, notes: event.target.value })}
-            placeholder="Optional notes"
+            placeholder={t.common.optionalNotes}
             className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400 focus:bg-white lg:col-span-2"
           />
         </form>
@@ -225,7 +227,7 @@ export function PlansClient({ plannedBlocks, categories }: PlansClientProps) {
                         onChange={(event) => updateDraft(block.id, block, { categoryId: event.target.value })}
                         className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400 focus:bg-white"
                       >
-                        <option value="">No category</option>
+                        <option value="">{t.common.noCategory}</option>
                         {categories.map((category) => (
                           <option key={category.id} value={category.id}>
                             {category.name}
@@ -251,7 +253,7 @@ export function PlansClient({ plannedBlocks, categories }: PlansClientProps) {
                       <p className="mt-1 text-sm font-semibold text-gray-500">
                         {formatDateTime(block.startTime)} - {formatDateTime(block.endTime)}
                       </p>
-                      <p className="mt-2 text-sm text-gray-500">{block.category?.name ?? "No category"}</p>
+                      <p className="mt-2 text-sm text-gray-500">{block.category?.name ?? t.common.noCategory}</p>
                     </div>
                   )}
                 </div>
@@ -261,7 +263,7 @@ export function PlansClient({ plannedBlocks, categories }: PlansClientProps) {
                     onClick={() => (isEditing ? void savePlan(block) : setEditingId(block.id))}
                     disabled={pendingAction !== null}
                     className="grid size-11 place-items-center rounded-full bg-gray-950 text-white transition hover:bg-gray-800 disabled:opacity-50"
-                    title={isEditing ? "Save plan" : "Edit plan"}
+                    title={isEditing ? t.plans.savePlan : t.plans.editPlan}
                   >
                     {isEditing ? <Save size={18} /> : <Pencil size={18} />}
                   </button>
@@ -270,7 +272,7 @@ export function PlansClient({ plannedBlocks, categories }: PlansClientProps) {
                     onClick={() => void deletePlan(block)}
                     disabled={pendingAction !== null}
                     className="grid size-11 place-items-center rounded-full bg-rose-50 text-rose-600 transition hover:bg-rose-100 disabled:opacity-50"
-                    title="Delete plan"
+                    title={t.plans.deletePlan}
                   >
                     <Trash2 size={18} />
                   </button>
@@ -281,7 +283,7 @@ export function PlansClient({ plannedBlocks, categories }: PlansClientProps) {
         })}
         {plannedBlocks.length === 0 ? (
           <div className="rounded-[2rem] border border-dashed border-gray-300 bg-white/70 p-8 text-center text-sm font-semibold text-gray-500">
-            No planned blocks yet.
+            {t.plans.plannedBlocksEmpty}
           </div>
         ) : null}
       </section>

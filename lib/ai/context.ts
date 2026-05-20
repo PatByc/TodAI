@@ -66,7 +66,7 @@ function getEntriesForGoalPeriod(entriesByPeriod: Record<PeriodName, EntryWithCa
 }
 
 export async function getUserTimeContext(_userId: string) {
-  const [todayEntries, weekEntries, monthEntries, activeTimer, goals, recentEntries] = await Promise.all([
+  const [todayEntries, weekEntries, monthEntries, activeTimer, goals, recentEntries, openTasks, recentCompletedTasks] = await Promise.all([
     prisma.entry.findMany({
       where: { startTime: { gte: getPeriodStart("today") } },
       include: { category: true },
@@ -88,6 +88,16 @@ export async function getUserTimeContext(_userId: string) {
       take: 20,
       include: { category: true },
       orderBy: { startTime: "desc" },
+    }),
+    prisma.task.findMany({
+      where: { isCompleted: false },
+      take: 20,
+      orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
+    }),
+    prisma.task.findMany({
+      where: { isCompleted: true },
+      take: 10,
+      orderBy: { completedAt: "desc" },
     }),
   ]);
 
@@ -140,5 +150,18 @@ export async function getUserTimeContext(_userId: string) {
       durationMinutes: entry.durationMinutes,
       category: entry.category?.name ?? null,
     })),
+    tasks: {
+      open: openTasks.map((task) => ({
+        title: task.title,
+        notes: task.notes,
+        dueDate: task.dueDate?.toISOString() ?? null,
+      })),
+      recentlyCompleted: recentCompletedTasks.map((task) => ({
+        title: task.title,
+        notes: task.notes,
+        dueDate: task.dueDate?.toISOString() ?? null,
+        completedAt: task.completedAt?.toISOString() ?? null,
+      })),
+    },
   };
 }

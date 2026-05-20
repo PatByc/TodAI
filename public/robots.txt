@@ -1,0 +1,14 @@
+# Answer Engine Optimization
+
+--------------------------
+
+User-agent: *
+Allow: /
+
+Disallow: /dashboard
+Disallow: /entries
+Disallow: /timer
+Disallow: /settings
+Disallow: /api/
+
+Sitemap: https://todai.app/sitemap.xml

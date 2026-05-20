@@ -10,6 +10,7 @@ async function main() {
   await prisma.activeTimer.deleteMany();
   await prisma.entry.deleteMany();
   await prisma.plannedBlock.deleteMany();
+  await prisma.task.deleteMany();
   await prisma.goal.deleteMany();
   await prisma.routine.deleteMany();
   await prisma.category.deleteMany();
@@ -77,6 +78,32 @@ async function main() {
         startTime: plannedAdminStart,
         endTime: plannedAdminEnd,
         categoryId: admin.id,
+      },
+    ],
+  });
+
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  const nextWeek = new Date(today);
+  nextWeek.setDate(today.getDate() + 7);
+  nextWeek.setHours(0, 0, 0, 0);
+
+  await prisma.task.createMany({
+    data: [
+      {
+        title: "Send weekly progress summary",
+        notes: "One-time loose end that does not need a fixed time block.",
+        dueDate: tomorrow,
+      },
+      {
+        title: "Choose next automation experiment",
+        notes: "Pick one idea worth testing before the next planning session.",
+        dueDate: nextWeek,
+      },
+      {
+        title: "Archive old notes",
+        notes: "Clean up the backlog when there is spare admin energy.",
       },
     ],
   });

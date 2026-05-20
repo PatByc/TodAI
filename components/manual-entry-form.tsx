@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import { useAppLanguage } from "@/components/use-app-language";
 
 type Category = {
   id: string;
@@ -35,6 +36,7 @@ function createDefaultEntry() {
 
 export function ManualEntryForm({ categories }: ManualEntryFormProps) {
   const router = useRouter();
+  const { t } = useAppLanguage();
   const [draft, setDraft] = useState(createDefaultEntry);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -66,14 +68,14 @@ export function ManualEntryForm({ categories }: ManualEntryFormProps) {
   return (
     <section className="rounded-[2rem] border border-white/80 bg-white/90 p-5 shadow-xl shadow-gray-200/80">
       <div className="mb-5">
-        <p className="text-sm font-semibold text-gray-500">Manual entry</p>
-        <h1 className="text-3xl font-black tracking-tight text-gray-950">Log past time</h1>
+        <p className="text-sm font-semibold text-gray-500">{t.common.manualEntry}</p>
+        <h1 className="text-3xl font-black tracking-tight text-gray-950">{t.common.logPastTime}</h1>
       </div>
       <form onSubmit={(event) => void createEntry(event)} className="grid gap-3 lg:grid-cols-2">
         <input
           value={draft.title}
           onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-          placeholder="What did you do?"
+          placeholder={t.common.whatDidYouDo}
           className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400 focus:bg-white"
         />
         <select
@@ -81,7 +83,7 @@ export function ManualEntryForm({ categories }: ManualEntryFormProps) {
           onChange={(event) => setDraft({ ...draft, categoryId: event.target.value })}
           className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400 focus:bg-white"
         >
-          <option value="">No category</option>
+          <option value="">{t.common.noCategory}</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}
@@ -103,7 +105,7 @@ export function ManualEntryForm({ categories }: ManualEntryFormProps) {
         <input
           value={draft.notes}
           onChange={(event) => setDraft({ ...draft, notes: event.target.value })}
-          placeholder="Optional notes"
+          placeholder={t.common.optionalNotes}
           className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400 focus:bg-white lg:col-span-2"
         />
         <button
@@ -112,7 +114,7 @@ export function ManualEntryForm({ categories }: ManualEntryFormProps) {
           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-950 px-5 py-3 text-sm font-black text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300 lg:col-span-2"
         >
           <Plus size={17} />
-          Add entry
+          {t.common.addEntry}
         </button>
       </form>
     </section>

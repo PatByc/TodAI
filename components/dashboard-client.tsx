@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CircleStop, Palette, Pencil, Play, Plus, Save, Sparkles, Trash2 } from "lucide-react";
+import { type AppLanguage, useAppLanguage } from "@/components/use-app-language";
 
 type Category = {
   id: string;
@@ -51,6 +52,11 @@ type ActiveTimer = {
 } | null;
 
 type DashboardClientProps = {
+  dashboardQuote: {
+    text: string;
+    translation?: string;
+    source?: string;
+  };
   activeTimer: ActiveTimer;
   todayEntries: Entry[];
   plannedBlocks: PlannedBlock[];
@@ -165,12 +171,12 @@ function getSuccessScore(actualMinutes: number, plannedMinutes: number) {
   };
 }
 
-function formatTrendLabel(date: Date) {
-  return date.toLocaleDateString(undefined, { weekday: "short" }).slice(0, 1);
+function formatTrendLabel(date: Date, language: AppLanguage) {
+  return date.toLocaleDateString(language === "pl" ? "pl-PL" : undefined, { weekday: "short" }).slice(0, 1);
 }
 
-function formatTrendTooltipDate(date: Date) {
-  return date.toLocaleDateString(undefined, {
+function formatTrendTooltipDate(date: Date, language: AppLanguage) {
+  return date.toLocaleDateString(language === "pl" ? "pl-PL" : undefined, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -229,6 +235,7 @@ function getPieGradient(stats: CategoryStat[], totalMinutes: number) {
 }
 
 export function DashboardClient({
+  dashboardQuote,
   activeTimer,
   todayEntries,
   plannedBlocks,
@@ -239,6 +246,7 @@ export function DashboardClient({
   routines,
 }: DashboardClientProps) {
   const router = useRouter();
+  const { language, t } = useAppLanguage();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [categoryDrafts, setCategoryDrafts] = useState<Record<string, Category>>({});
@@ -249,9 +257,11 @@ export function DashboardClient({
   });
   // The score trend defaults to 7 days but can expand without another server request.
   const [scorePeriodDays, setScorePeriodDays] = useState(7);
+  const quoteText = language === "pl" && dashboardQuote.translation ? dashboardQuote.translation : dashboardQuote.text;
 
   const totalToday = todayEntries.reduce((sum, entry) => sum + entry.durationMinutes, 0);
   const dailyTarget = getDailyTarget(goals);
+  const dailyTargetLabel = language === "pl" && dailyTarget.title === "Daily focus" ? "Codzienne skupienie" : dailyTarget.title;
   const goalPercent = Math.min(100, Math.round((totalToday / dailyTarget.minutes) * 100));
 
   const categoryStats = useMemo<CategoryStat[]>(() => {
@@ -286,8 +296,8 @@ export function DashboardClient({
 
       return {
         key,
-        label: formatTrendLabel(day),
-        dateLabel: formatTrendTooltipDate(day),
+        label: formatTrendLabel(day, language),
+        dateLabel: formatTrendTooltipDate(day, language),
         score: success.score,
         percent: success.percent,
         actualMinutes,
@@ -295,7 +305,7 @@ export function DashboardClient({
         entryCount: entries.length,
       };
     });
-  }, [scoreEntries, scorePeriodDays, scorePlannedBlocks]);
+  }, [language, scoreEntries, scorePeriodDays, scorePlannedBlocks]);
 
   const visibleTimelineEntries = todayEntries.filter((entry) => {
     // Daily timeline can be narrowed to a custom visible time range.
@@ -387,7 +397,7 @@ export function DashboardClient({
   }
 
   async function deleteCategory(category: Category) {
-    const confirmed = window.confirm(`Delete "${category.name}"? Existing entries will become uncategorized.`);
+    const confirmed = window.confirm(`Delete "${category.name}"? ${t.dashboard.confirmDeleteCategorySuffix}`);
 
     if (!confirmed) {
       return;
@@ -408,14 +418,19 @@ export function DashboardClient({
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
-                  <Sparkles size={15} /> Today feels trackable
+                  <Sparkles size={15} /> {t.dashboard.badge}
                 </p>
-                <h1 className="max-w-4xl text-4xl font-black tracking-tight text-gray-950 sm:text-5xl">
-                  Your day, color-coded and quietly organized.
+                <h1 className="max-w-4xl text-[clamp(2rem,4vw,3.25rem)] font-black leading-[1.05] tracking-tight text-gray-950">
+                  {quoteText}
                 </h1>
+                {dashboardQuote.source ? (
+                  <p className="mt-3 text-sm font-black uppercase tracking-wide text-gray-400">
+                    {dashboardQuote.source}
+                  </p>
+                ) : null}
               </div>
               <div className="shrink-0 rounded-3xl bg-gray-950 p-4 text-white shadow-lg sm:text-right">
-                <p className="text-sm text-white/70">Tracked today</p>
+                <p className="text-sm text-white/70">{t.dashboard.trackedToday}</p>
                 <p className="text-4xl font-black">{formatMinutes(totalToday)}</p>
               </div>
             </div>
@@ -430,6 +445,7 @@ export function DashboardClient({
         <SummaryPanel
           totalToday={totalToday}
           dailyTarget={dailyTarget}
+          dailyTargetLabel={dailyTargetLabel}
           goalPercent={goalPercent}
           topCategory={topCategory}
           categoryStats={categoryStats}
@@ -475,22 +491,28 @@ export function DashboardClient({
 function SummaryPanel({
   totalToday,
   dailyTarget,
+  dailyTargetLabel,
   goalPercent,
   topCategory,
   categoryStats,
 }: {
   totalToday: number;
   dailyTarget: { minutes: number; title: string };
+  dailyTargetLabel: string;
   goalPercent: number;
   topCategory: CategoryStat | null;
   categoryStats: CategoryStat[];
 }) {
+  const { t } = useAppLanguage();
+
   return (
     <div className="rounded-[2rem] border border-white/80 bg-white/90 p-5 shadow-xl shadow-gray-200/80">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-gray-500">Summary</p>
-          <h2 className="text-2xl font-black text-gray-950">{goalPercent}% of goal</h2>
+          <p className="text-sm font-semibold text-gray-500">{t.dashboard.summary}</p>
+          <h2 className="text-2xl font-black text-gray-950">
+            {goalPercent}% {t.dashboard.ofGoal}
+          </h2>
         </div>
         <div className="grid size-16 place-items-center rounded-full bg-gray-950 text-sm font-black text-white">
           {goalPercent}%
@@ -500,11 +522,11 @@ function SummaryPanel({
         <div className="h-full rounded-full bg-emerald-500" style={{ width: `${goalPercent}%` }} />
       </div>
       <div className="mt-5 grid grid-cols-2 gap-3">
-        <Metric label="Total" value={formatMinutes(totalToday)} />
-        <Metric label={dailyTarget.title} value={formatMinutes(dailyTarget.minutes)} />
+        <Metric label={t.dashboard.total} value={formatMinutes(totalToday)} />
+        <Metric label={dailyTargetLabel} value={formatMinutes(dailyTarget.minutes)} />
       </div>
       <div className="mt-5">
-        <p className="text-sm font-semibold text-gray-500">Category distribution</p>
+        <p className="text-sm font-semibold text-gray-500">{t.dashboard.categoryDistribution}</p>
         <div className="mt-3 space-y-3">
           {categoryStats.map((stat) => (
             <div key={stat.id}>
@@ -527,7 +549,7 @@ function SummaryPanel({
       </div>
       {topCategory ? (
         <p className="mt-5 rounded-2xl bg-gray-50 p-3 text-sm text-gray-600">
-          Your strongest lane today is <span className="font-bold text-gray-950">{topCategory.name}</span>.
+          {t.dashboard.strongestLanePrefix} <span className="font-bold text-gray-950">{topCategory.name}</span>.
         </p>
       ) : null}
     </div>
@@ -559,6 +581,7 @@ function DailyTimeline({
   onTimelineRangeChange: (range: { startHour: number; endHour: number }) => void;
 }) {
   const router = useRouter();
+  const { t } = useAppLanguage();
   const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
   const [isManualEntrySubmitting, setIsManualEntrySubmitting] = useState(false);
   const [manualEntry, setManualEntry] = useState(() => {
@@ -610,8 +633,8 @@ function DailyTimeline({
     <div className="rounded-[2rem] border border-white/80 bg-white/90 p-5 shadow-xl shadow-gray-200/80">
       <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-semibold text-gray-500">Daily timeline</p>
-          <h2 className="text-2xl font-black text-gray-950">Time blocks</h2>
+          <p className="text-sm font-semibold text-gray-500">{t.dashboard.dailyTimeline}</p>
+          <h2 className="text-2xl font-black text-gray-950">{t.dashboard.timeBlocks}</h2>
         </div>
         <div className="relative flex flex-wrap items-center gap-2 rounded-3xl bg-rose-50 p-2 text-sm font-semibold text-rose-700">
           <select
@@ -624,7 +647,7 @@ function DailyTimeline({
               });
             }}
             className="rounded-2xl border border-rose-100 bg-white px-3 py-2 font-bold outline-none"
-            title="Timeline start time"
+            title={t.dashboard.timelineStartTime}
           >
             {hourOptions.slice(0, 23).map((hour) => (
               <option key={hour} value={hour}>
@@ -643,7 +666,7 @@ function DailyTimeline({
               });
             }}
             className="rounded-2xl border border-rose-100 bg-white px-3 py-2 font-bold outline-none"
-            title="Timeline end time"
+            title={t.dashboard.timelineEndTime}
           >
             {hourOptions.slice(1).map((hour) => (
               <option key={hour} value={hour}>
@@ -655,21 +678,21 @@ function DailyTimeline({
             type="button"
             onClick={() => setIsManualEntryOpen((current) => !current)}
             className="grid size-10 place-items-center rounded-full bg-gray-950 text-white shadow-sm transition hover:scale-105"
-            title="Add manual entry"
+            title={t.dashboard.addManualEntry}
           >
             <Plus size={18} />
           </button>
           {isManualEntryOpen ? (
             <div className="absolute right-0 top-[calc(100%+0.75rem)] z-20 w-[min(26rem,calc(100vw-2rem))] rounded-[2rem] border border-white/80 bg-white p-4 text-gray-700 shadow-2xl shadow-gray-300/60">
               <div className="mb-4">
-                <p className="text-sm font-semibold text-gray-500">Manual entry</p>
-                <h3 className="text-xl font-black text-gray-950">Log time block</h3>
+                <p className="text-sm font-semibold text-gray-500">{t.common.manualEntry}</p>
+                <h3 className="text-xl font-black text-gray-950">{t.dashboard.logTimeBlock}</h3>
               </div>
               <form onSubmit={(event) => void createManualEntry(event)} className="grid gap-3">
                 <input
                   value={manualEntry.title}
                   onChange={(event) => setManualEntry({ ...manualEntry, title: event.target.value })}
-                  placeholder="What did you do?"
+                  placeholder={t.common.whatDidYouDo}
                   className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400 focus:bg-white"
                 />
                 <select
@@ -677,7 +700,7 @@ function DailyTimeline({
                   onChange={(event) => setManualEntry({ ...manualEntry, categoryId: event.target.value })}
                   className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400 focus:bg-white"
                 >
-                  <option value="">No category</option>
+                  <option value="">{t.common.noCategory}</option>
                   {categories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
@@ -699,7 +722,7 @@ function DailyTimeline({
                 <input
                   value={manualEntry.notes}
                   onChange={(event) => setManualEntry({ ...manualEntry, notes: event.target.value })}
-                  placeholder="Optional notes"
+                  placeholder={t.common.optionalNotes}
                   className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400 focus:bg-white"
                 />
                 <button
@@ -708,7 +731,7 @@ function DailyTimeline({
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-950 px-5 py-3 text-sm font-black text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"
                 >
                   <Plus size={17} />
-                  Add entry
+                  {t.common.addEntry}
                 </button>
               </form>
             </div>
@@ -759,7 +782,7 @@ function DailyTimeline({
               >
                 <p className="truncate text-sm font-black">{block.title}</p>
                 <p className="text-xs font-semibold opacity-80">
-                  Planned {block.category ? `- ${block.category.name}` : ""}
+                  {t.common.planned} {block.category ? `- ${block.category.name}` : ""}
                 </p>
               </div>
             );
@@ -788,13 +811,13 @@ function DailyTimeline({
           })}
           {activeTimer ? (
             <div className="absolute bottom-3 left-3 right-3 rounded-2xl border border-white/40 bg-gray-950 p-3 text-white shadow-lg">
-              <p className="text-xs text-white/70">Now tracking</p>
+              <p className="text-xs text-white/70">{t.dashboard.nowTracking}</p>
               <p className="truncate font-black">{activeTimer.title}</p>
             </div>
           ) : null}
           {entries.length === 0 && plannedBlocks.length === 0 ? (
             <div className="absolute inset-0 grid place-items-center px-6 text-center text-sm font-medium text-gray-400">
-              Start a category to paint your day.
+              {t.dashboard.emptyTimeline}
             </div>
           ) : null}
         </div>
@@ -810,12 +833,14 @@ function Charts({
   categoryStats: CategoryStat[];
   totalToday: number;
 }) {
+  const { t } = useAppLanguage();
+
   return (
     <div className="rounded-[2rem] border border-white/80 bg-white/90 p-5 shadow-xl shadow-gray-200/80">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-gray-500">Pie chart</p>
-          <h2 className="text-xl font-black text-gray-950">By category</h2>
+          <p className="text-sm font-semibold text-gray-500">{t.dashboard.pieChart}</p>
+          <h2 className="text-xl font-black text-gray-950">{t.dashboard.byCategory}</h2>
           <div className="mt-4 space-y-2">
             {categoryStats.map((stat) => (
               <div key={stat.id} className="flex items-center justify-between gap-3 text-sm">
@@ -850,6 +875,7 @@ function ScoreTrendChart({
   periodDays: number;
   onPeriodChange: (days: number) => void;
 }) {
+  const { t } = useAppLanguage();
   // hoveredIndex drives the custom tooltip. Null means no point is currently hovered/focused.
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   // Fixed viewBox dimensions make the SVG predictable; CSS still scales it to the card width.
@@ -879,19 +905,23 @@ function ScoreTrendChart({
     <div className="relative rounded-3xl bg-gray-950 p-4 text-white shadow-xl shadow-gray-300/50">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-white/55">Score trend</p>
-          <h2 className="text-3xl font-black tracking-tight text-white">{totalScore} pts</h2>
-          <p className="mt-1 text-xs font-bold text-white/45">Avg {averageScore}/10</p>
+          <p className="text-sm font-semibold text-white/55">{t.dashboard.scoreTrend}</p>
+          <h2 className="text-3xl font-black tracking-tight text-white">
+            {totalScore} {t.dashboard.points}
+          </h2>
+          <p className="mt-1 text-xs font-bold text-white/45">
+            {t.dashboard.avg} {averageScore}/10
+          </p>
         </div>
         <select
           value={periodDays}
           onChange={(event) => onPeriodChange(Number(event.target.value))}
           className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm font-black text-white outline-none transition hover:bg-white/15"
-          title="Score trend period"
+          title={t.dashboard.scoreTrendPeriod}
         >
           {scorePeriodOptions.map((option) => (
             <option key={option} value={option} className="bg-gray-950 text-white">
-              {option} days
+              {option} {t.dashboard.days}
             </option>
           ))}
         </select>
@@ -937,7 +967,7 @@ function ScoreTrendChart({
             y={Math.max(16, averageY - 8)}
             className="fill-emerald-200/90 text-[13px] font-black"
           >
-            average
+            {t.common.average}
           </text>
 
           <path d={path} fill="none" stroke="#60a5fa" strokeLinecap="round" strokeLinejoin="round" strokeWidth={5} />
@@ -990,11 +1020,11 @@ function ScoreTrendChart({
             <p className="text-xs font-black uppercase text-gray-400">{hoveredPoint.dateLabel}</p>
             <p className="mt-1 text-2xl font-black text-gray-950">{hoveredPoint.score}/10</p>
             <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-bold text-gray-500">
-              <span>Actual</span>
+              <span>{t.common.actual}</span>
               <span className="text-right text-gray-800">{formatMinutes(hoveredPoint.actualMinutes)}</span>
-              <span>Planned</span>
+              <span>{t.common.planned}</span>
               <span className="text-right text-gray-800">{formatMinutes(hoveredPoint.plannedMinutes)}</span>
-              <span>Entries</span>
+              <span>{t.common.entries}</span>
               <span className="text-right text-gray-800">{hoveredPoint.entryCount}</span>
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100">
@@ -1005,17 +1035,19 @@ function ScoreTrendChart({
       </div>
 
       <div className="mt-2 flex items-center justify-between text-xs font-bold text-white/40">
-        <span>Daily score</span>
-        <span>0-10 planned vs actual</span>
+        <span>{t.common.dailyScore}</span>
+        <span>{t.common.plannedVsActual}</span>
       </div>
     </div>
   );
 }
 
 function RoutineStrip({ routines }: { routines: Routine[] }) {
+  const { t } = useAppLanguage();
+
   return (
     <div className="rounded-[2rem] border border-white/80 bg-white/90 p-5 shadow-xl shadow-gray-200/80">
-      <p className="text-sm font-semibold text-gray-500">Routines</p>
+      <p className="text-sm font-semibold text-gray-500">{t.dashboard.routines}</p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         {routines.slice(0, 2).map((routine) => (
           <div key={routine.id} className="rounded-2xl bg-gray-50 p-4">
@@ -1061,12 +1093,14 @@ function CategoryCards({
   onStart: (category: Category) => Promise<void>;
   onStop: () => Promise<void>;
 }) {
+  const { t } = useAppLanguage();
+
   return (
     <section>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-gray-500">Quick tracking</p>
-          <h2 className="text-2xl font-black tracking-tight text-gray-950">Category cards</h2>
+          <p className="text-sm font-semibold text-gray-500">{t.dashboard.quickTracking}</p>
+          <h2 className="text-2xl font-black tracking-tight text-gray-950">{t.dashboard.categoryCards}</h2>
         </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1085,19 +1119,25 @@ function CategoryCards({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-2xl font-black">{category.name}</h3>
-                    <p className="mt-1 text-sm text-white/80">{formatMinutes(stat?.minutes ?? 0)} today</p>
+                    <p className="mt-1 text-sm text-white/80">
+                      {formatMinutes(stat?.minutes ?? 0)} {t.common.today}
+                    </p>
                   </div>
-                  <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold">{stat?.entries ?? 0} logs</span>
+                  <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold">
+                    {stat?.entries ?? 0} {t.dashboard.logs}
+                  </span>
                 </div>
               </div>
               <div className="flex items-center justify-between gap-3 p-4">
-                <p className="text-sm font-semibold text-gray-500">{isActive ? "Running now" : "Ready when you are"}</p>
+                <p className="text-sm font-semibold text-gray-500">
+                  {isActive ? t.dashboard.runningNow : t.dashboard.readyWhenYouAre}
+                </p>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => onEditCategory(isEditing ? null : category.id)}
                     className="grid size-10 place-items-center rounded-full bg-gray-100 text-gray-700 transition hover:bg-gray-200"
-                    title={`Edit ${category.name}`}
+                    title={`${t.dashboard.editCategory}: ${category.name}`}
                   >
                     <Pencil size={17} />
                   </button>
@@ -1106,7 +1146,7 @@ function CategoryCards({
                     onClick={() => (isActive ? onStop() : onStart(category))}
                     disabled={pendingAction !== null || (!!activeTimer && !isActive)}
                     className="grid size-12 place-items-center rounded-full bg-gray-950 text-white shadow-lg transition hover:scale-105 disabled:cursor-not-allowed disabled:bg-gray-300"
-                    title={isActive ? "Stop timer" : `Start ${category.name}`}
+                    title={isActive ? t.dashboard.stopTimer : `${t.dashboard.startCategory}: ${category.name}`}
                   >
                     {isActive ? <CircleStop size={21} /> : <Play size={21} fill="currentColor" />}
                   </button>
@@ -1125,7 +1165,7 @@ function CategoryCards({
                       value={draft.color}
                       onChange={(event) => updateCategoryDraft(category, { color: event.target.value })}
                       className="h-12 w-full cursor-pointer rounded-2xl border border-gray-200 bg-white p-1 sm:w-16"
-                      title="Category color"
+                      title={t.dashboard.categoryColor}
                     />
                   </div>
                   <div className="flex items-center justify-between gap-2">
@@ -1136,7 +1176,7 @@ function CategoryCards({
                       className="inline-flex items-center gap-2 rounded-full bg-rose-50 px-4 py-2 text-sm font-bold text-rose-600 transition hover:bg-rose-100 disabled:opacity-50"
                     >
                       <Trash2 size={16} />
-                      Delete
+                      {t.common.delete}
                     </button>
                     <button
                       type="button"
@@ -1145,7 +1185,7 @@ function CategoryCards({
                       className="inline-flex items-center gap-2 rounded-full bg-gray-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-gray-800 disabled:opacity-50"
                     >
                       <Save size={16} />
-                      Save
+                      {t.common.save}
                     </button>
                   </div>
                 </div>
@@ -1160,13 +1200,13 @@ function CategoryCards({
       >
         <div className="mb-3 flex items-center gap-2 text-sm font-bold text-gray-500">
           <Palette size={17} />
-          Add or customize categories
+          {t.dashboard.addCustomizeCategories}
         </div>
         <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
           <input
             value={newCategory.name}
             onChange={(event) => onNewCategoryChange({ ...newCategory, name: event.target.value })}
-            placeholder="New category name"
+            placeholder={t.dashboard.newCategoryName}
             className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-gray-400"
           />
           <input
@@ -1174,7 +1214,7 @@ function CategoryCards({
             value={newCategory.color}
             onChange={(event) => onNewCategoryChange({ ...newCategory, color: event.target.value })}
             className="h-12 w-full cursor-pointer rounded-2xl border border-gray-200 bg-white p-1 sm:w-16"
-            title="New category color"
+            title={t.dashboard.newCategoryColor}
           />
           <button
             type="submit"
@@ -1182,7 +1222,7 @@ function CategoryCards({
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gray-950 px-5 py-3 text-sm font-black text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
             <Plus size={17} />
-            Add
+            {t.common.add}
           </button>
         </div>
       </form>

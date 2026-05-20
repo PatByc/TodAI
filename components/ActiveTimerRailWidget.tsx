@@ -51,16 +51,43 @@ export function ActiveTimerRailWidget() {
 
   // Read the only active timer from the backend. The API enforces one running timer at a time.
   async function loadTimer() {
-    const response = await fetch("/api/timer", { cache: "no-store" });
-    const timer = (await response.json()) as ActiveTimer;
-    setActiveTimer(timer);
+    try {
+      const response = await fetch("/api/timer", { cache: "no-store" });
+
+      // If the API returns an error page/empty body, do not let the widget crash the full app shell.
+      if (!response.ok) {
+        console.warn("[TodAI timer] Failed to load active timer", response.status);
+        setActiveTimer(null);
+        return;
+      }
+
+      const text = await response.text();
+      const timer = text ? (JSON.parse(text) as ActiveTimer) : null;
+      setActiveTimer(timer);
+    } catch (error) {
+      console.warn("[TodAI timer] Failed to parse active timer response", error);
+      setActiveTimer(null);
+    }
   }
 
   async function loadCategories() {
     // Categories are fetched here instead of passed through layout because layout is shared and static by design.
-    const response = await fetch("/api/categories", { cache: "no-store" });
-    const data = (await response.json()) as Category[];
-    setCategories(data);
+    try {
+      const response = await fetch("/api/categories", { cache: "no-store" });
+
+      if (!response.ok) {
+        console.warn("[TodAI timer] Failed to load categories", response.status);
+        setCategories([]);
+        return;
+      }
+
+      const text = await response.text();
+      const data = text ? (JSON.parse(text) as Category[]) : [];
+      setCategories(data);
+    } catch (error) {
+      console.warn("[TodAI timer] Failed to parse categories response", error);
+      setCategories([]);
+    }
   }
 
   useEffect(() => {

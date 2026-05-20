@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { getPeriodStart } from "@/lib/dates";
 import { DashboardClient } from "@/components/dashboard-client";
+import { AppErrorState } from "@/components/AppErrorState";
+import { DATABASE_UNAVAILABLE_CODE, isDatabaseConnectionError } from "@/lib/app-errors";
+import dashboardQuotes from "@/data/dashboard-quotes.json";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +19,10 @@ function serializeCategory(category: { id: string; name: string; color: string }
     : null;
 }
 
+function getRandomDashboardQuote() {
+  return dashboardQuotes[Math.floor(Math.random() * dashboardQuotes.length)] ?? dashboardQuotes[0];
+}
+
 export default async function DashboardPage() {
   const todayStart = getPeriodStart("today");
   const tomorrowStart = new Date(todayStart);
@@ -25,16 +32,7 @@ export default async function DashboardPage() {
   const trendStart = new Date(todayStart);
   trendStart.setDate(trendStart.getDate() - 29);
 
-  const [
-    activeTimer,
-    todayEntries,
-    plannedBlocks,
-    scoreEntries,
-    scorePlannedBlocks,
-    categories,
-    goals,
-    routines,
-  ] = await Promise.all([
+  const dashboardData = await Promise.all([
     // Active timer is shown in the timeline and also mirrored by the global sidebar timer widget.
     prisma.activeTimer.findFirst({ include: { category: true } }),
     // Today entries feed the hero totals, summary panel, pie chart, and current daily timeline.
@@ -64,10 +62,39 @@ export default async function DashboardPage() {
     prisma.category.findMany({ orderBy: { name: "asc" } }),
     prisma.goal.findMany({ where: { isActive: true }, orderBy: { createdAt: "desc" } }),
     prisma.routine.findMany({ where: { isActive: true }, orderBy: { timeOfDay: "asc" } }),
-  ]);
+  ]).catch((error: unknown) => {
+    if (isDatabaseConnectionError(error)) {
+      return null;
+    }
+
+    throw error;
+  });
+
+  if (!dashboardData) {
+    return (
+      <AppErrorState
+        code={DATABASE_UNAVAILABLE_CODE}
+        title="Database connection problem"
+        message="TodAI could not reach the database. Please make sure your MySQL server is running, then try again. If the problem continues, contact the support team with this error code."
+        details="The app could not connect to the configured database server while loading dashboard data."
+      />
+    );
+  }
+
+  const [
+    activeTimer,
+    todayEntries,
+    plannedBlocks,
+    scoreEntries,
+    scorePlannedBlocks,
+    categories,
+    goals,
+    routines,
+  ] = dashboardData;
 
   return (
     <DashboardClient
+      dashboardQuote={getRandomDashboardQuote()}
       activeTimer={
         activeTimer
           ? {

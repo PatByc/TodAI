@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getPeriodStart } from "@/lib/dates";
 import { Panel, Section } from "@/components/section";
+import { LocalizedText } from "@/components/LocalizedText";
 
 export const dynamic = "force-dynamic";
 
@@ -38,34 +39,50 @@ export default async function InsightsPage() {
   ]);
 
   return (
-    <Section title="Insights">
+    <Section title={<LocalizedText en="Insights" pl="Wnioski" />}>
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-3">
           <Panel>
-            <p className="text-sm text-gray-500">Today</p>
+            <p className="text-sm text-gray-500">
+              <LocalizedText en="Today" pl="Dzisiaj" />
+            </p>
             <p className="text-3xl font-semibold">{today.minutes} min</p>
-            <p className="text-sm text-gray-500">{today.entries} entries</p>
+            <p className="text-sm text-gray-500">
+              {today.entries} <LocalizedText en="entries" pl="wpisy" />
+            </p>
           </Panel>
           <Panel>
-            <p className="text-sm text-gray-500">This week</p>
+            <p className="text-sm text-gray-500">
+              <LocalizedText en="This week" pl="Ten tydzień" />
+            </p>
             <p className="text-3xl font-semibold">{week.minutes} min</p>
-            <p className="text-sm text-gray-500">{week.entries} entries</p>
+            <p className="text-sm text-gray-500">
+              {week.entries} <LocalizedText en="entries" pl="wpisy" />
+            </p>
           </Panel>
           <Panel>
-            <p className="text-sm text-gray-500">This month</p>
+            <p className="text-sm text-gray-500">
+              <LocalizedText en="This month" pl="Ten miesiąc" />
+            </p>
             <p className="text-3xl font-semibold">{month.minutes} min</p>
-            <p className="text-sm text-gray-500">{month.entries} entries</p>
+            <p className="text-sm text-gray-500">
+              {month.entries} <LocalizedText en="entries" pl="wpisy" />
+            </p>
           </Panel>
         </div>
 
         <Panel>
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-gray-500">Future graph</p>
-              <h2 className="text-2xl font-black text-gray-950">Users leaderboard</h2>
+              <p className="text-sm font-semibold text-gray-500">
+                <LocalizedText en="Future graph" pl="Przyszły wykres" />
+              </p>
+              <h2 className="text-2xl font-black text-gray-950">
+                <LocalizedText en="Users leaderboard" pl="Ranking użytkowników" />
+              </h2>
             </div>
             <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-black uppercase text-gray-500">
-              Placeholder
+              <LocalizedText en="Placeholder" pl="Miejsce na przyszłość" />
             </span>
           </div>
 
@@ -103,7 +120,10 @@ export default async function InsightsPage() {
             </div>
           </div>
           <p className="mt-4 text-xs font-semibold text-gray-400">
-            This is reserved for a future users leaderboard once user profiles and comparison data exist.
+            <LocalizedText
+              en="This is reserved for a future users leaderboard once user profiles and comparison data exist."
+              pl="To miejsce jest zarezerwowane na przyszły ranking użytkowników, gdy pojawią się profile i dane do porównań."
+            />
           </p>
         </Panel>
       </div>
