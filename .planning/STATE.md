@@ -10,8 +10,8 @@ progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 8
-  completed_plans: 5
-  percent: 63
+  completed_plans: 6
+  percent: 75
 ---
 
 # Project State
@@ -26,29 +26,29 @@ See: .planning/PROJECT.md (updated 2026-09-08)
 ## Current Position
 
 Phase: 01 (core-entities-application-shell) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Executing Phase 01
-Last activity: 2026-09-09 -- Plan 01-05 complete (service layer, API routes, integration tests)
+Last activity: 2026-09-09 -- Plan 01-06 complete (Tiptap editor, toolbar, slash commands, auto-save)
 
-Progress: [██████░░░░] 63%
+Progress: [███████░░░] 75%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 5
-- Average duration: 7min
-- Total execution time: 0.57 hours
+- Total plans completed: 6
+- Average duration: 6min
+- Total execution time: 0.66 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01 | 5 | 34min | 7min |
+| 01 | 6 | 39min | 6min |
 
 **Recent Trend:**
 
-- Last 5 plans: 8min, 8min, 3min, 6min, 9min
+- Last 5 plans: 8min, 3min, 6min, 9min, 5min
 - Trend: steady
 
 *Updated after each plan completion*
@@ -77,6 +77,10 @@ Recent decisions affecting current work:
 - [01-05]: Audit changes dict serializes datetime/enum to JSON-safe types (isoformat, .value)
 - [01-05]: Savepoint-based test isolation with get_db dependency override for clean integration tests
 - [01-05]: Fixed timezone-naive datetime for archived_at/completed_at columns (TIMESTAMP WITHOUT TIME ZONE)
+- [01-06]: Table extension uses named import -- @tiptap/extension-table v3 has no default export
+- [01-06]: Slash commands built via @tiptap/suggestion with ReactRenderer for dropdown popup
+- [01-06]: Code syntax highlighting via inline CSS with hljs classes matching UI-SPEC color palette
+- [01-06]: Plain text extracted from Tiptap JSON by recursive node walk for content_text field
 
 ### Pending Todos
 
@@ -96,6 +100,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-09T23:12:04Z
-Stopped at: Completed 01-05-PLAN.md (service layer, API routes, integration tests)
-Resume file: .planning/phases/01-core-entities-application-shell/01-06-PLAN.md
+Last session: 2026-09-09T23:20:16Z
+Stopped at: Completed 01-06-PLAN.md (Tiptap editor, toolbar, slash commands, auto-save)
+Resume file: .planning/phases/01-core-entities-application-shell/01-07-PLAN.md
