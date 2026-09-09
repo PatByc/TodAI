@@ -91,3 +91,17 @@ body {
 * {
   border-color: var(--border);
 }
+
+/* Responsive: <=768px (UI-SPEC Responsive contract) */
+@media (max-width: 768px) {
+  /* Hide search label text, keep only kbd shortcut */
+  .search-label {
+    display: none;
+  }
+
+  /* Reduce content area horizontal padding from 40px to 20px */
+  .content-area > div {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+}
