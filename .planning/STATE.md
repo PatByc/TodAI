@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 1 context gathered
-last_updated: "2026-09-09T22:59:21Z"
-last_activity: 2026-09-09 -- Plan 01-04 complete (frontend data layer + entity list views)
+last_updated: "2026-09-09T23:12:04Z"
+last_activity: 2026-09-09 -- Plan 01-05 complete (service layer, API routes, integration tests)
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 8
-  completed_plans: 4
-  percent: 50
+  completed_plans: 5
+  percent: 63
 ---
 
 # Project State
@@ -26,29 +26,29 @@ See: .planning/PROJECT.md (updated 2026-09-08)
 ## Current Position
 
 Phase: 01 (core-entities-application-shell) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Executing Phase 01
-Last activity: 2026-09-09 -- Plan 01-04 complete (frontend data layer + entity list views)
+Last activity: 2026-09-09 -- Plan 01-05 complete (service layer, API routes, integration tests)
 
-Progress: [█████░░░░░] 50%
+Progress: [██████░░░░] 63%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 4
-- Average duration: 6min
-- Total execution time: 0.42 hours
+- Total plans completed: 5
+- Average duration: 7min
+- Total execution time: 0.57 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01 | 4 | 25min | 6min |
+| 01 | 5 | 34min | 7min |
 
 **Recent Trend:**
 
-- Last 5 plans: 8min, 8min, 3min, 6min
+- Last 5 plans: 8min, 8min, 3min, 6min, 9min
 - Trend: steady
 
 *Updated after each plan completion*
@@ -73,6 +73,10 @@ Recent decisions affecting current work:
 - [01-04]: ApiError uses explicit field assignment (not parameter properties) due to erasableSyntaxOnly
 - [01-04]: Stub detail routes for /notes/$noteId, /tasks/$taskId, /ideas/$ideaId (same pattern as 01-02)
 - [01-04]: Sidebar wired with useCounts hook for live entity counts and useRouterState for active highlighting
+- [01-05]: Service layer controls transactions (commit) while repositories use flush for clean separation
+- [01-05]: Audit changes dict serializes datetime/enum to JSON-safe types (isoformat, .value)
+- [01-05]: Savepoint-based test isolation with get_db dependency override for clean integration tests
+- [01-05]: Fixed timezone-naive datetime for archived_at/completed_at columns (TIMESTAMP WITHOUT TIME ZONE)
 
 ### Pending Todos
 
@@ -92,6 +96,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-09T22:59:21Z
-Stopped at: Completed 01-04-PLAN.md (frontend data layer + entity list views)
-Resume file: .planning/phases/01-core-entities-application-shell/01-05-PLAN.md
+Last session: 2026-09-09T23:12:04Z
+Stopped at: Completed 01-05-PLAN.md (service layer, API routes, integration tests)
+Resume file: .planning/phases/01-core-entities-application-shell/01-06-PLAN.md

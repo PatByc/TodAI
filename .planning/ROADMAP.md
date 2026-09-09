@@ -47,7 +47,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-05-PLAN.md — Backend services with audit logging, CRUD routes, and integration tests
+- [x] 01-05-PLAN.md — Backend services with audit logging, CRUD routes, and integration tests
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -115,7 +115,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Entities & Application Shell | 4/8 | Executing | - |
+| 1. Core Entities & Application Shell | 5/8 | Executing | - |
 | 2. Projects, Capture & Organization | 0/TBD | Not started | - |
 | 3. Indexing & Hybrid Search | 0/TBD | Not started | - |
 | 4. Tod Ask Mode | 0/TBD | Not started | - |
