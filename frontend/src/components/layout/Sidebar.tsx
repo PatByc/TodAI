@@ -1,7 +1,8 @@
-import { useEffect, useCallback } from "react"
-import { Link } from "@tanstack/react-router"
+import { useState, useEffect, useCallback } from "react"
+import { Link, useRouterState } from "@tanstack/react-router"
 import { FileText, CheckSquare, Lightbulb, Tag, Archive } from "lucide-react"
 import { useSidebarStore } from "@/stores/sidebar"
+import { useCounts } from "@/hooks/useCounts"
 import { SidebarSection } from "./SidebarSection"
 
 function useMediaQuery(query: string): boolean {
@@ -9,7 +10,6 @@ function useMediaQuery(query: string): boolean {
   if (typeof window === "undefined") return false
 
   const mql = window.matchMedia(query)
-  // Use useSyncExternalStore pattern would be ideal, but for simplicity:
   const [matches, setMatches] = useState(mql.matches)
 
   useEffect(() => {
@@ -20,8 +20,6 @@ function useMediaQuery(query: string): boolean {
 
   return matches
 }
-
-import { useState } from "react"
 
 export function Sidebar() {
   const isCollapsed = useSidebarStore((s) => s.isCollapsed)
@@ -108,6 +106,26 @@ export function Sidebar() {
 }
 
 function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
+  const { data: counts } = useCounts()
+  const routerState = useRouterState()
+  const currentPath = routerState.location.pathname
+
+  /** Check if a route path is active (exact or starts with prefix) */
+  const isActive = (path: string) => currentPath.startsWith(path)
+
+  const activeLinkStyle = (path: string): React.CSSProperties => ({
+    display: "block",
+    padding: "6px 8px 6px 18px",
+    fontSize: "13px",
+    textDecoration: "none",
+    borderRadius: "4px",
+    color: isActive(path) ? "var(--foreground)" : "var(--muted-foreground)",
+    backgroundColor: isActive(path) ? "var(--accent-glow)" : "transparent",
+    borderLeft: isActive(path)
+      ? "2px solid var(--primary)"
+      : "2px solid transparent",
+  })
+
   return (
     <>
       {/* Filter bar placeholder (Plan 08) */}
@@ -118,21 +136,14 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
         <SidebarSection
           label="NOTES"
           icon={FileText}
-          count={0}
+          count={counts?.notes ?? 0}
           defaultExpanded
         >
           <Link
             to="/notes"
             onClick={onNavClick}
             className="sidebar-nav-link"
-            style={{
-              display: "block",
-              padding: "6px 8px",
-              fontSize: "13px",
-              color: "var(--muted-foreground)",
-              textDecoration: "none",
-              borderRadius: "4px",
-            }}
+            style={activeLinkStyle("/notes")}
           >
             All Notes
           </Link>
@@ -141,21 +152,14 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
         <SidebarSection
           label="TASKS"
           icon={CheckSquare}
-          count={0}
+          count={counts?.tasks ?? 0}
           defaultExpanded
         >
           <Link
             to="/tasks"
             onClick={onNavClick}
             className="sidebar-nav-link"
-            style={{
-              display: "block",
-              padding: "6px 8px",
-              fontSize: "13px",
-              color: "var(--muted-foreground)",
-              textDecoration: "none",
-              borderRadius: "4px",
-            }}
+            style={activeLinkStyle("/tasks")}
           >
             All Tasks
           </Link>
@@ -164,21 +168,14 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
         <SidebarSection
           label="IDEAS"
           icon={Lightbulb}
-          count={0}
+          count={counts?.ideas ?? 0}
           defaultExpanded
         >
           <Link
             to="/ideas"
             onClick={onNavClick}
             className="sidebar-nav-link"
-            style={{
-              display: "block",
-              padding: "6px 8px",
-              fontSize: "13px",
-              color: "var(--muted-foreground)",
-              textDecoration: "none",
-              borderRadius: "4px",
-            }}
+            style={activeLinkStyle("/ideas")}
           >
             All Ideas
           </Link>
