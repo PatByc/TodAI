@@ -52,7 +52,7 @@ Plans:
 **Wave 4** *(blocked on Wave 3 completion)*
 
 - [x] 01-06-PLAN.md — Tiptap rich text editor with toolbar, slash commands, and auto-save
-- [ ] 01-07-PLAN.md — Task and Idea detail views with status controls and lifecycle pipeline
+- [x] 01-07-PLAN.md — Task and Idea detail views with status controls and lifecycle pipeline
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -115,7 +115,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Entities & Application Shell | 6/8 | Executing | - |
+| 1. Core Entities & Application Shell | 7/8 | Executing | - |
 | 2. Projects, Capture & Organization | 0/TBD | Not started | - |
 | 3. Indexing & Hybrid Search | 0/TBD | Not started | - |
 | 4. Tod Ask Mode | 0/TBD | Not started | - |
