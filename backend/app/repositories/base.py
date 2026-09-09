@@ -106,7 +106,7 @@ class BaseRepository(Generic[T]):
                 f"{self.model.__name__} does not support soft-delete (no archived_at)"
             )
 
-        entity.archived_at = datetime.now(timezone.utc)
+        entity.archived_at = datetime.now(timezone.utc).replace(tzinfo=None)
         await self.session.flush()
         await self.session.refresh(entity)
         return entity

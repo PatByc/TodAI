@@ -98,7 +98,7 @@ class TaskService:
             new_status = update_data["status"]
             old_status = existing.status
             if new_status == TaskStatus.DONE and old_status != TaskStatus.DONE:
-                update_data["completed_at"] = datetime.now(timezone.utc)
+                update_data["completed_at"] = datetime.now(timezone.utc).replace(tzinfo=None)
             elif new_status != TaskStatus.DONE and old_status == TaskStatus.DONE:
                 update_data["completed_at"] = None
 
@@ -109,6 +109,11 @@ class TaskService:
             # Convert enums to string for comparison/serialization
             old_serialized = old_value.value if hasattr(old_value, "value") else old_value
             new_serialized = new_value.value if hasattr(new_value, "value") else new_value
+            # Convert datetime to ISO string for JSON serialization
+            if isinstance(old_serialized, datetime):
+                old_serialized = old_serialized.isoformat()
+            if isinstance(new_serialized, datetime):
+                new_serialized = new_serialized.isoformat()
             if old_serialized != new_serialized:
                 changes[field] = {"old": old_serialized, "new": new_serialized}
 

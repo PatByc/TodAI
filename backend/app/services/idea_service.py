@@ -91,6 +91,11 @@ class IdeaService:
             old_value = getattr(existing, field)
             old_serialized = old_value.value if hasattr(old_value, "value") else old_value
             new_serialized = new_value.value if hasattr(new_value, "value") else new_value
+            # Convert datetime to ISO string for JSON serialization
+            if hasattr(old_serialized, "isoformat"):
+                old_serialized = old_serialized.isoformat()
+            if hasattr(new_serialized, "isoformat"):
+                new_serialized = new_serialized.isoformat()
             if old_serialized != new_serialized:
                 changes[field] = {"old": old_serialized, "new": new_serialized}
 

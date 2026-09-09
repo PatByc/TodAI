@@ -87,8 +87,11 @@ class NoteService:
         changes = {}
         for field, new_value in update_data.items():
             old_value = getattr(existing, field)
-            if old_value != new_value:
-                changes[field] = {"old": old_value, "new": new_value}
+            # Serialize non-JSON-safe types
+            old_serialized = old_value.isoformat() if hasattr(old_value, "isoformat") else old_value
+            new_serialized = new_value.isoformat() if hasattr(new_value, "isoformat") else new_value
+            if old_serialized != new_serialized:
+                changes[field] = {"old": old_serialized, "new": new_serialized}
 
         note = await self.repo.update(note_id, update_data)
         if note is None:
