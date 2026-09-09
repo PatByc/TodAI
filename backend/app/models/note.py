@@ -1,0 +1,19 @@
+"""Note entity model."""
+
+from sqlalchemy import String, Text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
+
+from .base import Base, SoftDeleteMixin, TimestampMixin
+
+
+class Note(TimestampMixin, SoftDeleteMixin, Base):
+    """A note with rich text content stored as Tiptap JSON."""
+
+    __tablename__ = "notes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(500))
+    content: Mapped[dict] = mapped_column(JSONB, default=dict)
+    content_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pinned: Mapped[bool] = mapped_column(default=False)
