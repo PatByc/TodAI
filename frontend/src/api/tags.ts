@@ -1,7 +1,3 @@
-/**
- * API functions for Tag operations including entity-tag associations.
- */
-
 import { apiClient, buildQueryString } from "./client"
 import type { TagResponse } from "@/types/entities"
 
@@ -14,12 +10,20 @@ export async function searchTags(query: string): Promise<TagResponse[]> {
   return apiClient.get<TagResponse[]>(`/tags/search${qs}`)
 }
 
+export async function createTag(name: string): Promise<TagResponse> {
+  return apiClient.post<TagResponse>("/tags/", { name })
+}
+
 export async function addTagToEntity(
   tagId: number,
   entityType: string,
   entityId: number,
 ): Promise<void> {
-  return apiClient.post<void>(`/tags/${tagId}/${entityType}/${entityId}`)
+  return apiClient.post<void>("/tags/entity", {
+    tag_id: tagId,
+    entity_type: entityType,
+    entity_id: entityId,
+  })
 }
 
 export async function removeTagFromEntity(
@@ -27,12 +31,17 @@ export async function removeTagFromEntity(
   entityType: string,
   entityId: number,
 ): Promise<void> {
-  return apiClient.del<void>(`/tags/${tagId}/${entityType}/${entityId}`)
+  const qs = buildQueryString({
+    tag_id: tagId,
+    entity_type: entityType,
+    entity_id: entityId,
+  })
+  return apiClient.del<void>(`/tags/entity${qs}`)
 }
 
 export async function getEntityTags(
   entityType: string,
   entityId: number,
 ): Promise<TagResponse[]> {
-  return apiClient.get<TagResponse[]>(`/tags/${entityType}/${entityId}`)
+  return apiClient.get<TagResponse[]>(`/tags/entity/${entityType}/${entityId}`)
 }

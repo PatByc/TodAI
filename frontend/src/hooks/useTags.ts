@@ -5,11 +5,20 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
+  fetchTags,
   searchTags,
+  createTag,
   addTagToEntity,
   removeTagFromEntity,
   getEntityTags,
 } from "@/api/tags"
+
+export function useFetchAllTags() {
+  return useQuery({
+    queryKey: ["tags", "list"],
+    queryFn: fetchTags,
+  })
+}
 
 export function useSearchTags(query: string) {
   return useQuery({
@@ -24,6 +33,16 @@ export function useEntityTags(entityType: string, entityId: number) {
     queryKey: ["tags", entityType, entityId],
     queryFn: () => getEntityTags(entityType, entityId),
     enabled: entityId > 0,
+  })
+}
+
+export function useCreateTag() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (name: string) => createTag(name),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["tags"] })
+    },
   })
 }
 
