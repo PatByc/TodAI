@@ -1,14 +1,11 @@
-/**
- * Notes list route at /notes.
- * Displays NoteCard list or EmptyState per UI-SPEC copywriting contract.
- */
-
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 import { useNotes, useCreateNote } from "@/hooks/useNotes"
+import { useFetchAllTags } from "@/hooks/useTags"
 import { useFilterStore } from "@/stores/filters"
 import { NoteCard } from "@/components/entities/NoteCard"
 import { EmptyState } from "@/components/entities/EmptyState"
+import { TagFilterBar } from "@/components/tags/TagFilterBar"
 
 export const Route = createFileRoute("/notes/")({
   component: NotesPage,
@@ -17,6 +14,7 @@ export const Route = createFileRoute("/notes/")({
 function NotesPage() {
   const navigate = useNavigate()
   const { selectedTagIds, tagLogic, includeArchived } = useFilterStore()
+  const { data: allTags = [] } = useFetchAllTags()
 
   const { data, isLoading } = useNotes({
     include_archived: includeArchived || undefined,
@@ -47,7 +45,7 @@ function NotesPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: "24px",
+          marginBottom: "16px",
         }}
       >
         <h1
@@ -85,6 +83,11 @@ function NotesPage() {
           <Plus size={14} />
           New Note
         </button>
+      </div>
+
+      {/* Filter bar */}
+      <div style={{ marginBottom: "16px" }}>
+        <TagFilterBar allTags={allTags} />
       </div>
 
       {/* Content */}

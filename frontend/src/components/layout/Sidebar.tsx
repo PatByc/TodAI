@@ -3,10 +3,10 @@ import { Link, useRouterState } from "@tanstack/react-router"
 import { FileText, CheckSquare, Lightbulb, Tag, Archive } from "lucide-react"
 import { useSidebarStore } from "@/stores/sidebar"
 import { useCounts } from "@/hooks/useCounts"
+import { useFilterStore } from "@/stores/filters"
 import { SidebarSection } from "./SidebarSection"
 
 function useMediaQuery(query: string): boolean {
-  // Simple SSR-safe media query check
   if (typeof window === "undefined") return false
 
   const mql = window.matchMedia(query)
@@ -26,7 +26,6 @@ export function Sidebar() {
   const setCollapsed = useSidebarStore((s) => s.setCollapsed)
   const isMobile = useMediaQuery("(max-width: 768px)")
 
-  // On mobile, sidebar defaults to collapsed
   useEffect(() => {
     if (isMobile) {
       setCollapsed(true)
@@ -34,7 +33,6 @@ export function Sidebar() {
   }, [isMobile, setCollapsed])
 
   const handleNavClick = useCallback(() => {
-    // On mobile, close sidebar when a nav link is clicked
     if (isMobile) {
       setCollapsed(true)
     }
@@ -44,11 +42,9 @@ export function Sidebar() {
     setCollapsed(true)
   }, [setCollapsed])
 
-  // Mobile overlay mode
   if (isMobile) {
     return (
       <>
-        {/* Backdrop */}
         {!isCollapsed && (
           <div
             onClick={handleBackdropClick}
@@ -60,8 +56,6 @@ export function Sidebar() {
             }}
           />
         )}
-
-        {/* Sidebar overlay */}
         <aside
           style={{
             position: "fixed",
@@ -85,7 +79,6 @@ export function Sidebar() {
     )
   }
 
-  // Desktop mode
   return (
     <aside
       style={{
@@ -107,10 +100,10 @@ export function Sidebar() {
 
 function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
   const { data: counts } = useCounts()
+  const { includeArchived, setIncludeArchived } = useFilterStore()
   const routerState = useRouterState()
   const currentPath = routerState.location.pathname
 
-  /** Check if a route path is active (exact or starts with prefix) */
   const isActive = (path: string) => currentPath.startsWith(path)
 
   const activeLinkStyle = (path: string): React.CSSProperties => ({
@@ -128,10 +121,8 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
 
   return (
     <>
-      {/* Filter bar placeholder (Plan 08) */}
       <div style={{ padding: "8px 16px" }} />
 
-      {/* Entity sections */}
       <nav className="flex flex-col gap-1" style={{ flex: 1 }}>
         <SidebarSection
           label="NOTES"
@@ -182,7 +173,6 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
         </SidebarSection>
       </nav>
 
-      {/* Footer: Tags + Archive */}
       <div
         style={{
           marginTop: "auto",
@@ -206,22 +196,32 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
           <Tag size={14} />
           Tags
         </Link>
-        <Link
-          to="/"
-          onClick={onNavClick}
+        <button
+          onClick={() => {
+            setIncludeArchived(!includeArchived)
+            onNavClick()
+          }}
           style={{
             display: "flex",
             alignItems: "center",
             gap: "8px",
             padding: "8px 16px",
             fontSize: "13px",
-            color: "var(--muted-foreground)",
-            textDecoration: "none",
+            color: includeArchived ? "var(--primary)" : "var(--muted-foreground)",
+            background: includeArchived ? "var(--accent-glow)" : "transparent",
+            border: "none",
+            cursor: "pointer",
+            width: "100%",
+            textAlign: "left",
+            fontFamily: "var(--font-body)",
           }}
         >
           <Archive size={14} />
           Archive
-        </Link>
+          {includeArchived && (
+            <span style={{ fontSize: "10px", marginLeft: "auto", opacity: 0.7 }}>ON</span>
+          )}
+        </button>
       </div>
     </>
   )

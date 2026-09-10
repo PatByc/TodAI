@@ -1,14 +1,11 @@
-/**
- * Tasks list route at /tasks.
- * Displays TaskCard list or EmptyState per UI-SPEC copywriting contract.
- */
-
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 import { useTasks, useCreateTask } from "@/hooks/useTasks"
+import { useFetchAllTags } from "@/hooks/useTags"
 import { useFilterStore } from "@/stores/filters"
 import { TaskCard } from "@/components/entities/TaskCard"
 import { EmptyState } from "@/components/entities/EmptyState"
+import { TagFilterBar } from "@/components/tags/TagFilterBar"
 
 export const Route = createFileRoute("/tasks/")({
   component: TasksPage,
@@ -17,6 +14,7 @@ export const Route = createFileRoute("/tasks/")({
 function TasksPage() {
   const navigate = useNavigate()
   const { selectedTagIds, tagLogic, includeArchived } = useFilterStore()
+  const { data: allTags = [] } = useFetchAllTags()
 
   const { data, isLoading } = useTasks({
     include_archived: includeArchived || undefined,
@@ -41,13 +39,12 @@ function TasksPage() {
 
   return (
     <div>
-      {/* Header */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: "24px",
+          marginBottom: "16px",
         }}
       >
         <h1
@@ -87,7 +84,10 @@ function TasksPage() {
         </button>
       </div>
 
-      {/* Content */}
+      <div style={{ marginBottom: "16px" }}>
+        <TagFilterBar allTags={allTags} />
+      </div>
+
       {isLoading ? (
         <div style={{ color: "var(--muted-foreground)", fontSize: "14px" }}>
           Loading...

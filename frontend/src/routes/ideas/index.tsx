@@ -1,14 +1,11 @@
-/**
- * Ideas list route at /ideas.
- * Displays IdeaCard list or EmptyState per UI-SPEC copywriting contract.
- */
-
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 import { useIdeas, useCreateIdea } from "@/hooks/useIdeas"
+import { useFetchAllTags } from "@/hooks/useTags"
 import { useFilterStore } from "@/stores/filters"
 import { IdeaCard } from "@/components/entities/IdeaCard"
 import { EmptyState } from "@/components/entities/EmptyState"
+import { TagFilterBar } from "@/components/tags/TagFilterBar"
 
 export const Route = createFileRoute("/ideas/")({
   component: IdeasPage,
@@ -17,6 +14,7 @@ export const Route = createFileRoute("/ideas/")({
 function IdeasPage() {
   const navigate = useNavigate()
   const { selectedTagIds, tagLogic, includeArchived } = useFilterStore()
+  const { data: allTags = [] } = useFetchAllTags()
 
   const { data, isLoading } = useIdeas({
     include_archived: includeArchived || undefined,
@@ -41,13 +39,12 @@ function IdeasPage() {
 
   return (
     <div>
-      {/* Header */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: "24px",
+          marginBottom: "16px",
         }}
       >
         <h1
@@ -87,7 +84,10 @@ function IdeasPage() {
         </button>
       </div>
 
-      {/* Content */}
+      <div style={{ marginBottom: "16px" }}>
+        <TagFilterBar allTags={allTags} />
+      </div>
+
       {isLoading ? (
         <div style={{ color: "var(--muted-foreground)", fontSize: "14px" }}>
           Loading...
