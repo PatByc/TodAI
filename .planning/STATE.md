@@ -10,8 +10,8 @@ progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 15
-  completed_plans: 10
-  percent: 33
+  completed_plans: 11
+  percent: 40
 ---
 
 # Project State
@@ -26,30 +26,30 @@ See: .planning/PROJECT.md (updated 2026-09-08)
 ## Current Position
 
 Phase: 02 (projects-capture-organization) — EXECUTING
-Plan: 3 of 7
+Plan: 4 of 7
 Status: Executing Phase 02
-Last activity: 2026-09-15 -- Completed 02-02 (Phase 2 service layer)
+Last activity: 2026-09-15 -- Completed 02-04 (Frontend data layer for projects/inbox/export)
 
-Progress: [███░░░░░░░] 33%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 10
+- Total plans completed: 11
 - Average duration: 6min
-- Total execution time: 0.93 hours
+- Total execution time: 1.02 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 8 | 48min | 6min |
-| 02 | 2 | 8min | 4min |
+| 02 | 3 | 13min | 4min |
 
 **Recent Trend:**
 
-- Last 5 plans: 5min, 3min, 6min, 3min, 5min
+- Last 5 plans: 3min, 6min, 3min, 5min, 5min
 - Trend: steady
 
 *Updated after each plan completion*
@@ -95,6 +95,9 @@ Recent decisions affecting current work:
 - [02-02]: Shared text_utils.py for backend Tiptap plain-text extraction (not duplicating frontend logic per service)
 - [02-02]: Existing services already pass project_id via schema model_dump() -- no code changes needed
 - [02-02]: ConversionService wraps Idea plain text in minimal Tiptap JSON when converting to Note
+- [02-04]: Conversion hooks return unknown type since converted entity type varies by target_type
+- [02-04]: Export uses direct fetch with blob download instead of apiClient to handle binary response
+- [02-04]: Entity list hooks read selectedProjectId from filter store internally (not via caller params)
 
 ### Pending Todos
 
@@ -114,6 +117,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-15T14:52:00Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-09-15T15:02:00Z
+Stopped at: Completed 02-04-PLAN.md
 Resume file: .planning/phases/02-projects-capture-organization/02-03-PLAN.md
