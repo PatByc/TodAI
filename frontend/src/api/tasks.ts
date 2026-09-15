@@ -12,6 +12,7 @@ export interface FetchTasksParams {
   status?: TaskStatus
   tag_ids?: number[]
   tag_logic?: "and" | "or"
+  project_id?: number
 }
 
 export async function fetchTasks(params: FetchTasksParams = {}): Promise<PaginatedResponse<Task>> {
@@ -22,6 +23,7 @@ export async function fetchTasks(params: FetchTasksParams = {}): Promise<Paginat
     status: params.status,
     tag_ids: params.tag_ids,
     tag_logic: params.tag_logic,
+    project_id: params.project_id,
   })
   return apiClient.get<PaginatedResponse<Task>>(`/tasks${qs}`)
 }

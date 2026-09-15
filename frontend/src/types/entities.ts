@@ -128,10 +128,69 @@ export interface PaginatedResponse<T> {
   limit: number
 }
 
+// ── Project ───────────────────────────────────────────────────────────
+
+export type ProjectStatus =
+  | "active"
+  | "on_hold"
+  | "completed"
+  | "archived"
+
+export interface Project {
+  id: number
+  name: string
+  description: Record<string, unknown> | null
+  description_text: string | null
+  goals: string | null
+  current_focus: string | null
+  status: ProjectStatus
+  archived_at: string | null
+  created_at: string
+  updated_at: string
+  tags: TagResponse[]
+}
+
+export interface ProjectCreate {
+  name: string
+  description?: Record<string, unknown>
+  goals?: string
+  current_focus?: string
+}
+
+export interface ProjectUpdate {
+  name?: string
+  description?: Record<string, unknown>
+  description_text?: string
+  goals?: string
+  current_focus?: string
+  status?: ProjectStatus
+}
+
+// ── Inbox ─────────────────────────────────────────────────────────────
+
+export interface InboxItem {
+  id: number
+  content: Record<string, unknown>
+  content_text: string | null
+  created_at: string
+  updated_at: string
+  tags: TagResponse[]
+}
+
+export interface InboxItemCreate {
+  content: Record<string, unknown>
+}
+
+export interface ConvertRequest {
+  target_type: "note" | "task" | "idea" | "project"
+}
+
 // ── System ─────────────────────────────────────────────────────────────
 
 export interface EntityCounts {
   notes: number
   tasks: number
   ideas: number
+  projects: number
+  inbox: number
 }

@@ -12,6 +12,7 @@ export interface FetchIdeasParams {
   state?: IdeaState
   tag_ids?: number[]
   tag_logic?: "and" | "or"
+  project_id?: number
 }
 
 export async function fetchIdeas(params: FetchIdeasParams = {}): Promise<PaginatedResponse<Idea>> {
@@ -22,6 +23,7 @@ export async function fetchIdeas(params: FetchIdeasParams = {}): Promise<Paginat
     state: params.state,
     tag_ids: params.tag_ids,
     tag_logic: params.tag_logic,
+    project_id: params.project_id,
   })
   return apiClient.get<PaginatedResponse<Idea>>(`/ideas${qs}`)
 }
@@ -48,4 +50,8 @@ export async function archiveIdea(id: number): Promise<Idea> {
 
 export async function unarchiveIdea(id: number): Promise<Idea> {
   return apiClient.post<Idea>(`/ideas/${id}/unarchive`)
+}
+
+export async function convertIdea(id: number, targetType: string): Promise<unknown> {
+  return apiClient.post<unknown>(`/ideas/${id}/convert`, { target_type: targetType })
 }

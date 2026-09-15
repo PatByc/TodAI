@@ -11,6 +11,7 @@ export interface FetchNotesParams {
   include_archived?: boolean
   tag_ids?: number[]
   tag_logic?: "and" | "or"
+  project_id?: number
 }
 
 export async function fetchNotes(params: FetchNotesParams = {}): Promise<PaginatedResponse<Note>> {
@@ -20,6 +21,7 @@ export async function fetchNotes(params: FetchNotesParams = {}): Promise<Paginat
     include_archived: params.include_archived,
     tag_ids: params.tag_ids,
     tag_logic: params.tag_logic,
+    project_id: params.project_id,
   })
   return apiClient.get<PaginatedResponse<Note>>(`/notes${qs}`)
 }
