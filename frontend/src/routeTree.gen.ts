@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as IdeasIndexRouteImport } from './routes/ideas/index'
 import { Route as IdeasIdeaIdRouteImport } from './routes/ideas/$ideaId'
+import { Route as InboxIndexRouteImport } from './routes/inbox/index'
 import { Route as NotesIndexRouteImport } from './routes/notes/index'
 import { Route as NotesNoteIdRouteImport } from './routes/notes/$noteId'
+import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
+import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
 import { Route as TasksIndexRouteImport } from './routes/tasks/index'
 import { Route as TasksTaskIdRouteImport } from './routes/tasks/$taskId'
 
@@ -32,6 +35,11 @@ const IdeasIdeaIdRoute = IdeasIdeaIdRouteImport.update({
   path: '/ideas/$ideaId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InboxIndexRoute = InboxIndexRouteImport.update({
+  id: '/inbox/',
+  path: '/inbox/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NotesIndexRoute = NotesIndexRouteImport.update({
   id: '/notes/',
   path: '/notes/',
@@ -40,6 +48,16 @@ const NotesIndexRoute = NotesIndexRouteImport.update({
 const NotesNoteIdRoute = NotesNoteIdRouteImport.update({
   id: '/notes/$noteId',
   path: '/notes/$noteId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
+  id: '/projects/',
+  path: '/projects/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
+  id: '/projects/$projectId',
+  path: '/projects/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TasksIndexRoute = TasksIndexRouteImport.update({
@@ -57,18 +75,24 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ideas/$ideaId': typeof IdeasIdeaIdRoute
   '/notes/$noteId': typeof NotesNoteIdRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/ideas/': typeof IdeasIndexRoute
+  '/inbox/': typeof InboxIndexRoute
   '/notes/': typeof NotesIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
   '/tasks/': typeof TasksIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ideas/$ideaId': typeof IdeasIdeaIdRoute
   '/notes/$noteId': typeof NotesNoteIdRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/ideas': typeof IdeasIndexRoute
+  '/inbox': typeof InboxIndexRoute
   '/notes': typeof NotesIndexRoute
+  '/projects': typeof ProjectsIndexRoute
   '/tasks': typeof TasksIndexRoute
 }
 export interface FileRoutesById {
@@ -76,9 +100,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/ideas/$ideaId': typeof IdeasIdeaIdRoute
   '/notes/$noteId': typeof NotesNoteIdRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/ideas/': typeof IdeasIndexRoute
+  '/inbox/': typeof InboxIndexRoute
   '/notes/': typeof NotesIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
   '/tasks/': typeof TasksIndexRoute
 }
 export interface FileRouteTypes {
@@ -87,27 +114,36 @@ export interface FileRouteTypes {
     | '/'
     | '/ideas/$ideaId'
     | '/notes/$noteId'
+    | '/projects/$projectId'
     | '/tasks/$taskId'
     | '/ideas/'
+    | '/inbox/'
     | '/notes/'
+    | '/projects/'
     | '/tasks/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/ideas/$ideaId'
     | '/notes/$noteId'
+    | '/projects/$projectId'
     | '/tasks/$taskId'
     | '/ideas'
+    | '/inbox'
     | '/notes'
+    | '/projects'
     | '/tasks'
   id:
     | '__root__'
     | '/'
     | '/ideas/$ideaId'
     | '/notes/$noteId'
+    | '/projects/$projectId'
     | '/tasks/$taskId'
     | '/ideas/'
+    | '/inbox/'
     | '/notes/'
+    | '/projects/'
     | '/tasks/'
   fileRoutesById: FileRoutesById
 }
@@ -115,9 +151,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   IdeasIdeaIdRoute: typeof IdeasIdeaIdRoute
   NotesNoteIdRoute: typeof NotesNoteIdRoute
+  ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
   TasksTaskIdRoute: typeof TasksTaskIdRoute
   IdeasIndexRoute: typeof IdeasIndexRoute
+  InboxIndexRoute: typeof InboxIndexRoute
   NotesIndexRoute: typeof NotesIndexRoute
+  ProjectsIndexRoute: typeof ProjectsIndexRoute
   TasksIndexRoute: typeof TasksIndexRoute
 }
 
@@ -144,6 +183,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IdeasIdeaIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inbox/': {
+      id: '/inbox/'
+      path: '/inbox'
+      fullPath: '/inbox/'
+      preLoaderRoute: typeof InboxIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/notes/': {
       id: '/notes/'
       path: '/notes'
@@ -156,6 +202,20 @@ declare module '@tanstack/react-router' {
       path: '/notes/$noteId'
       fullPath: '/notes/$noteId'
       preLoaderRoute: typeof NotesNoteIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/': {
+      id: '/projects/'
+      path: '/projects'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof ProjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$projectId': {
+      id: '/projects/$projectId'
+      path: '/projects/$projectId'
+      fullPath: '/projects/$projectId'
+      preLoaderRoute: typeof ProjectsProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tasks/': {
@@ -179,9 +239,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   IdeasIdeaIdRoute: IdeasIdeaIdRoute,
   NotesNoteIdRoute: NotesNoteIdRoute,
+  ProjectsProjectIdRoute: ProjectsProjectIdRoute,
   TasksTaskIdRoute: TasksTaskIdRoute,
   IdeasIndexRoute: IdeasIndexRoute,
+  InboxIndexRoute: InboxIndexRoute,
   NotesIndexRoute: NotesIndexRoute,
+  ProjectsIndexRoute: ProjectsIndexRoute,
   TasksIndexRoute: TasksIndexRoute,
 }
 export const routeTree = rootRouteImport
