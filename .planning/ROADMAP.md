@@ -95,7 +95,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 plans completion)*
 
-- [ ] 02-07-PLAN.md — Frontend integration: Sidebar updates, ProjectDropdown on entities, project filter, ExportButton
+- [x] 02-07-PLAN.md — Frontend integration: Sidebar updates, ProjectDropdown on entities, project filter, ExportButton
 
 **UI hint**: yes
 
@@ -139,6 +139,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Entities & Application Shell | 8/8 | Complete | 2026-09-10 |
-| 2. Projects, Capture & Organization | 6/7 | In Progress|  |
+| 2. Projects, Capture & Organization | 7/7 | Complete | 2026-09-15 |
 | 3. Indexing & Hybrid Search | 0/TBD | Not started | - |
 | 4. Tod Ask Mode | 0/TBD | Not started | - |

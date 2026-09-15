@@ -9,7 +9,7 @@
 - [x] **ENT-03**: User can create, edit, and delete Ideas with title, content, and lifecycle state (raw/developing/converted/archived)
 - [x] **ENT-04**: User can convert an Idea into a Note, Task, or Project with entity linking
 - [ ] **ENT-05**: User can create and manage Projects with name, description, goals, current focus, and status
-- [ ] **ENT-06**: User can associate any entity (Note, Task, Idea) with a Project
+- [x] **ENT-06**: User can associate any entity (Note, Task, Idea) with a Project
 - [ ] **ENT-07**: User can add, remove, and filter by tags on any entity type
 - [ ] **ENT-08**: User can archive any entity without deleting it
 
@@ -51,7 +51,7 @@
 
 - [ ] **INFRA-01**: Application runs as a single process alongside PostgreSQL with no additional services required
 - [x] **INFRA-02**: Database schema includes audit_log table for entity change history from the initial migration
-- [ ] **INFRA-03**: User can export all entities as JSON or Markdown files for backup
+- [x] **INFRA-03**: User can export all entities as JSON or Markdown files for backup
 - [ ] **INFRA-04**: Application serves the React frontend and API from a single FastAPI process
 
 ### UI
@@ -59,7 +59,7 @@
 - [x] **UI-01**: Desktop-first responsive web application with a clean, functional layout
 - [ ] **UI-02**: Rich text editor for Notes using Tiptap (or equivalent ProseMirror-based editor)
 - [x] **UI-03**: Navigation between entity types (Notes, Tasks, Ideas, Projects, Inbox)
-- [ ] **UI-04**: Project detail view showing linked Notes, Tasks, and Ideas
+- [x] **UI-04**: Project detail view showing linked Notes, Tasks, and Ideas
 - [ ] **UI-05**: Tod chat interface for Ask mode with source citation rendering
 
 ## v1.x Requirements (After Core Validation)
@@ -109,7 +109,7 @@
 | ENT-03 | Phase 1 | Complete (01-07) |
 | ENT-04 | Phase 2 | Complete (02-06) |
 | ENT-05 | Phase 2 | In Progress (02-03) |
-| ENT-06 | Phase 2 | In Progress (02-03) |
+| ENT-06 | Phase 2 | Complete (02-07) |
 | ENT-07 | Phase 1 | Pending |
 | ENT-08 | Phase 1 | Pending |
 | CAP-01 | Phase 2 | Complete (02-06) |
@@ -133,12 +133,12 @@
 | PROV-03 | Phase 3 | Pending |
 | INFRA-01 | Phase 1 | Pending |
 | INFRA-02 | Phase 1 | Complete (01-01) |
-| INFRA-03 | Phase 2 | In Progress (02-03) |
+| INFRA-03 | Phase 2 | Complete (02-07) |
 | INFRA-04 | Phase 1 | Pending |
 | UI-01 | Phase 1 | Complete (01-02) |
 | UI-02 | Phase 1 | Pending |
 | UI-03 | Phase 1 | Complete (01-02) |
-| UI-04 | Phase 2 | In Progress (02-03) |
+| UI-04 | Phase 2 | Complete (02-07) |
 | UI-05 | Phase 4 | Pending |
 
 ---
