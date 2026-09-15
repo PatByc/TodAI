@@ -52,22 +52,28 @@ class TaskService:
         skip: int = 0,
         limit: int = 50,
         include_archived: bool = False,
+        project_id: int | None = None,
         status: TaskStatus | None = None,
         tag_ids: list[int] | None = None,
         tag_logic: str = "or",
     ) -> tuple[list[Task], int]:
-        """List tasks with pagination, optional status and tag filtering."""
+        """List tasks with pagination, optional status, project, and tag filtering."""
         if status is not None:
             items, total = await self.repo.list_by_status(
                 status=status,
                 skip=skip,
                 limit=limit,
             )
+            # Post-filter by project_id when status filter is active
+            if project_id is not None:
+                items = [item for item in items if item.project_id == project_id]
+                total = len(items)
         else:
             items, total = await self.repo.list_all(
                 skip=skip,
                 limit=limit,
                 include_archived=include_archived,
+                project_id=project_id,
             )
 
         if tag_ids:

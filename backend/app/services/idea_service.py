@@ -48,22 +48,28 @@ class IdeaService:
         skip: int = 0,
         limit: int = 50,
         include_archived: bool = False,
+        project_id: int | None = None,
         state: IdeaState | None = None,
         tag_ids: list[int] | None = None,
         tag_logic: str = "or",
     ) -> tuple[list[Idea], int]:
-        """List ideas with pagination, optional state and tag filtering."""
+        """List ideas with pagination, optional state, project, and tag filtering."""
         if state is not None:
             items, total = await self.repo.list_by_state(
                 state=state,
                 skip=skip,
                 limit=limit,
             )
+            # Post-filter by project_id when state filter is active
+            if project_id is not None:
+                items = [item for item in items if item.project_id == project_id]
+                total = len(items)
         else:
             items, total = await self.repo.list_all(
                 skip=skip,
                 limit=limit,
                 include_archived=include_archived,
+                project_id=project_id,
             )
 
         if tag_ids:

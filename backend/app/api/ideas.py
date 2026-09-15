@@ -49,16 +49,18 @@ async def list_ideas(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     include_archived: bool = Query(False),
+    project_id: int | None = Query(None),
     state: IdeaState | None = Query(None),
     tag_ids: Annotated[list[int] | None, Query()] = None,
     tag_logic: str = Query("or", pattern="^(and|or)$"),
     service: IdeaService = Depends(get_idea_service),
 ) -> PaginatedResponse[IdeaResponse]:
-    """List ideas with pagination, optional state and tag filtering."""
+    """List ideas with pagination, optional state, project, and tag filtering."""
     items, total = await service.list(
         skip=skip,
         limit=limit,
         include_archived=include_archived,
+        project_id=project_id,
         state=state,
         tag_ids=tag_ids,
         tag_logic=tag_logic,

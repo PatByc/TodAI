@@ -33,15 +33,17 @@ async def list_notes(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     include_archived: bool = Query(False),
+    project_id: int | None = Query(None),
     tag_ids: Annotated[list[int] | None, Query()] = None,
     tag_logic: str = Query("or", pattern="^(and|or)$"),
     service: NoteService = Depends(get_note_service),
 ) -> PaginatedResponse[NoteResponse]:
-    """List notes with pagination and optional tag filtering."""
+    """List notes with pagination and optional tag/project filtering."""
     items, total = await service.list(
         skip=skip,
         limit=limit,
         include_archived=include_archived,
+        project_id=project_id,
         tag_ids=tag_ids,
         tag_logic=tag_logic,
     )

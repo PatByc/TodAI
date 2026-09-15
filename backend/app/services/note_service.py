@@ -48,10 +48,11 @@ class NoteService:
         skip: int = 0,
         limit: int = 50,
         include_archived: bool = False,
+        project_id: int | None = None,
         tag_ids: list[int] | None = None,
         tag_logic: str = "or",
     ) -> tuple[list[Note], int]:
-        """List notes with pagination and optional tag filtering."""
+        """List notes with pagination and optional tag/project filtering."""
         if tag_ids:
             entity_ids = await self.tag_repo.get_entities_by_tags(
                 entity_type="note",
@@ -65,6 +66,7 @@ class NoteService:
                 skip=skip,
                 limit=limit,
                 include_archived=include_archived,
+                project_id=project_id,
             )
             # Post-filter by entity_ids (tag filter)
             filtered = [item for item in items if item.id in entity_ids]
@@ -73,6 +75,7 @@ class NoteService:
             skip=skip,
             limit=limit,
             include_archived=include_archived,
+            project_id=project_id,
         )
 
     async def update(self, note_id: int, data: NoteUpdate) -> Note:

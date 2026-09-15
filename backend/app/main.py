@@ -10,8 +10,11 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.staticfiles import StaticFiles
 
+from app.api.export import router as export_router
 from app.api.ideas import router as ideas_router
+from app.api.inbox import router as inbox_router
 from app.api.notes import router as notes_router
+from app.api.projects import router as projects_router
 from app.api.system import router as system_router
 from app.api.tags import router as tags_router
 from app.api.tasks import router as tasks_router
@@ -62,6 +65,9 @@ def create_app() -> FastAPI:
     application.include_router(ideas_router, prefix="/api/v1")
     application.include_router(tags_router, prefix="/api/v1")
     application.include_router(system_router, prefix="/api/v1")
+    application.include_router(projects_router, prefix="/api/v1")
+    application.include_router(inbox_router, prefix="/api/v1")
+    application.include_router(export_router, prefix="/api/v1")
 
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
     if frontend_dir.exists():
