@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useIdea, useUpdateIdea, useArchiveIdea, useUnarchiveIdea, useDeleteIdea } from "@/hooks/useIdeas"
 import { IdeaPipeline } from "@/components/entities/IdeaPipeline"
 import { TagInput } from "@/components/tags/TagInput"
+import { ProjectDropdown } from "@/components/entities/ProjectDropdown"
+import { ConvertDropdown } from "@/components/conversion/ConvertDropdown"
 import { formatRelativeTime } from "@/lib/format"
 import { useState, useCallback, useRef, useEffect } from "react"
 import { Archive, ArchiveRestore, Trash2 } from "lucide-react"
@@ -73,6 +75,17 @@ function IdeaDetailPage() {
     },
     [id, updateIdea],
   )
+
+  const handleProjectChange = useCallback(
+    (projectId: number | null) => {
+      updateIdea.mutate({ id, data: { project_id: projectId } })
+    },
+    [id, updateIdea],
+  )
+
+  const handleConverted = useCallback(() => {
+    void navigate({ to: "/ideas" })
+  }, [navigate])
 
   const handleStateChange = useCallback(
     (state: IdeaState) => {
@@ -151,7 +164,12 @@ function IdeaDetailPage() {
             }}
           />
 
-          <div style={{ display: "flex", gap: "4px", flexShrink: 0, paddingTop: "4px" }}>
+          <div style={{ display: "flex", gap: "4px", flexShrink: 0, paddingTop: "4px", alignItems: "center" }}>
+            <ConvertDropdown
+              sourceType="idea"
+              sourceId={id}
+              onConverted={handleConverted}
+            />
             <button
               onClick={handleArchiveToggle}
               title={idea.archived_at ? "Unarchive" : "Archive"}
@@ -179,9 +197,15 @@ function IdeaDetailPage() {
           </div>
         </div>
 
-        {/* Tags */}
-        <div style={{ marginTop: "8px" }}>
+        {/* Tags + Project */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
           <TagInput entityType="idea" entityId={id} />
+          <ProjectDropdown
+            entityType="idea"
+            entityId={id}
+            currentProjectId={idea.project_id}
+            onProjectChange={handleProjectChange}
+          />
         </div>
 
         {/* Meta line */}

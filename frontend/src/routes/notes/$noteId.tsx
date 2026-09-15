@@ -3,6 +3,7 @@ import { useNote, useUpdateNote, useArchiveNote, useUnarchiveNote, useDeleteNote
 import { useAutoSave } from "@/hooks/useAutoSave"
 import { TiptapEditor } from "@/components/editor/TiptapEditor"
 import { TagInput } from "@/components/tags/TagInput"
+import { ProjectDropdown } from "@/components/entities/ProjectDropdown"
 import { formatRelativeTime } from "@/lib/format"
 import { useState, useCallback, useRef, useEffect } from "react"
 import { Archive, ArchiveRestore, Trash2 } from "lucide-react"
@@ -36,6 +37,13 @@ function NoteDetailPage() {
   useEffect(() => {
     titleInitialized.current = false
   }, [id])
+
+  const handleProjectChange = useCallback(
+    (projectId: number | null) => {
+      updateNote.mutate({ id, data: { project_id: projectId } })
+    },
+    [id, updateNote],
+  )
 
   const handleTitleBlur = useCallback(() => {
     if (note && title !== note.title && title.trim()) {
@@ -165,9 +173,15 @@ function NoteDetailPage() {
           </div>
         </div>
 
-        {/* Tags */}
-        <div style={{ marginTop: "8px" }}>
+        {/* Tags + Project */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
           <TagInput entityType="note" entityId={id} />
+          <ProjectDropdown
+            entityType="note"
+            entityId={id}
+            currentProjectId={note.project_id}
+            onProjectChange={handleProjectChange}
+          />
         </div>
 
         {/* Meta line */}

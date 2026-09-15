@@ -3,6 +3,7 @@ import { useTask, useUpdateTask, useArchiveTask, useUnarchiveTask, useDeleteTask
 import { StatusSelect } from "@/components/entities/StatusSelect"
 import { PrioritySelect } from "@/components/entities/PrioritySelect"
 import { TagInput } from "@/components/tags/TagInput"
+import { ProjectDropdown } from "@/components/entities/ProjectDropdown"
 import { formatRelativeTime } from "@/lib/format"
 import { useState, useCallback, useRef, useEffect } from "react"
 import { Archive, ArchiveRestore, Trash2 } from "lucide-react"
@@ -93,6 +94,13 @@ function TaskDetailPage() {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value
       updateTask.mutate({ id, data: { deadline: value || undefined } })
+    },
+    [id, updateTask],
+  )
+
+  const handleProjectChange = useCallback(
+    (projectId: number | null) => {
+      updateTask.mutate({ id, data: { project_id: projectId } })
     },
     [id, updateTask],
   )
@@ -190,9 +198,15 @@ function TaskDetailPage() {
           </div>
         </div>
 
-        {/* Tags */}
-        <div style={{ marginTop: "8px" }}>
+        {/* Tags + Project */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
           <TagInput entityType="task" entityId={id} />
+          <ProjectDropdown
+            entityType="task"
+            entityId={id}
+            currentProjectId={task.project_id}
+            onProjectChange={handleProjectChange}
+          />
         </div>
 
         {/* Meta line */}

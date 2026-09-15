@@ -35,6 +35,7 @@ export interface Note {
   content: Record<string, unknown>
   content_text: string | null
   pinned: boolean
+  project_id: number | null
   archived_at: string | null
   created_at: string
   updated_at: string
@@ -52,6 +53,7 @@ export interface NoteUpdate {
   content?: Record<string, unknown>
   content_text?: string
   pinned?: boolean
+  project_id?: number | null
 }
 
 // ── Task ───────────────────────────────────────────────────────────────
@@ -65,6 +67,7 @@ export interface Task {
   status: TaskStatus
   deadline: string | null
   completed_at: string | null
+  project_id: number | null
   archived_at: string | null
   created_at: string
   updated_at: string
@@ -88,6 +91,7 @@ export interface TaskUpdate {
   urgency?: number
   status?: TaskStatus
   deadline?: string
+  project_id?: number | null
 }
 
 // ── Idea ───────────────────────────────────────────────────────────────
@@ -97,6 +101,7 @@ export interface Idea {
   title: string
   content: string | null
   state: IdeaState
+  project_id: number | null
   archived_at: string | null
   created_at: string
   updated_at: string
@@ -114,6 +119,7 @@ export interface IdeaUpdate {
   title?: string
   content?: string
   state?: IdeaState
+  project_id?: number | null
 }
 
 // ── Tag Input ──────────────────────────────────────────────────────────
