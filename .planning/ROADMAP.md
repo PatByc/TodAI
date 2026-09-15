@@ -81,7 +81,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 02-02-PLAN.md — Backend services: ProjectService, InboxService, ConversionService, ExportService
+- [x] 02-02-PLAN.md — Backend services: ProjectService, InboxService, ConversionService, ExportService
 - [ ] 02-04-PLAN.md — Frontend data layer: TypeScript types, API clients, TanStack Query hooks, filter store
 
 **Wave 3** *(blocked on Wave 2 completion)*
@@ -139,6 +139,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Entities & Application Shell | 8/8 | Complete | 2026-09-10 |
-| 2. Projects, Capture & Organization | 1/7 | In Progress | - |
+| 2. Projects, Capture & Organization | 2/7 | In Progress | - |
 | 3. Indexing & Hybrid Search | 0/TBD | Not started | - |
 | 4. Tod Ask Mode | 0/TBD | Not started | - |
