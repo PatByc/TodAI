@@ -2,7 +2,7 @@
 
 import enum
 
-from sqlalchemy import Enum, String, Text
+from sqlalchemy import Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base, SoftDeleteMixin, TimestampMixin
@@ -27,4 +27,7 @@ class Idea(TimestampMixin, SoftDeleteMixin, Base):
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
     state: Mapped[IdeaState] = mapped_column(
         Enum(IdeaState), default=IdeaState.RAW
+    )
+    project_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True
     )

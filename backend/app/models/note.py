@@ -1,6 +1,6 @@
 """Note entity model."""
 
-from sqlalchemy import String, Text
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,3 +17,6 @@ class Note(TimestampMixin, SoftDeleteMixin, Base):
     content: Mapped[dict] = mapped_column(JSONB, default=dict)
     content_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     pinned: Mapped[bool] = mapped_column(default=False)
+    project_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True
+    )
