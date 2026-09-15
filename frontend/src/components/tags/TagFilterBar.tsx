@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react"
 import { Plus, X } from "lucide-react"
 import { useSearchTags } from "@/hooks/useTags"
 import { useFilterStore } from "@/stores/filters"
+import { useProjects } from "@/hooks/useProjects"
 import { getTagColor } from "@/lib/colors"
 import type { TagResponse } from "@/types/entities"
 
@@ -10,7 +11,9 @@ interface TagFilterBarProps {
 }
 
 export function TagFilterBar({ allTags = [] }: TagFilterBarProps) {
-  const { selectedTagIds, tagLogic, toggleTag, setTagLogic } = useFilterStore()
+  const { selectedTagIds, tagLogic, toggleTag, setTagLogic, selectedProjectId, setSelectedProjectId } = useFilterStore()
+  const { data: projectsData } = useProjects({ include_archived: false })
+  const projects = projectsData?.items ?? []
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState("")
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -50,6 +53,40 @@ export function TagFilterBar({ allTags = [] }: TagFilterBarProps) {
         minHeight: "32px",
       }}
     >
+      {/* Project filter */}
+      <select
+        value={selectedProjectId ?? ""}
+        onChange={(e) => {
+          const value = e.target.value
+          setSelectedProjectId(value ? Number(value) : null)
+        }}
+        style={{
+          appearance: "none",
+          WebkitAppearance: "none",
+          background: selectedProjectId ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "transparent",
+          border: "1px solid var(--border)",
+          borderRadius: "6px",
+          padding: "3px 22px 3px 8px",
+          fontFamily: "var(--font-body)",
+          fontSize: "11px",
+          fontWeight: 500,
+          color: selectedProjectId ? "var(--foreground)" : "var(--muted-foreground)",
+          cursor: "pointer",
+          outline: "none",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "right 4px center",
+          backgroundSize: "12px",
+        }}
+      >
+        <option value="">All projects</option>
+        {projects.map((project) => (
+          <option key={project.id} value={project.id}>
+            {project.name}
+          </option>
+        ))}
+      </select>
+
       {selectedTags.map((tag, i) => (
         <span key={tag.id} style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
           <span
