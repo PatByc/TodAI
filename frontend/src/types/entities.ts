@@ -44,6 +44,7 @@ export interface Note {
 export interface NoteCreate {
   title: string
   content?: Record<string, unknown>
+  project_id?: number
 }
 
 export interface NoteUpdate {
@@ -77,6 +78,7 @@ export interface TaskCreate {
   urgency?: number
   status?: TaskStatus
   deadline?: string
+  project_id?: number
 }
 
 export interface TaskUpdate {
@@ -105,6 +107,7 @@ export interface IdeaCreate {
   title: string
   content?: string
   state?: IdeaState
+  project_id?: number
 }
 
 export interface IdeaUpdate {
