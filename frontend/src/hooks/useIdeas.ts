@@ -14,11 +14,17 @@ import {
 } from "@/api/ideas"
 import type { FetchIdeasParams } from "@/api/ideas"
 import type { IdeaCreate, IdeaUpdate } from "@/types/entities"
+import { useFilterStore } from "@/stores/filters"
 
 export function useIdeas(params?: FetchIdeasParams) {
+  const selectedProjectId = useFilterStore((s) => s.selectedProjectId)
+  const mergedParams = {
+    ...params,
+    project_id: params?.project_id ?? selectedProjectId ?? undefined,
+  }
   return useQuery({
-    queryKey: ["ideas", params],
-    queryFn: () => fetchIdeas(params),
+    queryKey: ["ideas", mergedParams],
+    queryFn: () => fetchIdeas(mergedParams),
   })
 }
 

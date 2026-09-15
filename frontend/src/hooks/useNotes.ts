@@ -14,11 +14,17 @@ import {
 } from "@/api/notes"
 import type { FetchNotesParams } from "@/api/notes"
 import type { NoteCreate, NoteUpdate } from "@/types/entities"
+import { useFilterStore } from "@/stores/filters"
 
 export function useNotes(params?: FetchNotesParams) {
+  const selectedProjectId = useFilterStore((s) => s.selectedProjectId)
+  const mergedParams = {
+    ...params,
+    project_id: params?.project_id ?? selectedProjectId ?? undefined,
+  }
   return useQuery({
-    queryKey: ["notes", params],
-    queryFn: () => fetchNotes(params),
+    queryKey: ["notes", mergedParams],
+    queryFn: () => fetchNotes(mergedParams),
   })
 }
 

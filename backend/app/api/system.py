@@ -6,7 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
 from app.models.idea import Idea
+from app.models.inbox_item import InboxItem
 from app.models.note import Note
+from app.models.project import Project
 from app.models.task import Task
 
 router = APIRouter(prefix="/system", tags=["system"])
@@ -18,7 +20,7 @@ async def get_counts(
 ) -> dict:
     """Return counts of non-archived entities.
 
-    Uses three separate COUNT queries per RESEARCH Pitfall 3 --
+    Uses separate COUNT queries per RESEARCH Pitfall 3 --
     simple and performant for sidebar display.
     """
     note_count = await session.execute(
@@ -30,9 +32,17 @@ async def get_counts(
     idea_count = await session.execute(
         select(func.count()).select_from(Idea).where(Idea.archived_at.is_(None))
     )
+    project_count = await session.execute(
+        select(func.count()).select_from(Project).where(Project.archived_at.is_(None))
+    )
+    inbox_count = await session.execute(
+        select(func.count()).select_from(InboxItem)
+    )
 
     return {
         "notes": note_count.scalar_one(),
         "tasks": task_count.scalar_one(),
         "ideas": idea_count.scalar_one(),
+        "projects": project_count.scalar_one(),
+        "inbox": inbox_count.scalar_one(),
     }
