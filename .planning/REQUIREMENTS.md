@@ -7,7 +7,7 @@
 - [ ] **ENT-01**: User can create, edit, and delete Notes with rich text content (headings, lists, bold/italic, code blocks, links)
 - [x] **ENT-02**: User can create, edit, and delete Tasks with title, description, priority, urgency, deadline, and status
 - [x] **ENT-03**: User can create, edit, and delete Ideas with title, content, and lifecycle state (raw/developing/converted/archived)
-- [ ] **ENT-04**: User can convert an Idea into a Note, Task, or Project with entity linking
+- [x] **ENT-04**: User can convert an Idea into a Note, Task, or Project with entity linking
 - [ ] **ENT-05**: User can create and manage Projects with name, description, goals, current focus, and status
 - [ ] **ENT-06**: User can associate any entity (Note, Task, Idea) with a Project
 - [ ] **ENT-07**: User can add, remove, and filter by tags on any entity type
@@ -15,9 +15,9 @@
 
 ### Capture
 
-- [ ] **CAP-01**: User can quick-capture text into the Inbox with no required fields except content (open → type → send → done)
-- [ ] **CAP-02**: Inbox items persist until explicitly triaged or dismissed
-- [ ] **CAP-03**: User can manually convert an Inbox item into a Note, Task, Idea, or append to an existing entity
+- [x] **CAP-01**: User can quick-capture text into the Inbox with no required fields except content (open → type → send → done)
+- [x] **CAP-02**: Inbox items persist until explicitly triaged or dismissed
+- [x] **CAP-03**: User can manually convert an Inbox item into a Note, Task, Idea, or append to an existing entity
 
 ### Search
 
@@ -107,14 +107,14 @@
 | ENT-01 | Phase 1 | Pending |
 | ENT-02 | Phase 1 | Complete (01-07) |
 | ENT-03 | Phase 1 | Complete (01-07) |
-| ENT-04 | Phase 2 | In Progress (02-03) |
+| ENT-04 | Phase 2 | Complete (02-06) |
 | ENT-05 | Phase 2 | In Progress (02-03) |
 | ENT-06 | Phase 2 | In Progress (02-03) |
 | ENT-07 | Phase 1 | Pending |
 | ENT-08 | Phase 1 | Pending |
-| CAP-01 | Phase 2 | In Progress (02-03) |
-| CAP-02 | Phase 2 | In Progress (02-03) |
-| CAP-03 | Phase 2 | In Progress (02-03) |
+| CAP-01 | Phase 2 | Complete (02-06) |
+| CAP-02 | Phase 2 | Complete (02-06) |
+| CAP-03 | Phase 2 | Complete (02-06) |
 | SRCH-01 | Phase 3 | Pending |
 | SRCH-02 | Phase 3 | Pending |
 | SRCH-03 | Phase 3 | Pending |

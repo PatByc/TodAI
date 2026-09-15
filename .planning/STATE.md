@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: "Phase 2 planning complete — ready for /gsd:execute-phase 2"
-last_updated: "2026-09-15T15:09:39Z"
-last_activity: 2026-09-15 -- Completed 02-03 (API routes for projects/inbox/export)
+last_updated: "2026-09-15T16:07:32Z"
+last_activity: 2026-09-15 -- Completed 02-06 (Inbox capture page and ConvertDropdown)
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 15
-  completed_plans: 12
-  percent: 43
+  completed_plans: 13
+  percent: 47
 ---
 
 # Project State
@@ -26,30 +26,30 @@ See: .planning/PROJECT.md (updated 2026-09-08)
 ## Current Position
 
 Phase: 02 (projects-capture-organization) — EXECUTING
-Plan: 4 of 7
+Plan: 7 of 7
 Status: Executing Phase 02
-Last activity: 2026-09-15 -- Completed 02-03 (API routes for projects/inbox/export)
+Last activity: 2026-09-15 -- Completed 02-06 (Inbox capture page and ConvertDropdown)
 
-Progress: [████▍░░░░░] 43%
+Progress: [████▋░░░░░] 47%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 12
+- Total plans completed: 13
 - Average duration: 5min
-- Total execution time: 1.09 hours
+- Total execution time: 1.16 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 8 | 48min | 6min |
-| 02 | 4 | 17min | 4min |
+| 02 | 5 | 21min | 4min |
 
 **Recent Trend:**
 
-- Last 5 plans: 6min, 3min, 5min, 5min, 4min
+- Last 5 plans: 3min, 5min, 5min, 4min, 4min
 - Trend: steady
 
 *Updated after each plan completion*
@@ -100,6 +100,10 @@ Recent decisions affecting current work:
 - [02-04]: Entity list hooks read selectedProjectId from filter store internally (not via caller params)
 - [02-03]: Conversion endpoints return dict via model_dump(mode='json') for flexible Union typing
 - [02-03]: Service layer post-filters by project_id when list_by_status/state active (bypassing repo)
+- [02-06]: ConvertDropdown uses custom dropdown with click-outside/Escape -- no external library
+- [02-06]: Inbox Tiptap editor reset via React key remount pattern for clean state after capture
+- [02-06]: Dismiss uses inline confirmation (Sure? Yes/No) rather than modal dialog
+- [02-06]: Route tree updated to register /inbox and /projects routes (Rule 3 blocking fix)
 
 ### Pending Todos
 
@@ -119,6 +123,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-15T15:09:39Z
-Stopped at: Completed 02-03-PLAN.md
-Resume file: .planning/phases/02-projects-capture-organization/02-04-PLAN.md
+Last session: 2026-09-15T16:07:32Z
+Stopped at: Completed 02-06-PLAN.md
+Resume file: .planning/phases/02-projects-capture-organization/02-07-PLAN.md

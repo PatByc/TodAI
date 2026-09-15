@@ -90,8 +90,8 @@ Plans:
 
 **Wave 3** *(blocked on Wave 3 completion, parallel with each other)*
 
-- [ ] 02-05-PLAN.md — Frontend Project views: list page with ProjectCard, detail page with unified entity list
-- [ ] 02-06-PLAN.md — Frontend Inbox page with quick capture, InboxCard with action buttons, shared ConvertDropdown
+- [x] 02-05-PLAN.md — Frontend Project views: list page with ProjectCard, detail page with unified entity list
+- [x] 02-06-PLAN.md — Frontend Inbox page with quick capture, InboxCard with action buttons, shared ConvertDropdown
 
 **Wave 4** *(blocked on Wave 3 plans completion)*
 
@@ -139,6 +139,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Entities & Application Shell | 8/8 | Complete | 2026-09-10 |
-| 2. Projects, Capture & Organization | 4/7 | In Progress | - |
+| 2. Projects, Capture & Organization | 6/7 | In Progress|  |
 | 3. Indexing & Hybrid Search | 0/TBD | Not started | - |
 | 4. Tod Ask Mode | 0/TBD | Not started | - |
