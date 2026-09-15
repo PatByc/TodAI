@@ -34,10 +34,12 @@ class BaseRepository(Generic[T]):
         skip: int = 0,
         limit: int = 50,
         include_archived: bool = False,
+        project_id: int | None = None,
     ) -> tuple[list[T], int]:
         """List entities with pagination, filtering archived by default.
 
         Returns a tuple of (items, total_count).
+        When project_id is provided, only entities linked to that project are returned.
         """
         query = select(self.model)
         count_query = select(func.count()).select_from(self.model)
@@ -46,6 +48,11 @@ class BaseRepository(Generic[T]):
         if not include_archived and hasattr(self.model, "archived_at"):
             query = query.where(self.model.archived_at.is_(None))
             count_query = count_query.where(self.model.archived_at.is_(None))
+
+        # Filter by project_id when provided (only for models that have the column)
+        if project_id is not None and hasattr(self.model, "project_id"):
+            query = query.where(self.model.project_id == project_id)
+            count_query = count_query.where(self.model.project_id == project_id)
 
         # Get total count
         total_result = await self.session.execute(count_query)

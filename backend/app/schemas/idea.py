@@ -14,6 +14,7 @@ class IdeaCreate(BaseModel):
     title: str = Field(max_length=500, description="Idea title")
     content: str | None = None
     state: IdeaState = IdeaState.RAW
+    project_id: int | None = None
 
 
 class IdeaUpdate(BaseModel):
@@ -22,6 +23,7 @@ class IdeaUpdate(BaseModel):
     title: str | None = Field(default=None, max_length=500)
     content: str | None = None
     state: IdeaState | None = None
+    project_id: int | None = None
 
 
 class IdeaResponse(BaseModel):
@@ -31,6 +33,7 @@ class IdeaResponse(BaseModel):
     title: str
     content: str | None
     state: IdeaState
+    project_id: int | None
     archived_at: datetime | None
     created_at: datetime
     updated_at: datetime

@@ -12,6 +12,7 @@ class NoteCreate(BaseModel):
 
     title: str = Field(max_length=500, description="Note title")
     content: dict = Field(default_factory=dict, description="Tiptap JSON content")
+    project_id: int | None = None
 
 
 class NoteUpdate(BaseModel):
@@ -21,6 +22,7 @@ class NoteUpdate(BaseModel):
     content: dict | None = None
     content_text: str | None = None
     pinned: bool | None = None
+    project_id: int | None = None
 
 
 class NoteResponse(BaseModel):
@@ -31,6 +33,7 @@ class NoteResponse(BaseModel):
     content: dict
     content_text: str | None
     pinned: bool
+    project_id: int | None
     archived_at: datetime | None
     created_at: datetime
     updated_at: datetime

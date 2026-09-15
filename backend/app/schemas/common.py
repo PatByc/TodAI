@@ -5,6 +5,7 @@ from typing import Generic, TypeVar
 from pydantic import BaseModel, Field
 
 from app.models.idea import IdeaState
+from app.models.project import ProjectStatus
 from app.models.task import TaskStatus
 
 T = TypeVar("T")
@@ -15,6 +16,7 @@ __all__ = [
     "IdeaState",
     "PaginatedResponse",
     "PaginationParams",
+    "ProjectStatus",
     "TaskStatus",
 ]
 
