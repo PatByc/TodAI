@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react"
 import { Link, useRouterState } from "@tanstack/react-router"
-import { FileText, CheckSquare, Lightbulb, Tag, Archive } from "lucide-react"
+import { FileText, CheckSquare, Lightbulb, FolderOpen, Inbox, Tag, Archive } from "lucide-react"
 import { useSidebarStore } from "@/stores/sidebar"
 import { useCounts } from "@/hooks/useCounts"
 import { useFilterStore } from "@/stores/filters"
 import { SidebarSection } from "./SidebarSection"
+import { ExportButton } from "@/components/export/ExportButton"
 
 function useMediaQuery(query: string): boolean {
   if (typeof window === "undefined") return false
@@ -125,6 +126,22 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
 
       <nav className="flex flex-col gap-1" style={{ flex: 1 }}>
         <SidebarSection
+          label="INBOX"
+          icon={Inbox}
+          count={counts?.inbox ?? 0}
+          defaultExpanded
+        >
+          <Link
+            to="/inbox"
+            onClick={onNavClick}
+            className="sidebar-nav-link"
+            style={activeLinkStyle("/inbox")}
+          >
+            Capture
+          </Link>
+        </SidebarSection>
+
+        <SidebarSection
           label="NOTES"
           icon={FileText}
           count={counts?.notes ?? 0}
@@ -169,6 +186,22 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
             style={activeLinkStyle("/ideas")}
           >
             All Ideas
+          </Link>
+        </SidebarSection>
+
+        <SidebarSection
+          label="PROJECTS"
+          icon={FolderOpen}
+          count={counts?.projects ?? 0}
+          defaultExpanded
+        >
+          <Link
+            to="/projects"
+            onClick={onNavClick}
+            className="sidebar-nav-link"
+            style={activeLinkStyle("/projects")}
+          >
+            All Projects
           </Link>
         </SidebarSection>
       </nav>
@@ -222,6 +255,7 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
             <span style={{ fontSize: "10px", marginLeft: "auto", opacity: 0.7 }}>ON</span>
           )}
         </button>
+        <ExportButton />
       </div>
     </>
   )
