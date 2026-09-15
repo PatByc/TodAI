@@ -2,20 +2,36 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
 from app.schemas.common import IdeaState, PaginatedResponse
 from app.schemas.idea import IdeaCreate, IdeaResponse, IdeaUpdate
+from app.schemas.note import NoteResponse
+from app.schemas.project import ProjectResponse
+from app.schemas.task import TaskResponse
+from app.services.conversion_service import ConversionService
 from app.services.idea_service import IdeaService
 
 router = APIRouter(prefix="/ideas", tags=["ideas"])
 
 
+class IdeaConvertRequest(BaseModel):
+    """Request body for idea conversion."""
+
+    target_type: str
+
+
 def get_idea_service(session: AsyncSession = Depends(get_db)) -> IdeaService:
     """Dependency injection factory for IdeaService."""
     return IdeaService(session)
+
+
+def get_conversion_service(session: AsyncSession = Depends(get_db)) -> ConversionService:
+    """Dependency injection factory for ConversionService."""
+    return ConversionService(session)
 
 
 @router.post("/", response_model=IdeaResponse, status_code=status.HTTP_201_CREATED)
@@ -103,3 +119,32 @@ async def unarchive_idea(
     """Unarchive an idea (restore from soft-delete)."""
     idea = await service.unarchive(idea_id)
     return IdeaResponse.model_validate(idea)
+
+
+@router.post("/{idea_id}/convert")
+async def convert_idea(
+    idea_id: int,
+    body: IdeaConvertRequest,
+    conversion: ConversionService = Depends(get_conversion_service),
+) -> dict:
+    """Convert an idea to a note, task, or project.
+
+    Accepts {"target_type": "note"|"task"|"project"} and returns
+    the newly created entity.
+    """
+    target = body.target_type.lower()
+
+    if target == "note":
+        note = await conversion.convert_idea_to_note(idea_id)
+        return NoteResponse.model_validate(note).model_dump(mode="json")
+    elif target == "task":
+        task = await conversion.convert_idea_to_task(idea_id)
+        return TaskResponse.model_validate(task).model_dump(mode="json")
+    elif target == "project":
+        project = await conversion.convert_idea_to_project(idea_id)
+        return ProjectResponse.model_validate(project).model_dump(mode="json")
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid target_type '{body.target_type}'. Must be 'note', 'task', or 'project'.",
+        )
