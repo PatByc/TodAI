@@ -13,7 +13,7 @@ TodAI is built in four phases following a strict dependency chain: entity manage
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Core Entities & Application Shell** - Full-stack CRUD for Notes, Tasks, and Ideas with rich text editing, tagging, and archiving in a desktop web application
+- [x] **Phase 1: Core Entities & Application Shell** - Full-stack CRUD for Notes, Tasks, and Ideas with rich text editing, tagging, and archiving in a desktop web application
 - [ ] **Phase 2: Projects, Capture & Organization** - Projects as entity containers, zero-friction Inbox capture, idea conversion, and data export
 - [ ] **Phase 3: Indexing & Hybrid Search** - Automatic content indexing with embeddings, full-text search, semantic search, and hybrid retrieval via RRF
 - [ ] **Phase 4: Tod Ask Mode** - Conversational AI grounded in the knowledge base with source citations and read-only enforcement
@@ -56,7 +56,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 01-08-PLAN.md — Tag UI (input, badges, filter bar), archive controls, sidebar counts, and SPA serving
+- [x] 01-08-PLAN.md — Tag UI (input, badges, filter bar), archive controls, sidebar counts, and SPA serving
 
 **UI hint**: yes
 
@@ -73,7 +73,30 @@ Plans:
   4. User can manually convert an Inbox item into a Note, Task, or Idea, or append its content to an existing entity
   5. User can export all entities as JSON or Markdown files for backup
 
-**Plans**: TBD
+**Plans**: 7 plans
+Plans:
+**Wave 1**
+
+- [x] 02-01-PLAN.md — Backend data layer: Project/InboxItem models, schemas, repos, Alembic migration, project_id FK
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 02-02-PLAN.md — Backend services: ProjectService, InboxService, ConversionService, ExportService
+- [ ] 02-04-PLAN.md — Frontend data layer: TypeScript types, API clients, TanStack Query hooks, filter store
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 02-03-PLAN.md — Backend API routes: Project CRUD, Inbox CRUD+convert, Export endpoint, project_id filtering
+
+**Wave 3** *(blocked on Wave 3 completion, parallel with each other)*
+
+- [ ] 02-05-PLAN.md — Frontend Project views: list page with ProjectCard, detail page with unified entity list
+- [ ] 02-06-PLAN.md — Frontend Inbox page with quick capture, InboxCard with action buttons, shared ConvertDropdown
+
+**Wave 4** *(blocked on Wave 3 plans completion)*
+
+- [ ] 02-07-PLAN.md — Frontend integration: Sidebar updates, ProjectDropdown on entities, project filter, ExportButton
+
 **UI hint**: yes
 
 ### Phase 3: Indexing & Hybrid Search
@@ -115,7 +138,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Entities & Application Shell | 7/8 | Executing | - |
-| 2. Projects, Capture & Organization | 0/TBD | Not started | - |
+| 1. Core Entities & Application Shell | 8/8 | Complete | 2026-09-10 |
+| 2. Projects, Capture & Organization | 1/7 | In Progress | - |
 | 3. Indexing & Hybrid Search | 0/TBD | Not started | - |
 | 4. Tod Ask Mode | 0/TBD | Not started | - |

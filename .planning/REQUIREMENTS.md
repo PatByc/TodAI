@@ -108,12 +108,12 @@
 | ENT-02 | Phase 1 | Complete (01-07) |
 | ENT-03 | Phase 1 | Complete (01-07) |
 | ENT-04 | Phase 2 | Pending |
-| ENT-05 | Phase 2 | Pending |
-| ENT-06 | Phase 2 | Pending |
+| ENT-05 | Phase 2 | In Progress (02-01) |
+| ENT-06 | Phase 2 | In Progress (02-01) |
 | ENT-07 | Phase 1 | Pending |
 | ENT-08 | Phase 1 | Pending |
-| CAP-01 | Phase 2 | Pending |
-| CAP-02 | Phase 2 | Pending |
+| CAP-01 | Phase 2 | In Progress (02-01) |
+| CAP-02 | Phase 2 | In Progress (02-01) |
 | CAP-03 | Phase 2 | Pending |
 | SRCH-01 | Phase 3 | Pending |
 | SRCH-02 | Phase 3 | Pending |
