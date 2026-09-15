@@ -86,7 +86,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 02-03-PLAN.md — Backend API routes: Project CRUD, Inbox CRUD+convert, Export endpoint, project_id filtering
+- [x] 02-03-PLAN.md — Backend API routes: Project CRUD, Inbox CRUD+convert, Export endpoint, project_id filtering
 
 **Wave 3** *(blocked on Wave 3 completion, parallel with each other)*
 
@@ -139,6 +139,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Entities & Application Shell | 8/8 | Complete | 2026-09-10 |
-| 2. Projects, Capture & Organization | 3/7 | In Progress | - |
+| 2. Projects, Capture & Organization | 4/7 | In Progress | - |
 | 3. Indexing & Hybrid Search | 0/TBD | Not started | - |
 | 4. Tod Ask Mode | 0/TBD | Not started | - |

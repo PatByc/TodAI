@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: "Phase 2 planning complete — ready for /gsd:execute-phase 2"
-last_updated: "2026-09-15T14:37:34.003Z"
-last_activity: 2026-09-15 -- Phase 02 execution started
+last_updated: "2026-09-15T15:09:39Z"
+last_activity: 2026-09-15 -- Completed 02-03 (API routes for projects/inbox/export)
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 15
-  completed_plans: 11
-  percent: 40
+  completed_plans: 12
+  percent: 43
 ---
 
 # Project State
@@ -28,28 +28,28 @@ See: .planning/PROJECT.md (updated 2026-09-08)
 Phase: 02 (projects-capture-organization) — EXECUTING
 Plan: 4 of 7
 Status: Executing Phase 02
-Last activity: 2026-09-15 -- Completed 02-04 (Frontend data layer for projects/inbox/export)
+Last activity: 2026-09-15 -- Completed 02-03 (API routes for projects/inbox/export)
 
-Progress: [████░░░░░░] 40%
+Progress: [████▍░░░░░] 43%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 11
-- Average duration: 6min
-- Total execution time: 1.02 hours
+- Total plans completed: 12
+- Average duration: 5min
+- Total execution time: 1.09 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 8 | 48min | 6min |
-| 02 | 3 | 13min | 4min |
+| 02 | 4 | 17min | 4min |
 
 **Recent Trend:**
 
-- Last 5 plans: 3min, 6min, 3min, 5min, 5min
+- Last 5 plans: 6min, 3min, 5min, 5min, 4min
 - Trend: steady
 
 *Updated after each plan completion*
@@ -98,6 +98,8 @@ Recent decisions affecting current work:
 - [02-04]: Conversion hooks return unknown type since converted entity type varies by target_type
 - [02-04]: Export uses direct fetch with blob download instead of apiClient to handle binary response
 - [02-04]: Entity list hooks read selectedProjectId from filter store internally (not via caller params)
+- [02-03]: Conversion endpoints return dict via model_dump(mode='json') for flexible Union typing
+- [02-03]: Service layer post-filters by project_id when list_by_status/state active (bypassing repo)
 
 ### Pending Todos
 
@@ -117,6 +119,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-15T15:02:00Z
-Stopped at: Completed 02-04-PLAN.md
-Resume file: .planning/phases/02-projects-capture-organization/02-03-PLAN.md
+Last session: 2026-09-15T15:09:39Z
+Stopped at: Completed 02-03-PLAN.md
+Resume file: .planning/phases/02-projects-capture-organization/02-04-PLAN.md
