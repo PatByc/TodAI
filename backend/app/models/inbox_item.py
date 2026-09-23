@@ -1,7 +1,6 @@
 """InboxItem entity model for quick capture."""
 
-from sqlalchemy import Text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base, TimestampMixin
@@ -17,5 +16,5 @@ class InboxItem(TimestampMixin, Base):
     __tablename__ = "inbox_items"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    content: Mapped[dict] = mapped_column(JSONB, default=dict)
+    content: Mapped[dict] = mapped_column(JSON, default=dict)
     content_text: Mapped[str | None] = mapped_column(Text, nullable=True)

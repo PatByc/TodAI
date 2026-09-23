@@ -34,6 +34,7 @@ export function InboxCard({ item }: InboxCardProps) {
 
   return (
     <div
+      id={`item-${item.id}`}
       style={{
         padding: "12px 16px",
         borderBottom: "1px solid var(--border-subtle)",

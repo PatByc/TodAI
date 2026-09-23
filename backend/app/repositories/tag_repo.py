@@ -48,16 +48,12 @@ class TagRepository:
 
     async def get_tag_by_name(self, name: str) -> Tag | None:
         """Look up a tag by exact name match."""
-        result = await self.session.execute(
-            select(Tag).where(Tag.name == name)
-        )
+        result = await self.session.execute(select(Tag).where(Tag.name == name))
         return result.scalar_one_or_none()
 
     async def get_tag_by_id(self, tag_id: int) -> Tag | None:
         """Look up a tag by primary key."""
-        result = await self.session.execute(
-            select(Tag).where(Tag.id == tag_id)
-        )
+        result = await self.session.execute(select(Tag).where(Tag.id == tag_id))
         return result.scalar_one_or_none()
 
     async def search_tags(self, query: str, limit: int = 20) -> list[Tag]:
@@ -88,6 +84,9 @@ class TagRepository:
         self.session.add(entity_tag)
         await self.session.flush()
         await self.session.refresh(entity_tag)
+        from app.services.search_index_service import queue_reindex
+
+        queue_reindex(self.session, entity_type, entity_id)
         return entity_tag
 
     async def remove_tag_from_entity(
@@ -105,6 +104,10 @@ class TagRepository:
             )
         )
         await self.session.flush()
+        if result.rowcount > 0:
+            from app.services.search_index_service import queue_reindex
+
+            queue_reindex(self.session, entity_type, entity_id)
         return result.rowcount > 0
 
     async def get_tags_for_entity(

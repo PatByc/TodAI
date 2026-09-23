@@ -2,7 +2,7 @@ import { apiClient, buildQueryString } from "./client"
 import type { TagResponse } from "@/types/entities"
 
 export async function fetchTags(): Promise<TagResponse[]> {
-  return apiClient.get<TagResponse[]>("/tags")
+  return apiClient.get<TagResponse[]>("/tags/")
 }
 
 export async function searchTags(query: string): Promise<TagResponse[]> {

@@ -21,7 +21,7 @@ export async function fetchProjects(params: FetchProjectsParams = {}): Promise<P
     tag_ids: params.tag_ids,
     tag_logic: params.tag_logic,
   })
-  return apiClient.get<PaginatedResponse<Project>>(`/projects${qs}`)
+  return apiClient.get<PaginatedResponse<Project>>(`/projects/${qs}`)
 }
 
 export async function fetchProject(id: number): Promise<Project> {
@@ -29,11 +29,11 @@ export async function fetchProject(id: number): Promise<Project> {
 }
 
 export async function createProject(data: ProjectCreate): Promise<Project> {
-  return apiClient.post<Project>("/projects", data)
+  return apiClient.post<Project>("/projects/", data)
 }
 
 export async function updateProject(id: number, data: ProjectUpdate): Promise<Project> {
-  return apiClient.patch<Project>(`/projects/${id}`, data)
+  return apiClient.put<Project>(`/projects/${id}`, data)
 }
 
 export async function deleteProject(id: number): Promise<void> {
@@ -41,9 +41,9 @@ export async function deleteProject(id: number): Promise<void> {
 }
 
 export async function archiveProject(id: number): Promise<Project> {
-  return apiClient.post<Project>(`/projects/${id}/archive`)
+  return apiClient.patch<Project>(`/projects/${id}/archive`)
 }
 
 export async function unarchiveProject(id: number): Promise<Project> {
-  return apiClient.post<Project>(`/projects/${id}/unarchive`)
+  return apiClient.patch<Project>(`/projects/${id}/unarchive`)
 }

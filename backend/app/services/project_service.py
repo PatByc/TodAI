@@ -74,17 +74,13 @@ class ProjectService:
             )
             if not entity_ids:
                 return [], 0
-            items, total = await self.repo.list_all(
-                skip=skip,
-                limit=limit,
-                include_archived=include_archived,
-            )
-            filtered = [item for item in items if item.id in entity_ids]
-            return filtered, len(filtered)
+        else:
+            entity_ids = None
         return await self.repo.list_all(
             skip=skip,
             limit=limit,
             include_archived=include_archived,
+            entity_ids=entity_ids,
         )
 
     async def update(self, project_id: int, data: ProjectUpdate) -> Project:
@@ -99,18 +95,23 @@ class ProjectService:
             return existing
 
         # Re-extract description_text when description changes
-        if "description" in update_data and update_data["description"]:
-            update_data["description_text"] = extract_plain_text(
-                update_data["description"]
-            ).strip()
+        if "description" in update_data:
+            description = update_data["description"]
+            update_data["description_text"] = (
+                extract_plain_text(description).strip() if description else None
+            )
 
         # Compute changes dict (old vs new for modified fields only)
         changes = {}
         for field, new_value in update_data.items():
             old_value = getattr(existing, field)
             # Serialize non-JSON-safe types
-            old_serialized = old_value.value if hasattr(old_value, "value") else old_value
-            new_serialized = new_value.value if hasattr(new_value, "value") else new_value
+            old_serialized = (
+                old_value.value if hasattr(old_value, "value") else old_value
+            )
+            new_serialized = (
+                new_value.value if hasattr(new_value, "value") else new_value
+            )
             if hasattr(old_serialized, "isoformat"):
                 old_serialized = old_serialized.isoformat()
             if hasattr(new_serialized, "isoformat"):

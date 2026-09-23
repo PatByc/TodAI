@@ -25,9 +25,7 @@ class Idea(TimestampMixin, SoftDeleteMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(500))
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
-    state: Mapped[IdeaState] = mapped_column(
-        Enum(IdeaState), default=IdeaState.RAW
-    )
+    state: Mapped[IdeaState] = mapped_column(Enum(IdeaState), default=IdeaState.RAW)
     project_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True
     )

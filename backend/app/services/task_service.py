@@ -58,34 +58,33 @@ class TaskService:
         tag_logic: str = "or",
     ) -> tuple[list[Task], int]:
         """List tasks with pagination, optional status, project, and tag filtering."""
-        if status is not None:
-            items, total = await self.repo.list_by_status(
-                status=status,
-                skip=skip,
-                limit=limit,
-            )
-            # Post-filter by project_id when status filter is active
-            if project_id is not None:
-                items = [item for item in items if item.project_id == project_id]
-                total = len(items)
-        else:
-            items, total = await self.repo.list_all(
-                skip=skip,
-                limit=limit,
-                include_archived=include_archived,
-                project_id=project_id,
-            )
-
+        entity_ids = None
         if tag_ids:
             entity_ids = await self.tag_repo.get_entities_by_tags(
                 entity_type="task",
                 tag_ids=tag_ids,
                 logic=tag_logic,
             )
-            items = [item for item in items if item.id in entity_ids]
-            total = len(items)
+            if not entity_ids:
+                return [], 0
 
-        return items, total
+        if status is not None:
+            return await self.repo.list_by_status(
+                status=status,
+                skip=skip,
+                limit=limit,
+                include_archived=include_archived,
+                project_id=project_id,
+                entity_ids=entity_ids,
+            )
+
+        return await self.repo.list_all(
+            skip=skip,
+            limit=limit,
+            include_archived=include_archived,
+            project_id=project_id,
+            entity_ids=entity_ids,
+        )
 
     async def update(self, task_id: int, data: TaskUpdate) -> Task:
         """Update a task and log changes to audit.
@@ -104,7 +103,9 @@ class TaskService:
             new_status = update_data["status"]
             old_status = existing.status
             if new_status == TaskStatus.DONE and old_status != TaskStatus.DONE:
-                update_data["completed_at"] = datetime.now(timezone.utc).replace(tzinfo=None)
+                update_data["completed_at"] = datetime.now(timezone.utc).replace(
+                    tzinfo=None
+                )
             elif new_status != TaskStatus.DONE and old_status == TaskStatus.DONE:
                 update_data["completed_at"] = None
 
@@ -113,8 +114,12 @@ class TaskService:
         for field, new_value in update_data.items():
             old_value = getattr(existing, field)
             # Convert enums to string for comparison/serialization
-            old_serialized = old_value.value if hasattr(old_value, "value") else old_value
-            new_serialized = new_value.value if hasattr(new_value, "value") else new_value
+            old_serialized = (
+                old_value.value if hasattr(old_value, "value") else old_value
+            )
+            new_serialized = (
+                new_value.value if hasattr(new_value, "value") else new_value
+            )
             # Convert datetime to ISO string for JSON serialization
             if isinstance(old_serialized, datetime):
                 old_serialized = old_serialized.isoformat()

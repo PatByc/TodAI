@@ -43,6 +43,9 @@ test-results/
 *.pem
 *.key
 *.sqlite
+*.db
+*.db-wal
+*.db-shm
 
 # Python
 __pycache__/

@@ -205,10 +205,12 @@ function NoteDetailPage() {
         </div>
       </div>
 
-      <TiptapEditor
-        initialContent={note.content || {}}
-        onUpdate={handleEditorUpdate}
-      />
+      <div id="body">
+        <TiptapEditor
+          initialContent={note.content || {}}
+          onUpdate={handleEditorUpdate}
+        />
+      </div>
 
       {/* Delete confirmation dialog */}
       {showDeleteConfirm && (

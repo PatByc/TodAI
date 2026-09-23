@@ -23,7 +23,7 @@ export async function fetchNotes(params: FetchNotesParams = {}): Promise<Paginat
     tag_logic: params.tag_logic,
     project_id: params.project_id,
   })
-  return apiClient.get<PaginatedResponse<Note>>(`/notes${qs}`)
+  return apiClient.get<PaginatedResponse<Note>>(`/notes/${qs}`)
 }
 
 export async function fetchNote(id: number): Promise<Note> {
@@ -31,11 +31,11 @@ export async function fetchNote(id: number): Promise<Note> {
 }
 
 export async function createNote(data: NoteCreate): Promise<Note> {
-  return apiClient.post<Note>("/notes", data)
+  return apiClient.post<Note>("/notes/", data)
 }
 
 export async function updateNote(id: number, data: NoteUpdate): Promise<Note> {
-  return apiClient.patch<Note>(`/notes/${id}`, data)
+  return apiClient.put<Note>(`/notes/${id}`, data)
 }
 
 export async function deleteNote(id: number): Promise<void> {
@@ -43,9 +43,9 @@ export async function deleteNote(id: number): Promise<void> {
 }
 
 export async function archiveNote(id: number): Promise<Note> {
-  return apiClient.post<Note>(`/notes/${id}/archive`)
+  return apiClient.patch<Note>(`/notes/${id}/archive`)
 }
 
 export async function unarchiveNote(id: number): Promise<Note> {
-  return apiClient.post<Note>(`/notes/${id}/unarchive`)
+  return apiClient.patch<Note>(`/notes/${id}/unarchive`)
 }

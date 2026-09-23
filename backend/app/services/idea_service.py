@@ -54,34 +54,33 @@ class IdeaService:
         tag_logic: str = "or",
     ) -> tuple[list[Idea], int]:
         """List ideas with pagination, optional state, project, and tag filtering."""
-        if state is not None:
-            items, total = await self.repo.list_by_state(
-                state=state,
-                skip=skip,
-                limit=limit,
-            )
-            # Post-filter by project_id when state filter is active
-            if project_id is not None:
-                items = [item for item in items if item.project_id == project_id]
-                total = len(items)
-        else:
-            items, total = await self.repo.list_all(
-                skip=skip,
-                limit=limit,
-                include_archived=include_archived,
-                project_id=project_id,
-            )
-
+        entity_ids = None
         if tag_ids:
             entity_ids = await self.tag_repo.get_entities_by_tags(
                 entity_type="idea",
                 tag_ids=tag_ids,
                 logic=tag_logic,
             )
-            items = [item for item in items if item.id in entity_ids]
-            total = len(items)
+            if not entity_ids:
+                return [], 0
 
-        return items, total
+        if state is not None:
+            return await self.repo.list_by_state(
+                state=state,
+                skip=skip,
+                limit=limit,
+                include_archived=include_archived,
+                project_id=project_id,
+                entity_ids=entity_ids,
+            )
+
+        return await self.repo.list_all(
+            skip=skip,
+            limit=limit,
+            include_archived=include_archived,
+            project_id=project_id,
+            entity_ids=entity_ids,
+        )
 
     async def update(self, idea_id: int, data: IdeaUpdate) -> Idea:
         """Update an idea and log changes to audit."""
@@ -95,8 +94,12 @@ class IdeaService:
         changes = {}
         for field, new_value in update_data.items():
             old_value = getattr(existing, field)
-            old_serialized = old_value.value if hasattr(old_value, "value") else old_value
-            new_serialized = new_value.value if hasattr(new_value, "value") else new_value
+            old_serialized = (
+                old_value.value if hasattr(old_value, "value") else old_value
+            )
+            new_serialized = (
+                new_value.value if hasattr(new_value, "value") else new_value
+            )
             # Convert datetime to ISO string for JSON serialization
             if hasattr(old_serialized, "isoformat"):
                 old_serialized = old_serialized.isoformat()

@@ -22,6 +22,21 @@ class BaseRepository(Generic[T]):
         self.model = model
         self.session = session
 
+    def _queue_search(self, entity_id: int, *, remove: bool = False) -> None:
+        """Queue derived search work for the next service-layer commit."""
+        from app.services.search_index_service import queue_reindex, queue_remove
+
+        entity_type = {
+            "notes": "note",
+            "tasks": "task",
+            "ideas": "idea",
+            "projects": "project",
+            "inbox_items": "inbox_item",
+        }.get(self.model.__tablename__)
+        if entity_type:
+            operation = queue_remove if remove else queue_reindex
+            operation(self.session, entity_type, entity_id)
+
     async def get_by_id(self, entity_id: int) -> T | None:
         """Get a single entity by primary key, or None if not found."""
         result = await self.session.execute(
@@ -35,6 +50,7 @@ class BaseRepository(Generic[T]):
         limit: int = 50,
         include_archived: bool = False,
         project_id: int | None = None,
+        entity_ids: list[int] | None = None,
     ) -> tuple[list[T], int]:
         """List entities with pagination, filtering archived by default.
 
@@ -54,6 +70,12 @@ class BaseRepository(Generic[T]):
             query = query.where(self.model.project_id == project_id)
             count_query = count_query.where(self.model.project_id == project_id)
 
+        # Apply externally resolved filters (for example polymorphic tags) before
+        # counting and pagination so totals and page contents stay accurate.
+        if entity_ids is not None:
+            query = query.where(self.model.id.in_(entity_ids))
+            count_query = count_query.where(self.model.id.in_(entity_ids))
+
         # Get total count
         total_result = await self.session.execute(count_query)
         total = total_result.scalar_one()
@@ -71,6 +93,7 @@ class BaseRepository(Generic[T]):
         self.session.add(entity)
         await self.session.flush()
         await self.session.refresh(entity)
+        self._queue_search(entity.id)
         return entity
 
     async def update(self, entity_id: int, data: dict[str, Any]) -> T | None:
@@ -87,6 +110,7 @@ class BaseRepository(Generic[T]):
 
         await self.session.flush()
         await self.session.refresh(entity)
+        self._queue_search(entity_id)
         return entity
 
     async def delete(self, entity_id: int) -> bool:
@@ -97,6 +121,7 @@ class BaseRepository(Generic[T]):
 
         await self.session.delete(entity)
         await self.session.flush()
+        self._queue_search(entity_id, remove=True)
         return True
 
     async def archive(self, entity_id: int) -> T | None:
@@ -116,6 +141,7 @@ class BaseRepository(Generic[T]):
         entity.archived_at = datetime.now(timezone.utc).replace(tzinfo=None)
         await self.session.flush()
         await self.session.refresh(entity)
+        self._queue_search(entity_id)
         return entity
 
     async def unarchive(self, entity_id: int) -> T | None:
@@ -135,4 +161,5 @@ class BaseRepository(Generic[T]):
         entity.archived_at = None
         await self.session.flush()
         await self.session.refresh(entity)
+        self._queue_search(entity_id)
         return entity

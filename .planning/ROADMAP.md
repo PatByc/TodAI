@@ -2,7 +2,7 @@
 
 ## Overview
 
-TodAI is built in four phases following a strict dependency chain: entity management first (the data foundation), then organizational features and capture (connecting and ingesting content), then search and indexing infrastructure (making content findable), and finally the Tod Ask conversational AI (the core value proposition that makes all prior work useful). Each phase delivers a complete, verifiable capability that the next phase depends on.
+TodAI follows a strict dependency chain: entity management first, then organization and capture, an inserted local-first desktop foundation, search and indexing, and finally Tod Ask. The inserted phase moves Desktop to embedded SQLite while preserving an optional PostgreSQL Server mode before search becomes coupled to either database.
 
 ## Phases
 
@@ -14,9 +14,13 @@ TodAI is built in four phases following a strict dependency chain: entity manage
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Core Entities & Application Shell** - Full-stack CRUD for Notes, Tasks, and Ideas with rich text editing, tagging, and archiving in a desktop web application
-- [ ] **Phase 2: Projects, Capture & Organization** - Projects as entity containers, zero-friction Inbox capture, idea conversion, and data export
-- [ ] **Phase 3: Indexing & Hybrid Search** - Automatic content indexing with embeddings, full-text search, semantic search, and hybrid retrieval via RRF
-- [ ] **Phase 4: Tod Ask Mode** - Conversational AI grounded in the knowledge base with source citations and read-only enforcement
+- [x] **Phase 2: Projects, Capture & Organization** - Projects as entity containers, zero-friction Inbox capture, idea conversion, and data export
+- [x] **Phase 2.5: Local-First Desktop Foundation** *(INSERTED)* - Embedded SQLite persistence for Desktop, optional PostgreSQL Server mode, automatic migrations, and Windows packaging foundation
+- [x] **Phase 3: Indexing & Hybrid Search** - Automatic content indexing with embeddings, full-text search, semantic search, and hybrid retrieval via RRF
+- [x] **Phase 4: Tod Ask Mode** - Conversational AI grounded in the knowledge base with source citations and read-only enforcement
+- [x] **Phase 5: Unified Tod Agent** - Private in-process MCP tools, visible background activity, and atomic human-approved actions
+
+Phase 5 replaces the proposed Query/Agent split with one capable Agent experience. Reads execute immediately; mutations are held for whole-batch human approval.
 
 ## Phase Details
 
@@ -99,10 +103,32 @@ Plans:
 
 **UI hint**: yes
 
+### Phase 2.5: Local-First Desktop Foundation *(INSERTED)*
+
+**Goal**: TodAI runs locally without PostgreSQL or any separately installed database while retaining an explicit PostgreSQL-backed server deployment path
+**Depends on**: Phase 2
+**Requirements**: INFRA-01, INFRA-04, LOCAL-01, LOCAL-02, LOCAL-03, LOCAL-04, LOCAL-05, LOCAL-06
+**Success Criteria** (what must be TRUE):
+
+  1. A clean installation starts with a SQLite database in the platform application-data directory and requires no PostgreSQL service
+  2. Existing CRUD, projects, Inbox, conversion, tags, archive, audit, and export behaviors pass unchanged on SQLite
+  3. Schema migrations run automatically on startup and SQLite enables foreign keys, WAL journaling, and a bounded busy timeout
+  4. Setting an explicit PostgreSQL URL switches to Server mode without changes to services, repositories, schemas, or frontend API behavior
+  5. The shared FastAPI process continues to serve the React application, with a documented path to a bundled Windows desktop shell
+  6. Existing PostgreSQL data can be copied safely into an empty SQLite Desktop database without mutating the source
+
+**Plans**: 3 plans
+
+- [x] 02.5-01-PLAN.md — Portable models, local data-path configuration, and dialect-aware engine setup
+- [x] 02.5-02-PLAN.md — Cross-dialect Alembic migrations and automatic startup migration runner
+- [x] 02.5-03-PLAN.md — SQLite integration suite, Server-mode compatibility check, and Windows packaging foundation
+
+**UI hint**: no
+
 ### Phase 3: Indexing & Hybrid Search
 
 **Goal**: User can find any entity in seconds through keyword or natural-language queries, with results ranked by hybrid retrieval combining full-text and semantic search
-**Depends on**: Phase 2
+**Depends on**: Phase 2.5
 **Requirements**: IDX-01, IDX-02, IDX-03, IDX-04, SRCH-01, SRCH-02, SRCH-03, SRCH-04, PROV-02, PROV-03
 **Success Criteria** (what must be TRUE):
 
@@ -112,7 +138,11 @@ Plans:
   4. User can perform semantic search using natural-language queries that find content by meaning, not just exact keyword matches
   5. Universal search (Ctrl+K or equivalent) spans all entity types and merges results via hybrid retrieval (FTS + vector similarity + Reciprocal Rank Fusion)
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+- [x] 03-01-PLAN.md — Portable search schema, FTS/vector indexes, and provider adapters
+- [x] 03-02-PLAN.md — Automatic indexing, rebuilds, hybrid RRF API, and regression tests
+- [x] 03-03-PLAN.md — Universal Ctrl/Cmd+K search palette and live application verification
 **UI hint**: yes
 
 ### Phase 4: Tod Ask Mode
@@ -128,17 +158,42 @@ Plans:
   4. User can click a source reference to navigate directly to the cited entity and section
   5. Ask mode is strictly read-only — Tod cannot create, modify, or delete any entities in this mode
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+- [x] 04-01-PLAN.md — Read-only completion provider and Ask API configuration
+- [x] 04-02-PLAN.md — Hybrid source retrieval, citation validation, and tests
+- [x] 04-03-PLAN.md — Ask conversation UI, source navigation, and responsive verification
+**UI hint**: yes
+
+### Phase 5: Unified Tod Agent
+
+**Goal**: Tod can inspect and act on the workspace through bounded MCP tools while showing useful activity and requiring human approval before mutations
+**Depends on**: Phase 4
+**Requirements**: ACT-01, ACT-02, UI-07
+**Success Criteria**:
+
+  1. Tod uses a private in-process MCP catalog rather than inspecting source code or calling unrestricted APIs
+  2. Read tools execute immediately and provide verified entity citations
+  3. Mutation tool calls are stored exactly, shown as one proposal, and execute only after approval
+  4. Approved batches commit atomically or roll back completely
+  5. Run activity streams over replayable SSE, continues with the drawer closed, and collapses beneath the result
+
+**Plans**: 1 plan
+
+- [x] 05-01 — MCP tool catalog, run streaming, atomic review flow, and Agent activity UI
+
 **UI hint**: yes
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 → 2 → 2.5 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Entities & Application Shell | 8/8 | Complete | 2026-09-10 |
 | 2. Projects, Capture & Organization | 7/7 | Complete | 2026-09-15 |
-| 3. Indexing & Hybrid Search | 0/TBD | Not started | - |
-| 4. Tod Ask Mode | 0/TBD | Not started | - |
+| 2.5. Local-First Desktop Foundation | 3/3 | Complete | 2026-09-21 |
+| 3. Indexing & Hybrid Search | 3/3 | Complete | 2026-09-21 |
+| 4. Tod Ask Mode | 3/3 | Complete | 2026-09-21 |
+| 5. Unified Tod Agent | 1/1 | Complete | 2026-09-23 |

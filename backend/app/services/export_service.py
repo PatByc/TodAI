@@ -52,9 +52,7 @@ class ExportService:
         projects, _ = await self.project_repo.list_all(
             skip=0, limit=100000, include_archived=True
         )
-        inbox_items, _ = await self.inbox_repo.list_all(
-            skip=0, limit=100000
-        )
+        inbox_items, _ = await self.inbox_repo.list_all(skip=0, limit=100000)
 
         return {
             "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -89,9 +87,7 @@ class ExportService:
         if projects:
             sections.append("# Projects\n")
             for project in projects:
-                tags = await self.tag_repo.get_tags_for_entity(
-                    "project", project.id
-                )
+                tags = await self.tag_repo.get_tags_for_entity("project", project.id)
                 tag_str = ", ".join(t.name for t in tags) if tags else "none"
                 sections.append(
                     f"## {project.name}\n\n"
@@ -155,15 +151,11 @@ class ExportService:
                 )
 
         # Inbox Items
-        inbox_items, _ = await self.inbox_repo.list_all(
-            skip=0, limit=100000
-        )
+        inbox_items, _ = await self.inbox_repo.list_all(skip=0, limit=100000)
         if inbox_items:
             sections.append("# Inbox Items\n")
             for item in inbox_items:
-                tags = await self.tag_repo.get_tags_for_entity(
-                    "inbox_item", item.id
-                )
+                tags = await self.tag_repo.get_tags_for_entity("inbox_item", item.id)
                 tag_str = ", ".join(t.name for t in tags) if tags else "none"
                 sections.append(
                     f"## Inbox Item #{item.id}\n\n"
@@ -203,7 +195,9 @@ class ExportService:
             "urgency": task.urgency,
             "status": task.status.value,
             "deadline": task.deadline.isoformat() if task.deadline else None,
-            "completed_at": task.completed_at.isoformat() if task.completed_at else None,
+            "completed_at": task.completed_at.isoformat()
+            if task.completed_at
+            else None,
             "project_id": task.project_id,
             "archived_at": task.archived_at.isoformat() if task.archived_at else None,
             "created_at": task.created_at.isoformat(),
@@ -237,7 +231,9 @@ class ExportService:
             "goals": project.goals,
             "current_focus": project.current_focus,
             "status": project.status.value,
-            "archived_at": project.archived_at.isoformat() if project.archived_at else None,
+            "archived_at": project.archived_at.isoformat()
+            if project.archived_at
+            else None,
             "created_at": project.created_at.isoformat(),
             "updated_at": project.updated_at.isoformat(),
             "tags": [{"id": t.id, "name": t.name} for t in tags],

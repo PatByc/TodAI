@@ -6,7 +6,7 @@
 const API_BASE = "/api/v1"
 
 export async function exportData(format: "json" | "markdown"): Promise<void> {
-  const response = await fetch(`${API_BASE}/export?format=${format}`, {
+  const response = await fetch(`${API_BASE}/export/?format=${format}`, {
     method: "GET",
   })
 

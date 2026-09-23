@@ -71,11 +71,13 @@ class ConversionService:
             raise EntityNotFoundError("inbox_item", inbox_id)
 
         title = self._extract_title_from_tiptap(item.content)
-        note = await self.note_repo.create({
-            "title": title,
-            "content": item.content,
-            "content_text": item.content_text,
-        })
+        note = await self.note_repo.create(
+            {
+                "title": title,
+                "content": item.content,
+                "content_text": item.content_text,
+            }
+        )
 
         await self._copy_tags("inbox_item", inbox_id, "note", note.id)
 
@@ -112,10 +114,12 @@ class ConversionService:
             raise EntityNotFoundError("inbox_item", inbox_id)
 
         title = self._extract_title_from_tiptap(item.content)
-        task = await self.task_repo.create({
-            "title": title,
-            "description": item.content_text,
-        })
+        task = await self.task_repo.create(
+            {
+                "title": title,
+                "description": item.content_text,
+            }
+        )
 
         await self._copy_tags("inbox_item", inbox_id, "task", task.id)
 
@@ -152,11 +156,13 @@ class ConversionService:
             raise EntityNotFoundError("inbox_item", inbox_id)
 
         title = self._extract_title_from_tiptap(item.content)
-        idea = await self.idea_repo.create({
-            "title": title,
-            "content": item.content_text,
-            "state": IdeaState.RAW,
-        })
+        idea = await self.idea_repo.create(
+            {
+                "title": title,
+                "content": item.content_text,
+                "state": IdeaState.RAW,
+            }
+        )
 
         await self._copy_tags("inbox_item", inbox_id, "idea", idea.id)
 
@@ -200,11 +206,13 @@ class ConversionService:
         tiptap_content = _wrap_text_in_tiptap(idea.content)
         content_text = idea.content or ""
 
-        note = await self.note_repo.create({
-            "title": idea.title,
-            "content": tiptap_content,
-            "content_text": content_text,
-        })
+        note = await self.note_repo.create(
+            {
+                "title": idea.title,
+                "content": tiptap_content,
+                "content_text": content_text,
+            }
+        )
 
         await self._copy_tags("idea", idea_id, "note", note.id)
 
@@ -240,10 +248,12 @@ class ConversionService:
         if idea is None:
             raise EntityNotFoundError("idea", idea_id)
 
-        task = await self.task_repo.create({
-            "title": idea.title,
-            "description": idea.content,
-        })
+        task = await self.task_repo.create(
+            {
+                "title": idea.title,
+                "description": idea.content,
+            }
+        )
 
         await self._copy_tags("idea", idea_id, "task", task.id)
 
@@ -279,10 +289,12 @@ class ConversionService:
         if idea is None:
             raise EntityNotFoundError("idea", idea_id)
 
-        project = await self.project_repo.create({
-            "name": idea.title,
-            "description_text": idea.content,
-        })
+        project = await self.project_repo.create(
+            {
+                "name": idea.title,
+                "description_text": idea.content,
+            }
+        )
 
         await self._copy_tags("idea", idea_id, "project", project.id)
 
@@ -320,10 +332,12 @@ def _wrap_text_in_tiptap(text: str | None) -> dict:
     paragraphs = []
     for line in text.split("\n"):
         if line.strip():
-            paragraphs.append({
-                "type": "paragraph",
-                "content": [{"type": "text", "text": line}],
-            })
+            paragraphs.append(
+                {
+                    "type": "paragraph",
+                    "content": [{"type": "text", "text": line}],
+                }
+            )
         else:
             paragraphs.append({"type": "paragraph"})
 

@@ -16,11 +16,11 @@ export async function fetchInboxItems(params: FetchInboxItemsParams = {}): Promi
     skip: params.skip,
     limit: params.limit,
   })
-  return apiClient.get<PaginatedResponse<InboxItem>>(`/inbox${qs}`)
+  return apiClient.get<PaginatedResponse<InboxItem>>(`/inbox/${qs}`)
 }
 
 export async function createInboxItem(data: InboxItemCreate): Promise<InboxItem> {
-  return apiClient.post<InboxItem>("/inbox", data)
+  return apiClient.post<InboxItem>("/inbox/", data)
 }
 
 export async function deleteInboxItem(id: number): Promise<void> {

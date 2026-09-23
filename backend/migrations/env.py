@@ -3,24 +3,26 @@
 import asyncio
 from logging.config import fileConfig
 
-from sqlalchemy import pool
+from alembic import context
+from sqlalchemy import event, pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from alembic import context
-
-from app.config import settings
-from app.models.base import Base
-
 # Import all models so they are registered with Base.metadata
 import app.models  # noqa: F401
+from app.config import settings
+from app.database import _load_sqlite_vec
+from app.models.base import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-# Override sqlalchemy.url from our application settings
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Programmatic callers may provide a one-off URL for tests or maintenance.
+# Escaping percent signs keeps ConfigParser from interpreting URL-encoded
+# credentials as interpolation.
+database_url = config.attributes.get("database_url", settings.database_url)
+config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:
@@ -58,6 +60,9 @@ async def run_async_migrations() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
+
+    if connectable.url.get_backend_name() == "sqlite":
+        event.listen(connectable.sync_engine, "connect", _load_sqlite_vec)
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

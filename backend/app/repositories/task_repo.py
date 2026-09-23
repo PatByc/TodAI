@@ -18,20 +18,27 @@ class TaskRepository(BaseRepository[Task]):
         status: TaskStatus,
         skip: int = 0,
         limit: int = 50,
+        include_archived: bool = False,
+        project_id: int | None = None,
+        entity_ids: list[int] | None = None,
     ) -> tuple[list[Task], int]:
-        """List non-archived tasks filtered by status with pagination."""
-        query = select(Task).where(
-            Task.status == status,
-            Task.archived_at.is_(None),
-        )
+        """List tasks by status with all filters applied before pagination."""
+        query = select(Task).where(Task.status == status)
         count_query = (
-            select(func.count())
-            .select_from(Task)
-            .where(
-                Task.status == status,
-                Task.archived_at.is_(None),
-            )
+            select(func.count()).select_from(Task).where(Task.status == status)
         )
+
+        if not include_archived:
+            query = query.where(Task.archived_at.is_(None))
+            count_query = count_query.where(Task.archived_at.is_(None))
+
+        if project_id is not None:
+            query = query.where(Task.project_id == project_id)
+            count_query = count_query.where(Task.project_id == project_id)
+
+        if entity_ids is not None:
+            query = query.where(Task.id.in_(entity_ids))
+            count_query = count_query.where(Task.id.in_(entity_ids))
 
         total_result = await self.session.execute(count_query)
         total = total_result.scalar_one()

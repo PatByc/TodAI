@@ -27,7 +27,9 @@ def get_inbox_service(session: AsyncSession = Depends(get_db)) -> InboxService:
     return InboxService(session)
 
 
-def get_conversion_service(session: AsyncSession = Depends(get_db)) -> ConversionService:
+def get_conversion_service(
+    session: AsyncSession = Depends(get_db),
+) -> ConversionService:
     """Dependency injection factory for ConversionService."""
     return ConversionService(session)
 

@@ -25,7 +25,7 @@ export async function fetchIdeas(params: FetchIdeasParams = {}): Promise<Paginat
     tag_logic: params.tag_logic,
     project_id: params.project_id,
   })
-  return apiClient.get<PaginatedResponse<Idea>>(`/ideas${qs}`)
+  return apiClient.get<PaginatedResponse<Idea>>(`/ideas/${qs}`)
 }
 
 export async function fetchIdea(id: number): Promise<Idea> {
@@ -33,11 +33,11 @@ export async function fetchIdea(id: number): Promise<Idea> {
 }
 
 export async function createIdea(data: IdeaCreate): Promise<Idea> {
-  return apiClient.post<Idea>("/ideas", data)
+  return apiClient.post<Idea>("/ideas/", data)
 }
 
 export async function updateIdea(id: number, data: IdeaUpdate): Promise<Idea> {
-  return apiClient.patch<Idea>(`/ideas/${id}`, data)
+  return apiClient.put<Idea>(`/ideas/${id}`, data)
 }
 
 export async function deleteIdea(id: number): Promise<void> {
@@ -45,11 +45,11 @@ export async function deleteIdea(id: number): Promise<void> {
 }
 
 export async function archiveIdea(id: number): Promise<Idea> {
-  return apiClient.post<Idea>(`/ideas/${id}/archive`)
+  return apiClient.patch<Idea>(`/ideas/${id}/archive`)
 }
 
 export async function unarchiveIdea(id: number): Promise<Idea> {
-  return apiClient.post<Idea>(`/ideas/${id}/unarchive`)
+  return apiClient.patch<Idea>(`/ideas/${id}/unarchive`)
 }
 
 export async function convertIdea(id: number, targetType: string): Promise<unknown> {

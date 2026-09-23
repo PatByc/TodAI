@@ -1,262 +1,117 @@
-import { useState, useEffect, useCallback } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Link, useRouterState } from "@tanstack/react-router"
-import { FileText, CheckSquare, Lightbulb, FolderOpen, Inbox, Tag, Archive } from "lucide-react"
+import { Archive, ArrowUpRight, CheckSquare, FileText, FolderOpen, Home, Inbox, Lightbulb } from "lucide-react"
 import { useSidebarStore } from "@/stores/sidebar"
+import { useAskStore } from "@/stores/ask"
 import { useCounts } from "@/hooks/useCounts"
 import { useFilterStore } from "@/stores/filters"
-import { SidebarSection } from "./SidebarSection"
 import { ExportButton } from "@/components/export/ExportButton"
+import { TodLogo } from "@/components/TodLogo"
 
 function useMediaQuery(query: string): boolean {
-  if (typeof window === "undefined") return false
-
-  const mql = window.matchMedia(query)
-  const [matches, setMatches] = useState(mql.matches)
+  const [matches, setMatches] = useState(() =>
+    typeof window === "undefined" ? false : window.matchMedia(query).matches,
+  )
 
   useEffect(() => {
-    const handler = (e: MediaQueryListEvent) => setMatches(e.matches)
-    mql.addEventListener("change", handler)
-    return () => mql.removeEventListener("change", handler)
-  }, [mql])
+    const media = window.matchMedia(query)
+    setMatches(media.matches)
+    const onChange = (event: MediaQueryListEvent) => setMatches(event.matches)
+    media.addEventListener("change", onChange)
+    return () => media.removeEventListener("change", onChange)
+  }, [query])
 
   return matches
 }
 
 export function Sidebar() {
-  const isCollapsed = useSidebarStore((s) => s.isCollapsed)
-  const setCollapsed = useSidebarStore((s) => s.setCollapsed)
+  const isCollapsed = useSidebarStore((state) => state.isCollapsed)
+  const setCollapsed = useSidebarStore((state) => state.setCollapsed)
   const isMobile = useMediaQuery("(max-width: 768px)")
 
   useEffect(() => {
-    if (isMobile) {
-      setCollapsed(true)
-    }
+    if (isMobile) setCollapsed(true)
   }, [isMobile, setCollapsed])
 
-  const handleNavClick = useCallback(() => {
-    if (isMobile) {
-      setCollapsed(true)
-    }
+  const closeOnMobile = useCallback(() => {
+    if (isMobile) setCollapsed(true)
   }, [isMobile, setCollapsed])
-
-  const handleBackdropClick = useCallback(() => {
-    setCollapsed(true)
-  }, [setCollapsed])
-
-  if (isMobile) {
-    return (
-      <>
-        {!isCollapsed && (
-          <div
-            onClick={handleBackdropClick}
-            style={{
-              position: "fixed",
-              inset: 0,
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              zIndex: 9,
-            }}
-          />
-        )}
-        <aside
-          style={{
-            position: "fixed",
-            top: "48px",
-            left: 0,
-            bottom: 0,
-            width: "260px",
-            backgroundColor: "var(--card)",
-            borderRight: "1px solid var(--border)",
-            zIndex: 10,
-            transform: isCollapsed ? "translateX(-100%)" : "translateX(0)",
-            transition: "transform 0.2s ease",
-            display: "flex",
-            flexDirection: "column",
-            overflowY: "auto",
-          }}
-        >
-          <SidebarContent onNavClick={handleNavClick} />
-        </aside>
-      </>
-    )
-  }
 
   return (
-    <aside
-      style={{
-        width: isCollapsed ? "0px" : "260px",
-        opacity: isCollapsed ? 0 : 1,
-        overflow: "hidden",
-        backgroundColor: "var(--card)",
-        borderRight: isCollapsed ? "none" : "1px solid var(--border)",
-        transition: "width 0.2s ease, opacity 0.15s ease",
-        display: "flex",
-        flexDirection: "column",
-        flexShrink: 0,
-      }}
-    >
-      <SidebarContent onNavClick={handleNavClick} />
-    </aside>
+    <>
+      {isMobile && !isCollapsed && (
+        <button type="button" className="sidebar-backdrop" onClick={() => setCollapsed(true)} aria-label="Close navigation" />
+      )}
+      <aside className={`sidebar${isMobile ? " sidebar-mobile" : ""}${isCollapsed ? " sidebar-collapsed" : ""}`}>
+        <SidebarContent onNavClick={closeOnMobile} />
+      </aside>
+    </>
   )
 }
 
 function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
+  const askOpen = useAskStore((state) => state.isOpen)
+  const openAsk = useAskStore((state) => state.open)
+  const askRunning = useAskStore((state) => state.isRunning)
   const { data: counts } = useCounts()
   const { includeArchived, setIncludeArchived } = useFilterStore()
-  const routerState = useRouterState()
-  const currentPath = routerState.location.pathname
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
 
-  const isActive = (path: string) => currentPath.startsWith(path)
-
-  const activeLinkStyle = (path: string): React.CSSProperties => ({
-    display: "block",
-    padding: "6px 8px 6px 18px",
-    fontSize: "13px",
-    textDecoration: "none",
-    borderRadius: "4px",
-    color: isActive(path) ? "var(--foreground)" : "var(--muted-foreground)",
-    backgroundColor: isActive(path) ? "var(--accent-glow)" : "transparent",
-    borderLeft: isActive(path)
-      ? "2px solid var(--primary)"
-      : "2px solid transparent",
-  })
+  const navItems = [
+    { to: "/" as const, label: "Today", icon: Home, count: undefined },
+    { to: "/inbox" as const, label: "Inbox", icon: Inbox, count: counts?.inbox },
+    { to: "/tasks" as const, label: "Tasks", icon: CheckSquare, count: counts?.tasks },
+    { to: "/notes" as const, label: "Notes", icon: FileText, count: counts?.notes },
+    { to: "/ideas" as const, label: "Ideas", icon: Lightbulb, count: counts?.ideas },
+    { to: "/projects" as const, label: "Projects", icon: FolderOpen, count: counts?.projects },
+  ]
 
   return (
-    <>
-      <div style={{ padding: "8px 16px" }} />
+    <div className="sidebar-content">
+      <button
+        type="button"
+        className="sidebar-ask"
+        onClick={() => { openAsk(); onNavClick() }}
+        aria-expanded={askOpen}
+        aria-controls="ask-drawer"
+      >
+        <TodLogo size={25} />
+        <span>Ask Tod</span>
+        {askRunning && <span className="ask-running-badge" aria-label="Tod is working" />}
+        <ArrowUpRight size={15} aria-hidden="true" />
+      </button>
 
-      <nav className="flex flex-col gap-1" style={{ flex: 1 }}>
-        <SidebarSection
-          label="INBOX"
-          icon={Inbox}
-          count={counts?.inbox ?? 0}
-          defaultExpanded
-        >
-          <Link
-            to="/inbox"
-            onClick={onNavClick}
-            className="sidebar-nav-link"
-            style={activeLinkStyle("/inbox")}
-          >
-            Capture
-          </Link>
-        </SidebarSection>
-
-        <SidebarSection
-          label="NOTES"
-          icon={FileText}
-          count={counts?.notes ?? 0}
-          defaultExpanded
-        >
-          <Link
-            to="/notes"
-            onClick={onNavClick}
-            className="sidebar-nav-link"
-            style={activeLinkStyle("/notes")}
-          >
-            All Notes
-          </Link>
-        </SidebarSection>
-
-        <SidebarSection
-          label="TASKS"
-          icon={CheckSquare}
-          count={counts?.tasks ?? 0}
-          defaultExpanded
-        >
-          <Link
-            to="/tasks"
-            onClick={onNavClick}
-            className="sidebar-nav-link"
-            style={activeLinkStyle("/tasks")}
-          >
-            All Tasks
-          </Link>
-        </SidebarSection>
-
-        <SidebarSection
-          label="IDEAS"
-          icon={Lightbulb}
-          count={counts?.ideas ?? 0}
-          defaultExpanded
-        >
-          <Link
-            to="/ideas"
-            onClick={onNavClick}
-            className="sidebar-nav-link"
-            style={activeLinkStyle("/ideas")}
-          >
-            All Ideas
-          </Link>
-        </SidebarSection>
-
-        <SidebarSection
-          label="PROJECTS"
-          icon={FolderOpen}
-          count={counts?.projects ?? 0}
-          defaultExpanded
-        >
-          <Link
-            to="/projects"
-            onClick={onNavClick}
-            className="sidebar-nav-link"
-            style={activeLinkStyle("/projects")}
-          >
-            All Projects
-          </Link>
-        </SidebarSection>
+      <nav className="sidebar-nav" aria-label="Workspace">
+        {navItems.map(({ to, label, icon: Icon, count }) => {
+          const active = to === "/" ? pathname === "/" : pathname.startsWith(to)
+          return (
+            <Link
+              key={to}
+              to={to}
+              onClick={onNavClick}
+              className={`sidebar-link${active ? " sidebar-link-active" : ""}`}
+              aria-current={active ? "page" : undefined}
+            >
+              <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
+              <span>{label}</span>
+              {count !== undefined && <small className="sidebar-count">{count}</small>}
+            </Link>
+          )
+        })}
       </nav>
 
-      <div
-        style={{
-          marginTop: "auto",
-          borderTop: "1px solid var(--border-subtle)",
-          padding: "8px 0",
-        }}
-      >
-        <Link
-          to="/"
-          onClick={onNavClick}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            fontSize: "13px",
-            color: "var(--muted-foreground)",
-            textDecoration: "none",
-          }}
-        >
-          <Tag size={14} />
-          Tags
-        </Link>
+      <div className="sidebar-footer">
         <button
-          onClick={() => {
-            setIncludeArchived(!includeArchived)
-            onNavClick()
-          }}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            fontSize: "13px",
-            color: includeArchived ? "var(--primary)" : "var(--muted-foreground)",
-            background: includeArchived ? "var(--accent-glow)" : "transparent",
-            border: "none",
-            cursor: "pointer",
-            width: "100%",
-            textAlign: "left",
-            fontFamily: "var(--font-body)",
-          }}
+          type="button"
+          className={`sidebar-link sidebar-archive${includeArchived ? " sidebar-archive-active" : ""}`}
+          onClick={() => { setIncludeArchived(!includeArchived); onNavClick() }}
+          aria-pressed={includeArchived}
         >
-          <Archive size={14} />
-          Archive
-          {includeArchived && (
-            <span style={{ fontSize: "10px", marginLeft: "auto", opacity: 0.7 }}>ON</span>
-          )}
+          <Archive size={17} strokeWidth={1.8} aria-hidden="true" />
+          <span>Show archived</span>
         </button>
         <ExportButton />
       </div>
-    </>
+    </div>
   )
 }

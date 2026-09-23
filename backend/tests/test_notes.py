@@ -94,7 +94,9 @@ async def test_archive_note(async_client: AsyncClient):
     assert data["archived_at"] is not None
 
     # Archived note should not appear in default list
-    list_resp = await async_client.get("/api/v1/notes/", params={"include_archived": False})
+    list_resp = await async_client.get(
+        "/api/v1/notes/", params={"include_archived": False}
+    )
     note_ids = [n["id"] for n in list_resp.json()["items"]]
     assert note_id not in note_ids
 

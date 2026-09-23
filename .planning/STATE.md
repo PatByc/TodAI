@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: "Phase 2 complete — ready for Phase 3 planning"
-last_updated: "2026-09-15T16:17:34Z"
-last_activity: 2026-09-15 -- Completed 02-07 (UI integration - sidebar, ProjectDropdown, export, filter)
+status: complete
+stopped_at: "Phase 5 unified Agent implementation complete and live-verified"
+last_updated: "2026-09-23T09:20:00+02:00"
+last_activity: 2026-09-23 -- Completed private MCP Agent, atomic approval, SSE activity, and live create/approve verification
 progress:
-  total_phases: 4
-  completed_phases: 2
-  total_plans: 15
-  completed_plans: 14
-  percent: 53
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 25
+  completed_plans: 25
+  percent: 100
 ---
 
 # Project State
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-08)
 
 **Core value:** Tod can find any historical note, idea, or decision in seconds through hybrid semantic + full-text search, and use that retrieved context to help the user reason, prioritize, and act.
-**Current focus:** Phase 02 — projects-capture-organization
+**Current focus:** User validation and remaining core requirement audit
 
 ## Current Position
 
-Phase: 02 (projects-capture-organization) — COMPLETE
-Plan: 7 of 7 (all complete)
-Status: Phase 02 complete, ready for Phase 03 planning
-Last activity: 2026-09-15 -- Completed 02-07 (UI integration - sidebar, ProjectDropdown, export, filter)
+Phase: 05 (agent-mode) — COMPLETE
+Plan: MCP Agent implementation and validation complete
+Status: Private granular MCP tools, exact review proposals, atomic approval, visible replayable activity, and background drawer behavior implemented
+Last activity: 2026-09-23 -- Live provider created a proposal; approval executed through MCP and streamed commit events; temporary record removed
 
-Progress: [█████▎░░░░] 53%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 14
+- Total plans completed: 24
 - Average duration: 5min
 - Total execution time: 1.26 hours
 
@@ -45,7 +45,10 @@ Progress: [█████▎░░░░] 53%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 8 | 48min | 6min |
-| 02 | 6 | 27min | 4.5min |
+| 02 | 7 | 33min | 4.7min |
+| 02.5 | 3 | 35min | 11.7min |
+| 03 | 3 | 54min | 18min |
+| 04 | 3 | 20min | 6.7min |
 
 **Recent Trend:**
 
@@ -107,10 +110,22 @@ Recent decisions affecting current work:
 - [02-07]: ProjectDropdown uses native select element for simplicity and accessibility
 - [02-07]: ExportButton positioned in sidebar footer with upward popover dropdown
 - [02-07]: Added project_id to frontend entity types (Rule 3 -- backend already supported it)
+- [02.5]: SQLite is the default Desktop store; PostgreSQL is retained only as an explicit Server-mode adapter
+- [02.5]: Desktop and Server share one FastAPI/service/repository core and frontend API contract
+- [02.5]: Alembic migrations run automatically before FastAPI accepts requests
+- [02.5]: Cross-database migration requires an empty destination and leaves the source unchanged
+- [03-01]: Search chunks are derived data; SQLite uses FTS5/sqlite-vec and PostgreSQL uses GIN plus HNSW when pgvector is installed
+- [03-01]: Embeddings and completions sit behind provider protocols; OpenAI is the MVP adapter and semantic search is opt-in
+- [03-02]: Repository writes queue search changes and the custom session applies them in the same transaction before commit
+- [03-02]: Hybrid ranking uses Reciprocal Rank Fusion with keyword-only graceful degradation when no embedding provider is configured
+- [03-03]: Universal search opens with Ctrl/Cmd+K or slash and supports keyboard result navigation
+- [04-01]: Ask uses the CompletionProvider protocol and OpenAI Responses with store=False; no database writes or model tools
+- [04-02]: Retrieved chunks are bounded, cited source IDs are validated, and unsupported citations are discarded
+- [04-03]: Ask conversation state is kept in browser session storage; source links navigate to entity body anchors
 
 ### Pending Todos
 
-None yet.
+User visual validation of the refreshed activity trace and on-device dictation remains useful. Day/week/month review remains a proposed v1.x feature.
 
 ### Blockers/Concerns
 
@@ -126,6 +141,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-15T16:17:34Z
-Stopped at: Completed 02-07-PLAN.md -- Phase 2 complete
-Resume file: None -- ready for Phase 3 planning
+Last session: 2026-09-23T09:20:00+02:00
+Stopped at: Phase 5 implementation complete; application running on port 18234
+Resume file: .planning/phases/05-agent-mode/05-CONTEXT.md

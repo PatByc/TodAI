@@ -18,20 +18,25 @@ class IdeaRepository(BaseRepository[Idea]):
         state: IdeaState,
         skip: int = 0,
         limit: int = 50,
+        include_archived: bool = False,
+        project_id: int | None = None,
+        entity_ids: list[int] | None = None,
     ) -> tuple[list[Idea], int]:
-        """List non-archived ideas filtered by state with pagination."""
-        query = select(Idea).where(
-            Idea.state == state,
-            Idea.archived_at.is_(None),
-        )
-        count_query = (
-            select(func.count())
-            .select_from(Idea)
-            .where(
-                Idea.state == state,
-                Idea.archived_at.is_(None),
-            )
-        )
+        """List ideas by state with all filters applied before pagination."""
+        query = select(Idea).where(Idea.state == state)
+        count_query = select(func.count()).select_from(Idea).where(Idea.state == state)
+
+        if not include_archived:
+            query = query.where(Idea.archived_at.is_(None))
+            count_query = count_query.where(Idea.archived_at.is_(None))
+
+        if project_id is not None:
+            query = query.where(Idea.project_id == project_id)
+            count_query = count_query.where(Idea.project_id == project_id)
+
+        if entity_ids is not None:
+            query = query.where(Idea.id.in_(entity_ids))
+            count_query = count_query.where(Idea.id.in_(entity_ids))
 
         total_result = await self.session.execute(count_query)
         total = total_result.scalar_one()

@@ -29,7 +29,9 @@ def get_idea_service(session: AsyncSession = Depends(get_db)) -> IdeaService:
     return IdeaService(session)
 
 
-def get_conversion_service(session: AsyncSession = Depends(get_db)) -> ConversionService:
+def get_conversion_service(
+    session: AsyncSession = Depends(get_db),
+) -> ConversionService:
     """Dependency injection factory for ConversionService."""
     return ConversionService(session)
 

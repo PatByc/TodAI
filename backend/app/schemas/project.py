@@ -12,7 +12,7 @@ class ProjectCreate(BaseModel):
     """Schema for creating a new project."""
 
     name: str = Field(max_length=500, description="Project name")
-    description: dict | None = Field(default_factory=dict, description="Tiptap JSON content")
+    description: dict | None = Field(default=None, description="Tiptap JSON content")
     goals: str | None = None
     current_focus: str | None = Field(default=None, max_length=500)
 

@@ -90,7 +90,7 @@ export interface TaskUpdate {
   priority?: number
   urgency?: number
   status?: TaskStatus
-  deadline?: string
+  deadline?: string | null
   project_id?: number | null
 }
 
@@ -161,15 +161,15 @@ export interface Project {
 
 export interface ProjectCreate {
   name: string
-  description?: Record<string, unknown>
+  description?: Record<string, unknown> | null
   goals?: string
   current_focus?: string
 }
 
 export interface ProjectUpdate {
   name?: string
-  description?: Record<string, unknown>
-  description_text?: string
+  description?: Record<string, unknown> | null
+  description_text?: string | null
   goals?: string
   current_focus?: string
   status?: ProjectStatus

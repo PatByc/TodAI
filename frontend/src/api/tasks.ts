@@ -25,7 +25,7 @@ export async function fetchTasks(params: FetchTasksParams = {}): Promise<Paginat
     tag_logic: params.tag_logic,
     project_id: params.project_id,
   })
-  return apiClient.get<PaginatedResponse<Task>>(`/tasks${qs}`)
+  return apiClient.get<PaginatedResponse<Task>>(`/tasks/${qs}`)
 }
 
 export async function fetchTask(id: number): Promise<Task> {
@@ -33,11 +33,11 @@ export async function fetchTask(id: number): Promise<Task> {
 }
 
 export async function createTask(data: TaskCreate): Promise<Task> {
-  return apiClient.post<Task>("/tasks", data)
+  return apiClient.post<Task>("/tasks/", data)
 }
 
 export async function updateTask(id: number, data: TaskUpdate): Promise<Task> {
-  return apiClient.patch<Task>(`/tasks/${id}`, data)
+  return apiClient.put<Task>(`/tasks/${id}`, data)
 }
 
 export async function deleteTask(id: number): Promise<void> {
@@ -45,9 +45,9 @@ export async function deleteTask(id: number): Promise<void> {
 }
 
 export async function archiveTask(id: number): Promise<Task> {
-  return apiClient.post<Task>(`/tasks/${id}/archive`)
+  return apiClient.patch<Task>(`/tasks/${id}/archive`)
 }
 
 export async function unarchiveTask(id: number): Promise<Task> {
-  return apiClient.post<Task>(`/tasks/${id}/unarchive`)
+  return apiClient.patch<Task>(`/tasks/${id}/unarchive`)
 }

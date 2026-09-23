@@ -35,9 +35,7 @@ async def get_counts(
     project_count = await session.execute(
         select(func.count()).select_from(Project).where(Project.archived_at.is_(None))
     )
-    inbox_count = await session.execute(
-        select(func.count()).select_from(InboxItem)
-    )
+    inbox_count = await session.execute(select(func.count()).select_from(InboxItem))
 
     return {
         "notes": note_count.scalar_one(),

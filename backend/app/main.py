@@ -1,5 +1,6 @@
 """TodAI FastAPI application."""
 
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -10,15 +11,20 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.staticfiles import StaticFiles
 
+from app.api.agent import router as agent_router
 from app.api.export import router as export_router
 from app.api.ideas import router as ideas_router
 from app.api.inbox import router as inbox_router
 from app.api.notes import router as notes_router
 from app.api.projects import router as projects_router
+from app.api.search import router as search_router
 from app.api.system import router as system_router
 from app.api.tags import router as tags_router
 from app.api.tasks import router as tasks_router
 from app.core.exceptions import EntityNotFoundError
+from app.database import AsyncSessionLocal, engine
+from app.migrations import upgrade_database
+from app.services.agent_service import recover_agent_proposals
 
 
 class SPAStaticFiles(StaticFiles):
@@ -34,9 +40,15 @@ class SPAStaticFiles(StaticFiles):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Application lifespan context manager."""
-    yield
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+    """Upgrade the database before serving requests and close it on shutdown."""
+    await asyncio.to_thread(upgrade_database)
+    async with AsyncSessionLocal() as session:
+        await recover_agent_proposals(session)
+    try:
+        yield
+    finally:
+        await engine.dispose()
 
 
 def create_app() -> FastAPI:
@@ -68,6 +80,8 @@ def create_app() -> FastAPI:
     application.include_router(projects_router, prefix="/api/v1")
     application.include_router(inbox_router, prefix="/api/v1")
     application.include_router(export_router, prefix="/api/v1")
+    application.include_router(search_router, prefix="/api/v1")
+    application.include_router(agent_router, prefix="/api/v1")
 
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
     if frontend_dir.exists():

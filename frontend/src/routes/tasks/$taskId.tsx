@@ -93,7 +93,7 @@ function TaskDetailPage() {
   const handleDeadlineChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value
-      updateTask.mutate({ id, data: { deadline: value || undefined } })
+      updateTask.mutate({ id, data: { deadline: value || null } })
     },
     [id, updateTask],
   )
@@ -262,6 +262,7 @@ function TaskDetailPage() {
             Description
           </span>
           <textarea
+            id="body"
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
             placeholder="Add a description..."

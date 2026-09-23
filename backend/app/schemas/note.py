@@ -11,7 +11,13 @@ class NoteCreate(BaseModel):
     """Schema for creating a new note."""
 
     title: str = Field(max_length=500, description="Note title")
-    content: dict = Field(default_factory=dict, description="Tiptap JSON content")
+    content: dict = Field(
+        default_factory=lambda: {
+            "type": "doc",
+            "content": [{"type": "paragraph"}],
+        },
+        description="Tiptap JSON content",
+    )
     project_id: int | None = None
 
 

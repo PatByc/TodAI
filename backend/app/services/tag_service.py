@@ -41,9 +41,7 @@ class TagService:
         entity_id: int,
     ) -> bool:
         """Remove a tag association from an entity."""
-        removed = await self.repo.remove_tag_from_entity(
-            tag_id, entity_type, entity_id
-        )
+        removed = await self.repo.remove_tag_from_entity(tag_id, entity_type, entity_id)
         await self.session.commit()
         return removed
 
@@ -61,7 +59,5 @@ class TagService:
 
         from app.models.tag import Tag as TagModel
 
-        result = await self.session.execute(
-            select(TagModel).order_by(TagModel.name)
-        )
+        result = await self.session.execute(select(TagModel).order_by(TagModel.name))
         return list(result.scalars().all())

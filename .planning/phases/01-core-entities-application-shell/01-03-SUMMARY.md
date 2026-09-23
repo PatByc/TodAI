@@ -126,3 +126,11 @@ All changes align with the plan's threat model:
 - T-01-02 (Input validation): All Pydantic schemas enforce max_length, ge/le, and explicit field types
 - T-01-03 (SQL injection): All repository queries use SQLAlchemy ORM select/where -- no raw SQL
 - T-01-04 (Mass assignment): Update schemas define explicit optional fields; only schema-present fields are passed to repository update()
+
+## Self-Check: PASSED
+
+All 15 created files verified on disk. All 3 commit hashes (0d7a142, 8b038aa, 8b0dbb3) verified in git log.
+
+---
+*Phase: 01-core-entities-application-shell*
+*Completed: 2026-09-09*

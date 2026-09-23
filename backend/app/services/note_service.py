@@ -3,6 +3,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import EntityNotFoundError
+from app.core.text_utils import extract_plain_text
 from app.models.note import Note
 from app.repositories.note_repo import NoteRepository
 from app.repositories.tag_repo import TagRepository
@@ -21,7 +22,9 @@ class NoteService:
 
     async def create(self, data: NoteCreate) -> Note:
         """Create a new note and log the creation to audit."""
-        note = await self.repo.create(data.model_dump())
+        create_data = data.model_dump()
+        create_data["content_text"] = extract_plain_text(create_data["content"]).strip()
+        note = await self.repo.create(create_data)
         await self.audit.log(
             entity_type="note",
             entity_id=note.id,
@@ -61,21 +64,14 @@ class NoteService:
             )
             if not entity_ids:
                 return [], 0
-            # Filter by tag-matched IDs via repository
-            items, total = await self.repo.list_all(
-                skip=skip,
-                limit=limit,
-                include_archived=include_archived,
-                project_id=project_id,
-            )
-            # Post-filter by entity_ids (tag filter)
-            filtered = [item for item in items if item.id in entity_ids]
-            return filtered, len(filtered)
+        else:
+            entity_ids = None
         return await self.repo.list_all(
             skip=skip,
             limit=limit,
             include_archived=include_archived,
             project_id=project_id,
+            entity_ids=entity_ids,
         )
 
     async def update(self, note_id: int, data: NoteUpdate) -> Note:
@@ -86,13 +82,23 @@ class NoteService:
         if not update_data:
             return existing
 
+        if "content" in update_data:
+            content = update_data["content"]
+            update_data["content_text"] = (
+                extract_plain_text(content).strip() if content else ""
+            )
+
         # Compute changes dict (old vs new for modified fields only)
         changes = {}
         for field, new_value in update_data.items():
             old_value = getattr(existing, field)
             # Serialize non-JSON-safe types
-            old_serialized = old_value.isoformat() if hasattr(old_value, "isoformat") else old_value
-            new_serialized = new_value.isoformat() if hasattr(new_value, "isoformat") else new_value
+            old_serialized = (
+                old_value.isoformat() if hasattr(old_value, "isoformat") else old_value
+            )
+            new_serialized = (
+                new_value.isoformat() if hasattr(new_value, "isoformat") else new_value
+            )
             if old_serialized != new_serialized:
                 changes[field] = {"old": old_serialized, "new": new_serialized}
 

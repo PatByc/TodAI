@@ -112,7 +112,7 @@ function IdeaDetailPage() {
     })
   }, [id, deleteIdea, navigate])
 
-  const isArchived = idea?.state === "archived"
+  const isArchived = Boolean(idea?.archived_at)
 
   if (isLoading) {
     return (
@@ -233,6 +233,7 @@ function IdeaDetailPage() {
             Content
           </span>
           <textarea
+            id="body"
             value={content}
             onChange={(e) => handleContentChange(e.target.value)}
             placeholder="Describe your idea..."

@@ -2,24 +2,19 @@
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
 
-from app.config import settings
-from app.database import get_db
+from app.config import sqlite_url
+from app.database import TodAISession, create_database_engine, get_db
 from app.main import app
+from app.models.base import Base
 
 
 @pytest.fixture
-async def async_engine():
-    """Create an async engine for testing."""
-    engine = create_async_engine(
-        settings.database_url,
-        echo=False,
-    )
+async def async_engine(tmp_path):
+    """Create a fresh isolated SQLite database for each test."""
+    engine = create_database_engine(sqlite_url(tmp_path / "test.db"))
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield engine
     await engine.dispose()
 
@@ -34,7 +29,7 @@ async def async_session(async_engine):
     """
     async with async_engine.connect() as conn:
         txn = await conn.begin()
-        session = AsyncSession(bind=conn, expire_on_commit=False)
+        session = TodAISession(bind=conn, expire_on_commit=False)
 
         # Override commit to use nested savepoints instead of real commits
         # so the outer transaction can roll everything back
@@ -42,6 +37,9 @@ async def async_session(async_engine):
 
         async def _savepoint_commit():
             """Flush and create a savepoint instead of a real commit."""
+            from app.services.search_index_service import SearchIndexService
+
+            await SearchIndexService(session).apply_pending()
             await session.flush()
 
         session.commit = _savepoint_commit

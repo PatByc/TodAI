@@ -25,9 +25,7 @@ class EntityTag(Base):
     __tablename__ = "entity_tags"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    tag_id: Mapped[int] = mapped_column(
-        ForeignKey("tags.id", ondelete="CASCADE")
-    )
+    tag_id: Mapped[int] = mapped_column(ForeignKey("tags.id", ondelete="CASCADE"))
     entity_type: Mapped[str] = mapped_column(String(20))
     entity_id: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())

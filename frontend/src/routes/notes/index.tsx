@@ -26,7 +26,10 @@ function NotesPage() {
 
   const handleNewNote = () => {
     createNote.mutate(
-      { title: "Untitled Note", content: {} },
+      {
+        title: "Untitled Note",
+        content: { type: "doc", content: [{ type: "paragraph" }] },
+      },
       {
         onSuccess: (note) => {
           void navigate({ to: "/notes/$noteId", params: { noteId: String(note.id) } })

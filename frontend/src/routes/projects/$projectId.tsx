@@ -191,7 +191,11 @@ function ProjectDetailPage() {
 
   const handleAddNote = useCallback(() => {
     createNote.mutate(
-      { title: "Untitled Note", content: {}, project_id: id },
+      {
+        title: "Untitled Note",
+        content: { type: "doc", content: [{ type: "paragraph" }] },
+        project_id: id,
+      },
       {
         onSuccess: (note) => {
           void navigate({ to: "/notes/$noteId", params: { noteId: String(note.id) } })
@@ -384,7 +388,7 @@ function ProjectDetailPage() {
       </div>
 
       {/* Project fields */}
-      <div style={{ maxWidth: "840px", margin: "0 auto", padding: "0 40px", display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div id="body" style={{ maxWidth: "840px", margin: "0 auto", padding: "0 40px", display: "flex", flexDirection: "column", gap: "16px" }}>
         {/* Current Focus (D-07: plain text one-liner) */}
         <div>
           <span style={{ fontFamily: "var(--font-body)", fontSize: "12px", fontWeight: 500, color: "var(--text-3)", lineHeight: 1.5, marginBottom: "6px", display: "block" }}>
