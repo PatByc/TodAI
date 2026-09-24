@@ -103,7 +103,7 @@ body {
 .topbar-left { gap: 18px; }
 .topbar-action-dock { display: flex; align-items: center; }
 .topbar-actions { max-width: 0; gap: 12px; overflow: hidden; opacity: 0; visibility: hidden; transform: translateX(12px); transition: max-width .42s cubic-bezier(.2, .75, .3, 1), opacity .28s ease, transform .42s cubic-bezier(.2, .75, .3, 1), visibility .42s; }
-.topbar-actions-open { max-width: 540px; margin-right: 12px; opacity: 1; visibility: visible; transform: translateX(0); }
+.topbar-actions-open { max-width: 650px; margin-right: 12px; opacity: 1; visibility: visible; transform: translateX(0); }
 .topbar-actions-toggle { position: relative; width: 38px; height: 38px; display: grid; place-items: center; flex: 0 0 38px; padding: 0; border: 1px solid var(--border); border-radius: 9px; background: transparent; color: var(--muted-foreground); cursor: pointer; }
 .topbar-actions-toggle:hover, .topbar-actions-toggle[aria-expanded="true"] { border-color: #59635e; background: var(--bg-hover); color: var(--foreground); }
 .topbar-actions-status { position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 8px color-mix(in srgb, var(--primary) 60%, transparent); }
@@ -114,10 +114,22 @@ body {
 .topbar-search:hover { border-color: #586168; color: var(--foreground); }
 .topbar-search span { flex: 1; text-align: left; }
 .topbar-search kbd { padding: 3px 5px; border: 1px solid var(--border); border-radius: 5px; color: var(--text-3); font: 10px var(--font-mono); }
-.timer-launcher { height: 36px; display: inline-flex; align-items: center; gap: 7px; padding: 0 11px; border: 1px solid var(--border); border-radius: 9px; background: transparent; color: var(--muted-foreground); font: 500 12px var(--font-body); cursor: pointer; }
+.timer-control { display: inline-flex; align-items: center; gap: 0; white-space: nowrap; }
+.timer-launcher { height: 36px; display: inline-flex; align-items: center; gap: 7px; padding: 0 11px; border: 1px solid var(--border); border-radius: 9px; background: transparent; color: var(--muted-foreground); font: 500 12px var(--font-body); cursor: pointer; transition: border-color .18s ease, background-color .18s ease, color .18s ease; }
 .timer-launcher:hover { border-color: #586168; background: var(--bg-hover); color: var(--foreground); }
-.timer-launcher svg { color: var(--text-3); }
+.timer-launcher svg { flex: 0 0 auto; color: var(--text-3); transition: color .18s ease; }
 .timer-launcher:hover svg { color: var(--primary); }
+.timer-copy { position: relative; width: 61px; height: 16px; display: block; overflow: hidden; transition: width .32s cubic-bezier(.2, .75, .3, 1); }
+.timer-idle-label, .timer-elapsed { position: absolute; inset: 0 auto auto 0; display: block; line-height: 16px; transition: opacity .22s ease, transform .32s cubic-bezier(.2, .75, .3, 1); }
+.timer-elapsed { color: var(--primary-foreground); font-family: var(--font-mono); font-variant-numeric: tabular-nums; opacity: 0; transform: translateX(-14px); }
+.timer-active-label { max-width: 0; margin-left: 0; overflow: hidden; color: var(--muted-foreground); font: 500 12px var(--font-body); opacity: 0; transform: translateX(-12px); transition: max-width .32s cubic-bezier(.2, .75, .3, 1), margin-left .32s cubic-bezier(.2, .75, .3, 1), opacity .2s ease .08s, transform .32s cubic-bezier(.2, .75, .3, 1); }
+.timer-control.is-active .timer-launcher { border-color: var(--accent-muted); background: var(--accent-muted); color: var(--primary-foreground); }
+.timer-control.is-active .timer-launcher:hover { background: var(--primary); }
+.timer-control.is-active .timer-launcher svg { color: var(--primary-foreground); }
+.timer-control.is-active .timer-copy { width: 58px; }
+.timer-control.is-active .timer-idle-label { opacity: 0; transform: translateX(14px); }
+.timer-control.is-active .timer-elapsed { opacity: 1; transform: translateX(0); }
+.timer-control.is-active .timer-active-label { max-width: 62px; margin-left: 8px; opacity: 1; transform: translateX(0); }
 
 .sidebar { position: relative; z-index: 6; width: 236px; flex: 0 0 236px; min-width: 0; display: flex; flex-direction: column; overflow: visible; background: #17191c; border-right: 1px solid var(--border-subtle); transition: width .2s ease, flex-basis .2s ease, opacity .2s ease; }
 .sidebar-collapsed { width: 0; flex-basis: 0; opacity: 0; border-right: 0; }
@@ -300,16 +312,6 @@ body {
 .home-task-done .home-task-title { color: var(--muted-foreground); text-decoration: line-through; text-decoration-color: #68716d; text-decoration-thickness: 1px; }
 .home-task-done .home-task-link:hover .home-task-title { color: var(--foreground); }
 .home-task-error { margin: 10px 0 0; color: var(--destructive); font: 12px/1.4 var(--font-body); }
-.task-progress-field { max-width: 430px; }
-.task-progress-label { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; color: var(--text-3); font: 500 12px/1.5 var(--font-body); }
-.task-progress-label output { color: var(--primary); font: 600 12px/1 var(--font-mono); }
-.task-progress-field input[type="range"] { width: 100%; height: 18px; margin: 0; appearance: none; -webkit-appearance: none; background: transparent; cursor: pointer; }
-.task-progress-field input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: linear-gradient(to right, var(--primary) 0 var(--range-progress), #353b3d var(--range-progress) 100%); }
-.task-progress-field input[type="range"]::-moz-range-track { height: 6px; border-radius: 999px; background: #353b3d; }
-.task-progress-field input[type="range"]::-moz-range-progress { height: 6px; border-radius: 999px; background: var(--primary); }
-.task-progress-field input[type="range"]::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -5px; appearance: none; -webkit-appearance: none; border: 2px solid #17191c; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 42%, var(--border)); }
-.task-progress-field input[type="range"]::-moz-range-thumb { width: 13px; height: 13px; border: 2px solid #17191c; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 42%, var(--border)); }
-.task-progress-field input[type="range"]:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 999px; }
 @keyframes home-task-strike { from { opacity: 0; transform: scaleX(0); } to { opacity: .9; transform: scaleX(1); } }
 @keyframes home-check-pop { 50% { transform: scale(1.16); } }
 @keyframes home-completed-enter { from { opacity: 0; transform: translateY(-8px); } to { opacity: .64; transform: translateY(0); } }
@@ -531,9 +533,11 @@ body {
   .topbar-search { width: 36px; min-width: 36px; justify-content: center; padding: 0; }
   .topbar-search span, .topbar-search kbd { display: none; }
   .timer-launcher { width: 36px; padding: 0; justify-content: center; }
-  .timer-launcher span { display: none; }
+  .timer-copy, .timer-active-label { display: none; }
+  .timer-control.is-active .timer-launcher { width: 99px; padding: 0 9px; }
+  .timer-control.is-active .timer-copy { width: 58px; display: block; }
   .topbar-actions { position: absolute; top: 13px; right: 58px; background: #17191c; }
-  .topbar-actions-open { max-width: 240px; margin-right: 0; padding-left: 10px; }
+  .topbar-actions-open { max-width: 300px; margin-right: 0; padding-left: 10px; }
   .sidebar { position: fixed; z-index: 10; top: var(--chrome-height); bottom: 0; left: 0; width: 236px; flex-basis: auto; opacity: 1; transform: translateX(0); transition: transform .2s ease; box-shadow: 16px 0 40px rgba(0, 0, 0, .25); }
   .sidebar-collapsed { width: 236px; transform: translateX(-100%); }
   .sidebar-hint { display: none !important; }
@@ -860,5 +864,5 @@ body {
   .ui-select-chevron, .ui-date-trigger > svg:last-child { transition: none; }
   .sidebar-hint { transition: none; }
   .home-falling-leaves { display: none; }
-  .topbar-actions { transition: none; }
+  .topbar-actions, .timer-launcher, .timer-copy, .timer-idle-label, .timer-elapsed, .timer-active-label, .timer-launcher svg { transition: none; }
 }

@@ -8,7 +8,7 @@ import { DatePicker } from "@/components/ui/DatePicker"
 import { TaskStateHistory } from "@/components/tasks/TaskStateHistory"
 import { formatRelativeTime } from "@/lib/format"
 import { deriveEntryTitle, shouldAutoName } from "@/lib/entryNaming"
-import { useState, useCallback, useRef, useEffect, type CSSProperties } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { Archive, ArchiveRestore, ArrowLeft, Trash2 } from "lucide-react"
 import type { TaskStatus } from "@/types/entities"
 
@@ -28,18 +28,15 @@ function TaskDetailPage() {
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [progress, setProgress] = useState(0)
   const titleInitialized = useRef(false)
   const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const descDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const progressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     if (task && !titleInitialized.current) {
       setTitle(task.title)
       setDescription(task.description ?? "")
-      setProgress(task.progress)
       titleInitialized.current = true
     }
   }, [task])
@@ -52,7 +49,6 @@ function TaskDetailPage() {
     return () => {
       if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current)
       if (descDebounceRef.current) clearTimeout(descDebounceRef.current)
-      if (progressDebounceRef.current) clearTimeout(progressDebounceRef.current)
     }
   }, [])
 
@@ -94,18 +90,6 @@ function TaskDetailPage() {
 
   const handleUrgencyChange = useCallback(
     (urgency: number) => { updateTask.mutate({ id, data: { urgency } }) },
-    [id, updateTask],
-  )
-
-  const handleProgressChange = useCallback(
-    (nextProgress: number) => {
-      setProgress(nextProgress)
-      if (progressDebounceRef.current) clearTimeout(progressDebounceRef.current)
-      progressDebounceRef.current = setTimeout(() => {
-        updateTask.mutate({ id, data: { progress: nextProgress } })
-        progressDebounceRef.current = null
-      }, 350)
-    },
     [id, updateTask],
   )
 
@@ -285,24 +269,6 @@ function TaskDetailPage() {
         <div style={{ display: "flex", gap: "32px", flexWrap: "wrap" }}>
           <PrioritySelect value={task.priority} onChange={handlePriorityChange} label="Priority" />
           <PrioritySelect value={task.urgency} onChange={handleUrgencyChange} label="Urgency" />
-        </div>
-
-        <div className="task-progress-field">
-          <div className="task-progress-label">
-            <span>Progress</span>
-            <output htmlFor="task-progress">{progress}%</output>
-          </div>
-          <input
-            id="task-progress"
-            type="range"
-            min="0"
-            max="100"
-            step="5"
-            value={progress}
-            onChange={(event) => handleProgressChange(Number(event.target.value))}
-            aria-label="Task progress"
-            style={{ "--range-progress": `${progress}%` } as CSSProperties}
-          />
         </div>
 
         <div>

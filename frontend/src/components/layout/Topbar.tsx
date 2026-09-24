@@ -7,12 +7,30 @@ import { SearchDialog } from "@/components/search/SearchDialog"
 import { AppLogo } from "@/components/AppLogo"
 import { TodLogo } from "@/components/TodLogo"
 
+const TIMER_STORAGE_KEY = "todai.timer.started-at"
+
+function readTimerStart(): number | null {
+  if (typeof window === "undefined") return null
+  const stored = Number(window.localStorage.getItem(TIMER_STORAGE_KEY))
+  return Number.isFinite(stored) && stored > 0 && stored <= Date.now() ? stored : null
+}
+
+function formatElapsed(milliseconds: number) {
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000))
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":")
+}
+
 export function Topbar() {
   const toggle = useSidebarStore((state) => state.toggle)
   const askOpen = useAskStore((state) => state.isOpen)
   const toggleAsk = useAskStore((state) => state.toggle)
   const askRunning = useAskStore((state) => state.isRunning)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [timerStartedAt, setTimerStartedAt] = useState<number | null>(readTimerStart)
+  const [timerNow, setTimerNow] = useState(Date.now)
   const [actionsOpen, setActionsOpen] = useState(() => (
     typeof window !== "undefined" && window.localStorage.getItem("todai.topbar.actions-open") === "true"
   ))
@@ -20,6 +38,28 @@ export function Topbar() {
   useEffect(() => {
     window.localStorage.setItem("todai.topbar.actions-open", String(actionsOpen))
   }, [actionsOpen])
+
+  useEffect(() => {
+    if (timerStartedAt === null) return
+    setTimerNow(Date.now())
+    const interval = window.setInterval(() => setTimerNow(Date.now()), 250)
+    return () => window.clearInterval(interval)
+  }, [timerStartedAt])
+
+  const toggleTimer = () => {
+    if (timerStartedAt !== null) {
+      window.localStorage.removeItem(TIMER_STORAGE_KEY)
+      setTimerStartedAt(null)
+      return
+    }
+    const startedAt = Date.now()
+    window.localStorage.setItem(TIMER_STORAGE_KEY, String(startedAt))
+    setTimerNow(startedAt)
+    setTimerStartedAt(startedAt)
+  }
+
+  const timerActive = timerStartedAt !== null
+  const elapsed = formatElapsed(timerActive ? timerNow - timerStartedAt : 0)
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -57,10 +97,24 @@ export function Topbar() {
             <span>Find anything</span>
             <kbd>Ctrl K</kbd>
           </button>
-          <button type="button" className="timer-launcher" tabIndex={actionsOpen ? 0 : -1} aria-label="Start timer">
-            <Timer size={16} strokeWidth={1.8} aria-hidden="true" />
-            <span>Start timer</span>
-          </button>
+          <div className={`timer-control${timerActive ? " is-active" : ""}`}>
+            <button
+              type="button"
+              className="timer-launcher"
+              tabIndex={actionsOpen ? 0 : -1}
+              onClick={toggleTimer}
+              aria-label={timerActive ? `Stop timer, ${elapsed} elapsed` : "Start timer"}
+              aria-pressed={timerActive}
+              title={timerActive ? "Stop timer" : "Start timer"}
+            >
+              <Timer size={16} strokeWidth={1.8} aria-hidden="true" />
+              <span className="timer-copy" aria-hidden="true">
+                <span className="timer-idle-label">Start timer</span>
+                <span className="timer-elapsed">{elapsed}</span>
+              </span>
+            </button>
+            <span className="timer-active-label" aria-hidden="true">Start timer</span>
+          </div>
           <button
             type="button"
             className={`ask-launcher${askOpen ? " ask-launcher-hidden" : ""}`}
