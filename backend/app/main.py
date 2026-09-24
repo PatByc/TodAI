@@ -22,7 +22,8 @@ from app.api.search import router as search_router
 from app.api.system import router as system_router
 from app.api.tags import router as tags_router
 from app.api.tasks import router as tasks_router
-from app.core.exceptions import EntityNotFoundError
+from app.api.time_tracking import router as time_tracking_router
+from app.core.exceptions import EntityNotFoundError, ValidationError
 from app.database import AsyncSessionLocal, engine
 from app.migrations import upgrade_database
 from app.services.agent_service import recover_agent_proposals
@@ -69,6 +70,12 @@ def create_app() -> FastAPI:
             content={"detail": str(exc)},
         )
 
+    @application.exception_handler(ValidationError)
+    async def validation_error_handler(
+        request: Request, exc: ValidationError
+    ) -> JSONResponse:
+        return JSONResponse(status_code=409, content={"detail": exc.message})
+
     @application.get("/api/v1/health")
     async def health_check() -> dict:
         return {"status": "ok"}
@@ -84,6 +91,7 @@ def create_app() -> FastAPI:
     application.include_router(search_router, prefix="/api/v1")
     application.include_router(agent_router, prefix="/api/v1")
     application.include_router(activity_router, prefix="/api/v1")
+    application.include_router(time_tracking_router, prefix="/api/v1")
 
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
     if frontend_dir.exists():

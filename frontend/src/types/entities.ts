@@ -219,3 +219,51 @@ export interface EntityCounts {
   projects: number
   inbox: number
 }
+
+// ── Time configuration ────────────────────────────────────────────────
+
+export interface TimeCategory {
+  id: number
+  stream_id: number
+  name: string
+  color_index: number
+  is_active: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface TimeStream {
+  id: number
+  name: string
+  color_index: number
+  is_active: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+  categories: TimeCategory[]
+}
+
+export interface TimeStreamCreate {
+  name: string
+  color_index?: number
+}
+
+export interface TimeStreamUpdate {
+  name?: string
+  color_index?: number
+  is_active?: boolean
+}
+
+export interface TimeCategoryCreate {
+  stream_id: number
+  name: string
+  color_index?: number
+}
+
+export interface TimeCategoryUpdate {
+  name?: string
+  stream_id?: number
+  color_index?: number
+  is_active?: boolean
+}

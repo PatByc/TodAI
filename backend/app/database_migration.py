@@ -4,15 +4,44 @@ import argparse
 import asyncio
 from collections.abc import Sequence
 
-from sqlalchemy import func, insert, select
+from sqlalchemy import delete, func, insert, select
 
 from app.database import create_database_engine
 from app.migrations import upgrade_database
 from app.models.base import Base
+from app.models.time_tracking import TimeCategory, TimeStream
 
 
 class DestinationNotEmptyError(RuntimeError):
     """Raised when a migration destination already contains application data."""
+
+
+async def _has_only_seeded_time_configuration(connection) -> bool:
+    """Recognize the defaults installed by migration 007 in a fresh database."""
+    streams = (
+        await connection.execute(
+            select(
+                TimeStream.name,
+                TimeStream.color_index,
+                TimeStream.is_active,
+                TimeStream.sort_order,
+            ).order_by(TimeStream.sort_order)
+        )
+    ).all()
+    categories = (
+        await connection.execute(
+            select(TimeStream.name, TimeCategory.name, TimeCategory.sort_order)
+            .join(TimeCategory, TimeCategory.stream_id == TimeStream.id)
+            .order_by(TimeStream.sort_order)
+        )
+    ).all()
+    return streams == [
+        ("Work", 3, True, 1),
+        ("Personal", 7, True, 2),
+    ] and categories == [
+        ("Work", "General", 1),
+        ("Personal", "General", 1),
+    ]
 
 
 async def migrate_database(source_url: str, destination_url: str) -> dict[str, int]:
@@ -34,11 +63,17 @@ async def migrate_database(source_url: str, destination_url: str) -> dict[str, i
         async with source_engine.connect() as source_connection:
             async with destination_engine.begin() as destination_connection:
                 nonempty_tables: list[str] = []
+                seeded_time_configuration = await _has_only_seeded_time_configuration(
+                    destination_connection
+                )
                 for table in tables:
                     row_count = await destination_connection.scalar(
                         select(func.count()).select_from(table)
                     )
-                    if row_count:
+                    if row_count and not (
+                        seeded_time_configuration
+                        and table.name in {"time_streams", "time_categories"}
+                    ):
                         nonempty_tables.append(table.name)
 
                 if nonempty_tables:
@@ -46,6 +81,10 @@ async def migrate_database(source_url: str, destination_url: str) -> dict[str, i
                     raise DestinationNotEmptyError(
                         f"Destination contains data in: {names}"
                     )
+
+                if seeded_time_configuration:
+                    await destination_connection.execute(delete(TimeCategory))
+                    await destination_connection.execute(delete(TimeStream))
 
                 for table in tables:
                     result = await source_connection.execute(select(table))

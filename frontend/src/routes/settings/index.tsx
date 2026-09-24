@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useRef, useState } from "react"
-import { Check, ChevronDown, Palette, SlidersHorizontal } from "lucide-react"
+import { Check, ChevronDown, Clock3, Palette, SlidersHorizontal } from "lucide-react"
 import { SelectDropdown } from "@/components/ui/SelectDropdown"
+import { TimeSettings } from "@/components/settings/TimeSettings"
 import { readEnabledThemes, saveEnabledThemes, THEMES } from "@/lib/themes"
 import type { ThemeId } from "@/lib/themes"
 
@@ -75,7 +76,7 @@ export const Route = createFileRoute("/settings/")({
 })
 
 function SettingsPage() {
-  const [activeSection, setActiveSection] = useState<"overall" | "design">("overall")
+  const [activeSection, setActiveSection] = useState<"overall" | "design" | "time">("overall")
   const [language, setLanguage] = useState(() => {
     if (typeof window === "undefined") return "en"
     const stored = window.localStorage.getItem("todai.settings.language")
@@ -117,9 +118,18 @@ function SettingsPage() {
             <Palette size={15} strokeWidth={1.7} aria-hidden="true" />
             <span>Design</span>
           </button>
+          <button
+            type="button"
+            className={activeSection === "time" ? "is-active" : ""}
+            aria-current={activeSection === "time" ? "page" : undefined}
+            onClick={() => setActiveSection("time")}
+          >
+            <Clock3 size={15} strokeWidth={1.7} aria-hidden="true" />
+            <span>Time</span>
+          </button>
         </nav>
 
-        {activeSection === "overall" ? (
+        {activeSection === "time" ? <TimeSettings /> : activeSection === "overall" ? (
           <section className="settings-panel" aria-labelledby="settings-overall-title">
             <div className="settings-section-heading">
               <h2 id="settings-overall-title">Overall</h2>

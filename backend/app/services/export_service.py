@@ -11,6 +11,7 @@ from app.repositories.note_repo import NoteRepository
 from app.repositories.project_repo import ProjectRepository
 from app.repositories.tag_repo import TagRepository
 from app.repositories.task_repo import TaskRepository
+from app.repositories.time_tracking_repo import TimeConfigurationRepository
 
 
 class ExportService:
@@ -28,6 +29,7 @@ class ExportService:
         self.project_repo = ProjectRepository(session)
         self.inbox_repo = InboxRepository(session)
         self.tag_repo = TagRepository(session)
+        self.time_config_repo = TimeConfigurationRepository(session)
 
     async def export_json(self) -> dict:
         """Export all entities as a structured JSON dict.
@@ -53,6 +55,7 @@ class ExportService:
             skip=0, limit=100000, include_archived=True
         )
         inbox_items, _ = await self.inbox_repo.list_all(skip=0, limit=100000)
+        time_streams = await self.time_config_repo.list_streams(include_inactive=True)
 
         return {
             "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -62,6 +65,30 @@ class ExportService:
             "projects": [await self._serialize_project(p) for p in projects],
             "inbox_items": [
                 await self._serialize_inbox_item(item) for item in inbox_items
+            ],
+            "time_streams": [
+                {
+                    "id": stream.id,
+                    "name": stream.name,
+                    "color_index": stream.color_index,
+                    "is_active": stream.is_active,
+                    "sort_order": stream.sort_order,
+                    "created_at": stream.created_at.isoformat(),
+                    "updated_at": stream.updated_at.isoformat(),
+                    "categories": [
+                        {
+                            "id": category.id,
+                            "name": category.name,
+                            "color_index": category.color_index,
+                            "is_active": category.is_active,
+                            "sort_order": category.sort_order,
+                            "created_at": category.created_at.isoformat(),
+                            "updated_at": category.updated_at.isoformat(),
+                        }
+                        for category in stream.categories
+                    ],
+                }
+                for stream in time_streams
             ],
         }
 

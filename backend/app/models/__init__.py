@@ -3,8 +3,8 @@
 All models are imported here so Alembic can discover them via Base.metadata.
 """
 
-from .audit_log import AuditLog
 from .agent_proposal import AgentProposal
+from .audit_log import AuditLog
 from .base import Base, SoftDeleteMixin, TimestampMixin
 from .idea import Idea, IdeaState
 from .inbox_item import InboxItem
@@ -13,10 +13,11 @@ from .project import Project, ProjectStatus
 from .search_chunk import SearchChunk
 from .tag import EntityTag, Tag
 from .task import Task, TaskStatus
+from .time_tracking import TimeCategory, TimeStream
 
 __all__ = [
-    "AuditLog",
     "AgentProposal",
+    "AuditLog",
     "Base",
     "EntityTag",
     "Idea",
@@ -30,5 +31,7 @@ __all__ = [
     "Tag",
     "Task",
     "TaskStatus",
+    "TimeCategory",
+    "TimeStream",
     "TimestampMixin",
 ]

@@ -85,10 +85,24 @@ async def test_alembic_history_builds_fresh_sqlite_database(tmp_path):
             "search_chunks",
             "tags",
             "tasks",
+            "time_categories",
+            "time_streams",
         }.issubset(tables)
-        assert revision == "f6a8b0c2d4e6"
+        assert revision == "a7b9c1d3e5f7"
         assert any(key["referred_table"] == "projects" for key in foreign_keys)
         assert created_at is not None
+
+        async with engine.connect() as connection:
+            defaults = (
+                await connection.execute(
+                    text(
+                        "SELECT s.name, c.name FROM time_streams s "
+                        "JOIN time_categories c ON c.stream_id = s.id "
+                        "ORDER BY s.sort_order"
+                    )
+                )
+            ).all()
+        assert defaults == [("Work", "General"), ("Personal", "General")]
     finally:
         await engine.dispose()
 
