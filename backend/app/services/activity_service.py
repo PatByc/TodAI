@@ -48,6 +48,20 @@ class ActivityService:
                     titles[key] = str(new_title)
 
             title = titles.get(key, f"{log.entity_type.title()} #{log.entity_id}")
+            if log.action == "create":
+                state_field = STATE_FIELDS.get(log.entity_type, (None,))[0]
+                transitions.append(
+                    StateTransitionResponse(
+                        id=log.id,
+                        entity_type=log.entity_type,
+                        entity_id=log.entity_id,
+                        entity_title=title,
+                        field="created",
+                        old_value=None,
+                        new_value=snapshot.get(state_field) if state_field else None,
+                        created_at=log.created_at,
+                    )
+                )
             for field in STATE_FIELDS.get(log.entity_type, ()):
                 change = changes.get(field)
                 if not isinstance(change, dict) or change.get("old") == change.get("new"):

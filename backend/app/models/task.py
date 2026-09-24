@@ -29,6 +29,7 @@ class Task(TimestampMixin, SoftDeleteMixin, Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     priority: Mapped[int] = mapped_column(Integer, default=3)
     urgency: Mapped[int] = mapped_column(Integer, default=3)
+    progress: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[TaskStatus] = mapped_column(
         Enum(TaskStatus), default=TaskStatus.BACKLOG
     )

@@ -15,6 +15,7 @@ class TaskCreate(BaseModel):
     description: str | None = None
     priority: int = Field(default=3, ge=1, le=5, description="Priority 1-5 (D-10)")
     urgency: int = Field(default=3, ge=1, le=5, description="Urgency 1-5 (D-11)")
+    progress: int = Field(default=0, ge=0, le=100, description="Completion progress 0-100")
     status: TaskStatus = TaskStatus.BACKLOG
     deadline: datetime | None = None
     project_id: int | None = None
@@ -27,6 +28,7 @@ class TaskUpdate(BaseModel):
     description: str | None = None
     priority: int | None = Field(default=None, ge=1, le=5)
     urgency: int | None = Field(default=None, ge=1, le=5)
+    progress: int | None = Field(default=None, ge=0, le=100)
     status: TaskStatus | None = None
     deadline: datetime | None = None
     project_id: int | None = None
@@ -40,6 +42,7 @@ class TaskResponse(BaseModel):
     description: str | None
     priority: int
     urgency: int
+    progress: int
     status: TaskStatus
     deadline: datetime | None
     completed_at: datetime | None

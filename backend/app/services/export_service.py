@@ -193,6 +193,7 @@ class ExportService:
             "description": task.description,
             "priority": task.priority,
             "urgency": task.urgency,
+            "progress": task.progress,
             "status": task.status.value,
             "deadline": task.deadline.isoformat() if task.deadline else None,
             "completed_at": task.completed_at.isoformat()

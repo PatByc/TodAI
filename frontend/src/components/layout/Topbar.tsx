@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "@tanstack/react-router"
 import { Ellipsis, Menu, Search, Timer, X } from "lucide-react"
 import { useSidebarStore } from "@/stores/sidebar"
@@ -16,7 +16,6 @@ export function Topbar() {
   const [actionsOpen, setActionsOpen] = useState(() => (
     typeof window !== "undefined" && window.localStorage.getItem("todai.topbar.actions-open") === "true"
   ))
-  const actionDockRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     window.localStorage.setItem("todai.topbar.actions-open", String(actionsOpen))
@@ -32,20 +31,11 @@ export function Topbar() {
       } else if (event.key === "/" && !isEditing) {
         event.preventDefault()
         setSearchOpen(true)
-      } else if (event.key === "Escape") {
-        setActionsOpen(false)
       }
     }
-    const closeActions = (event: MouseEvent) => {
-      const target = event.target as Element | null
-      if (target?.closest("#ask-drawer")) return
-      if (!actionDockRef.current?.contains(target)) setActionsOpen(false)
-    }
     window.addEventListener("keydown", handleShortcut)
-    document.addEventListener("mousedown", closeActions)
     return () => {
       window.removeEventListener("keydown", handleShortcut)
-      document.removeEventListener("mousedown", closeActions)
     }
   }, [])
 
@@ -60,9 +50,9 @@ export function Topbar() {
         </Link>
       </div>
 
-      <div className="topbar-action-dock" ref={actionDockRef}>
+      <div className="topbar-action-dock">
         <div id="topbar-actions" className={`topbar-actions${actionsOpen ? " topbar-actions-open" : ""}`} aria-hidden={!actionsOpen}>
-          <button type="button" className="topbar-search" tabIndex={actionsOpen ? 0 : -1} onClick={() => { setSearchOpen(true); setActionsOpen(false) }} aria-label="Search everything">
+          <button type="button" className="topbar-search" tabIndex={actionsOpen ? 0 : -1} onClick={() => setSearchOpen(true)} aria-label="Search everything">
             <Search size={15} />
             <span>Find anything</span>
             <kbd>Ctrl K</kbd>

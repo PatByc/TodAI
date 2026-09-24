@@ -50,12 +50,20 @@ The strongest combined product is therefore not a choice between the two:
 
 - TodAI should remain the application shell, knowledge model, search layer,
   agent architecture, and desktop/server foundation.
-- Pilar's best domain capabilities should be ported into TodAI as first-class
-  modules using TodAI's services, migrations, audit log, API conventions, and
-  MCP tools.
+- Selected Pilar capabilities—primarily time tracking, routines, goals, and
+  personal review—should be ported into TodAI as first-class modules using
+  TodAI's services, migrations, audit log, API conventions, and MCP tools.
 - Pilar should not be merged wholesale at code or database level. Its
   monolithic HTTP/UI implementation and broad AI shell access would weaken
   TodAI's architecture.
+
+The following Pilar domains are explicitly out of scope for TodAI:
+
+- project delivery/economics expansion;
+- costs and recurring expenses;
+- revenue, margin, and financial analysis;
+- Google Tasks synchronization;
+- Agora acquisition analytics.
 
 ### The clearest one-line distinction
 
@@ -259,10 +267,8 @@ Pilar has more mature external task-list and recurrence behavior.
 
 - Keep TodAI tasks as the canonical record.
 - Add recurrence directly to TodAI's task schema.
-- Treat Google Tasks as an optional synchronization adapter, not the source of
-  truth.
-- Preserve TodAI priority, urgency, state history, tags, and projects even when
-  synchronizing a subset of fields to Google.
+- Do not add Google Tasks synchronization; TodAI already provides the richer
+  native task model.
 - Do not migrate Pilar's legacy local task table.
 
 ---
@@ -429,19 +435,13 @@ Pilar provides a Kanban pipeline with Lead pitch, Discovery call, Umowa (SOW),
 Build + sign-off, Deploy + onboarding, and Ongoing stages. It also reports stage
 duration and conversion analytics.
 
-### Recommended unified project
+### TodAI scope decision
 
-Extend TodAI's canonical Project rather than creating a parallel PilarProject.
-The future project aggregate should have separate groups of fields:
-
-1. **Identity and knowledge:** TodAI name, description, goals, focus, tags.
-2. **Delivery:** stage, stage plan, lifecycle history, hours budget.
-3. **Commercial:** client, automation type, pricing model, fees, currency.
-4. **Economics:** revenue ledger, direct costs, allocated overhead, margins.
-5. **Linked work:** tasks, notes, ideas, and time entries.
-
-Pilar's fixed stages should become configurable eventually, but can be imported
-as the initial default pipeline.
+Do not expand TodAI Projects into Pilar's delivery, commercial, cost, or
+financial system. TodAI Projects should remain focused on organizing related
+tasks, notes, ideas, goals, context, and current focus. Time entries may link to
+a project when useful, but cost tracking and project economics remain outside
+the TodAI project model.
 
 ---
 
@@ -512,8 +512,7 @@ surface. Slash-command navigation to `/plan` is also present.
 **Status:** Active
 
 - Daily, weekly, and monthly time goals.
-- Revenue goals with amount, currency, and date range.
-- Automatic progress from time or project revenue.
+- Automatic progress from tracked time.
 - Optional final result.
 - Achieved/missed status.
 - Active/inactive state.
@@ -526,7 +525,6 @@ Use TodAI's empty Plan page as the home for:
 - routines;
 - scheduled intentions;
 - time goals;
-- revenue goals;
 - later calendar-based planning.
 
 Keep routines distinct from tasks: a routine describes a repeated practice,
@@ -566,19 +564,12 @@ Pilar supports:
 - period-over-period spending analysis;
 - expense projections and charts.
 
-### Recommended direction
+### TodAI scope decision
 
-Port the financial domain only after projects and time tracking share a stable
-TodAI schema. Project economics depends on both:
-
-- direct costs require a project;
-- shared overhead allocation depends on tracked client-project hours;
-- effective hourly value depends on time;
-- revenue goals depend on project revenue.
-
-Keep Pilar's explicit missing-FX behavior. Never silently invent conversions.
-Move the acquisition PPP assumption out of hard-coded application logic and
-into a named, configurable business assumption.
+Do not port Pilar's cost, recurring-expense, revenue, FX, margin, or financial
+analysis features into TodAI. They are documented here only to explain the
+difference between the two products. TodAI will remain focused on personal
+knowledge, work, planning, and reflection rather than business accounting.
 
 ---
 
@@ -604,9 +595,6 @@ into a named, configurable business assumption.
 - Time allocation.
 - Work-category distribution.
 - Project-time summaries.
-- Revenue, cost, and margin summaries.
-- Hourly-rate comparisons and six-month trends.
-- Acquisition funnel and unit economics.
 
 ### Recommended direction
 
@@ -616,8 +604,6 @@ Build TodAI's future Review area on a common event/metric layer:
 - task completion;
 - routine completion;
 - time entries;
-- project-stage changes;
-- costs and revenue;
 - agent-applied changes.
 
 This would make the desired day/week/month reflection feature substantially
@@ -642,11 +628,10 @@ more useful than either application's current implementation in isolation.
 - Calculates cost per lead/sent/reply and customer acquisition cost.
 - Provides manual synchronization, caching, diagnostics, and offline fallback.
 
-### Recommended direction
+### TodAI scope decision
 
-Keep Agora as the acquisition system of record. If this view moves into TodAI,
-port only the reporting adapter and dashboard. Do not copy Agora leads,
-contacts, campaigns, or outreach execution into TodAI.
+Do not port the Agora acquisition dashboard or acquisition metrics into TodAI.
+Agora and Pilar can retain this responsibility outside TodAI.
 
 ---
 
@@ -707,10 +692,9 @@ Pilar queries its structured operational data directly.
 
 ### Recommended direction
 
-Extend TodAI's indexers to selected Pilar-derived records, especially projects,
-time-entry notes, goals, routines, costs, and client context. Do not embed every
-numeric row blindly; create meaningful textual projections and keep analytics
-queries structured.
+Extend TodAI's indexers to selected Pilar-derived records, especially
+time-entry notes, goals, and routines. Create meaningful textual projections
+and keep analytics queries structured.
 
 ---
 
@@ -814,14 +798,9 @@ Tod cannot yet manage:
 - time entries or timers;
 - routines;
 - goals;
-- costs or recurring expenses;
-- project stages, stage plans, or revenues;
-- FX rates;
-- acquisition synchronization or metrics;
-- Google Tasks synchronization.
 
-When Pilar domains are ported, each should receive narrow read and mutation MCP
-tools rather than granting Tod generic database access.
+When these selected Pilar domains are ported, each should receive narrow read
+and mutation MCP tools rather than granting Tod generic database access.
 
 ---
 
@@ -901,14 +880,14 @@ analysis.
 - English/Polish selection stored locally.
 - Date-gated theme selection stored locally.
 - Autumn theme active only from September 1 through November 30 when enabled.
-- UI footer displays version `v1.0`.
+- UI footer displays version `v1.0.0`.
 
 Limitations:
 
 - The language selector does not yet translate the interface.
 - Settings live mainly in browser storage rather than the application database.
 - Only the Autumn theme exists.
-- Backend metadata still reports version `0.1.0`, which disagrees with the UI.
+- Backend, frontend package, API, and UI versions are aligned at `1.0.0`.
 
 ### Pilar
 
@@ -956,9 +935,8 @@ the application is closed, but an end-user backup scheduler is not implemented.
 
 ### Recommended direction
 
-TodAI should adopt Pilar's explicit backup/restore workflow and dry-run import
-pattern. Pilar cost imports should become one TodAI import adapter rather than a
-standalone script tied directly to Pilar tables.
+TodAI should adopt Pilar's explicit backup/restore workflow and general dry-run
+import pattern. Pilar's cost-specific Excel importer remains outside TodAI.
 
 ---
 
@@ -1130,10 +1108,9 @@ CSRF boundary. Neither API should be exposed directly to an untrusted network.
    active frontend uses the unified Agent run API.
 2. `AGENT_MODE.md` describes the older mode switch and says partial batch
    success can remain; current code applies approved batches atomically.
-3. The UI shows `v1.0`, while FastAPI and the Python package report `0.1.0`.
-4. Language selection is described as choosing the interface language, but no
+3. Language selection is described as choosing the interface language, but no
    localization system applies it yet.
-5. Plan and Timer are visible but are placeholders.
+4. Plan and Timer are visible but are placeholders.
 
 ### Pilar
 
@@ -1156,32 +1133,23 @@ product specification.
    - Active timer.
    - Time entries.
    - Work categories.
-   - Project/stage attribution.
+   - Optional project attribution.
    - Daily timeline.
 
-2. **Project delivery lifecycle**
-   - Pipeline stages.
-   - Stage transition history.
-   - Stage targets and estimates.
-   - Pipeline analytics.
-
-3. **Routines and goals**
+2. **Routines and goals**
    - Weekly schedules.
    - Time goals.
-   - Revenue goals.
    - Today and Plan integration.
 
-4. **Business economics**
-   - Costs and recurrence.
-   - Project revenues.
-   - FX rates.
-   - Direct/shared allocation.
-   - Margin and effective-hourly-rate reporting.
-
-5. **Review system**
+3. **Review system**
    - Day/week/month ranges.
    - Planned-versus-actual analysis.
-   - Time, task, project, and financial summaries.
+   - Time, task, routine, and progress summaries.
+
+4. **Native task recurrence**
+   - Daily, weekly, monthly, yearly, and custom intervals.
+   - Optional end date or occurrence limit.
+   - Generate the next TodAI task without relying on Google Tasks.
 
 ### Useful supporting patterns
 
@@ -1201,7 +1169,10 @@ product specification.
 - Broad AI `Bash` and filesystem access.
 - Prompt-only approval controls.
 - Informal schema alteration at application startup.
-- Google Tasks as the primary local task model.
+- Google Tasks integration or synchronization.
+- Costs, recurring expenses, revenue, FX, and financial analytics.
+- Project delivery, commercial, or economics expansion.
+- Agora acquisition dashboards and metrics.
 - Hard-coded currency/PPP assumptions.
 - Duplicate project identities or free-text project names.
 - Separate tag systems per domain.
@@ -1233,11 +1204,10 @@ product specification.
 
 ### Phase A — establish canonical identities
 
-1. Confirm TodAI as the destination application.
-2. Match Pilar projects to TodAI projects using an explicit reviewable mapping.
-3. Decide which Pilar tasks, if any, should become TodAI tasks.
-4. Preserve Pilar IDs in import metadata rather than using them as TodAI IDs.
-5. Add source and external-reference fields where idempotent migration requires
+1. Confirm TodAI as the destination application for the selected features.
+2. Decide which Pilar routines, goals, and time history should be retained.
+3. Preserve Pilar IDs in import metadata rather than using them as TodAI IDs.
+4. Add source and external-reference fields where idempotent migration requires
    them.
 
 ### Phase B — time and planning
@@ -1249,30 +1219,14 @@ product specification.
 5. Add routines and goals to Plan.
 6. Expose typed MCP read/write tools with Manual/Auto approval behavior.
 
-### Phase C — project operations
+### Phase C — review
 
-1. Add clients/commercial fields to projects or related tables.
-2. Add project stages and lifecycle transitions.
-3. Add stage plans and budgets.
-4. Add project time and delivery analytics.
-5. Preserve TodAI's notes/tasks/ideas sections in the same project detail view.
+1. Build unified day/week/month Review views.
+2. Compare planned and actual time.
+3. Summarize tasks, routines, and time allocation.
+4. Let Tod generate grounded reflections from those records.
 
-### Phase D — economics and review
-
-1. Add costs and recurring-expense generation.
-2. Add project revenue and FX rates.
-3. Add direct/shared allocation.
-4. Add margins and effective-hourly-rate calculations.
-5. Build unified day/week/month Review views.
-
-### Phase E — external integrations
-
-1. Add optional Google Tasks synchronization if still desired.
-2. Port the Agora statistics adapter.
-3. Add integration health, caching, and offline states.
-4. Keep all external systems behind explicit adapter interfaces.
-
-### Phase F — migration and retirement
+### Phase D — migration and retirement
 
 1. Build a dry-run Pilar importer.
 2. Produce counts, mapping warnings, and unresolved records.
@@ -1288,42 +1242,27 @@ product specification.
 
 | Pilar data | TodAI treatment |
 | --- | --- |
-| Projects | Match or create canonical TodAI projects |
-| Project folders | Add project grouping/folder model if still useful |
-| Project lifecycle | Import into new project-stage event table |
-| Project stage plans | Import into new stage-plan table |
 | Time entries | Import into new TodAI time-entry table |
 | Active timer | Do not migrate a running timer; stop/reconcile first |
 | Categories | Import as TodAI work categories, not tags |
-| Costs | Import with source `pilar` and stable external references |
-| Recurring costs | Import origin and recurrence state without duplicating generated months |
-| Project revenue | Import into new project-revenue ledger |
-| FX rates | Import by month/currency with uniqueness checks |
 | Goals | Import into new goal model |
 | Routines | Import into new routine model |
-| Monthly metrics | Import into operational metrics/settings tables |
-| Google task metadata | Import only if Google synchronization is adopted |
-| Legacy Pilar tasks | Review/deduplicate before conversion to TodAI tasks |
 | Planned blocks | Import only if the new Plan design needs them |
 | Audit log | Transform selected meaningful events; retain raw backup separately |
+
+Pilar projects, costs, revenues, FX rates, Google task metadata, and acquisition
+data are intentionally excluded from the TodAI migration.
 
 ---
 
 ## Decisions required before implementation
 
-1. Should TodAI fully replace Pilar, or initially embed only selected Pilar
-   capabilities?
-2. Are job time and business time both still required as top-level streams?
-3. Should Pilar's project pipeline stages remain fixed or become configurable?
-4. Should Google Tasks synchronize with TodAI or be retired in favor of native
-   tasks?
-5. Are costs and revenues private local-only data even in TodAI Server mode?
-6. Which settings belong to the user account/database versus the local device?
-7. Should Review become a new navigation item or part of Plan/Today?
-8. Should acquisition analytics remain a Pilar/Agora-specific module or become
-   a generic integration dashboard?
-9. Which existing Pilar records must be migrated, and which can remain in an
-   archived read-only database?
+1. Are job time and business time both still required as top-level streams?
+2. Should time categories be fixed defaults or user-configurable?
+3. Which settings belong to the user account/database versus the local device?
+4. Should Review become a new navigation item or part of Plan/Today?
+5. Which existing Pilar time, routine, and goal records must be migrated, and
+   which can remain in an archived read-only database?
 
 ---
 
@@ -1345,23 +1284,13 @@ The cleanest long-term model is:
 - Timer and time entries.
 - Work categories.
 - Routines and goals.
-- Project pipeline and lifecycle.
 - Plan and Review.
-
-### TodAI business
-
-- Costs and recurring expenses.
-- Revenue and FX.
-- Project and company economics.
-- Acquisition reporting adapters.
 
 ### External systems
 
-- Agora remains the source of truth for outreach records.
-- Google Tasks becomes optional synchronization, not canonical storage.
 - OpenAI remains a replaceable model provider behind TodAI's tool contracts.
-- Future calendar, email, bank, and payment integrations remain adapters rather
-  than leaking provider-specific models into the core.
+- Any future integrations remain explicit adapters rather than leaking
+  provider-specific models into the core.
 
 ---
 
@@ -1371,15 +1300,16 @@ TodAI has the stronger foundation for the future product. Its architecture is
 cleaner, its information model is broader, its search layer is purpose-built,
 and its MCP agent is substantially safer and more observable.
 
-Pilar has the stronger operational feature set today. Its time tracking,
-project delivery pipeline, business economics, routines, goals, and review
-analytics represent significant proven product work that should not be lost.
+Pilar has the stronger operational feature set today. For TodAI, the relevant
+parts are time tracking, routines, goals, and personal review. Pilar's project
+economics, accounting, Google Tasks, and acquisition features intentionally
+remain outside TodAI.
 
 The right strategy is therefore:
 
-> Keep TodAI as the platform, then deliberately reimplement and migrate Pilar's
-> operational domains into it—preserving behavior and data while adopting
-> TodAI's architecture, interface, audit model, and agent tools.
+> Keep TodAI as the platform, then deliberately reimplement only Pilar's time,
+> routine, goal, and review capabilities—preserving the useful behavior while
+> adopting TodAI's architecture, interface, audit model, and agent tools.
 
 That produces one coherent system instead of two overlapping applications or a
 fragile code-level merge.

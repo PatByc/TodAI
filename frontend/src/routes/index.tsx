@@ -1,9 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Check, ArrowUpRight, FileText, FolderOpen, Inbox, Leaf } from "lucide-react"
+import { Check, ArrowUpRight, Leaf } from "lucide-react"
 import { useState } from "react"
 import { fetchTasks, updateTask } from "@/api/tasks"
-import { useCounts } from "@/hooks/useCounts"
 import { playCompletionChime } from "@/lib/completionChime"
 import { isThemeActive } from "@/lib/themes"
 import type { PaginatedResponse, Task, TaskStatus } from "@/types/entities"
@@ -48,8 +47,16 @@ function HomeTaskRow({
     <div className={`home-task${done ? " home-task-done" : ""}${completing ? " home-task-completing" : ""}`}>
       <span className="home-task-dot" aria-hidden="true" />
       <Link to="/tasks/$taskId" params={{ taskId: String(task.id) }} className="home-task-link">
-        <span className="home-task-title">{task.title}</span>
-        <span className="home-task-meta">{meta}</span>
+        <span className="home-task-copy">
+          <span className="home-task-title">{task.title}</span>
+          <span className="home-task-meta">{meta}</span>
+        </span>
+        <span className="home-task-progress" aria-label={`${task.progress}% complete`}>
+          <span className="home-task-progress-track" aria-hidden="true">
+            <span style={{ width: `${task.progress}%` }} />
+          </span>
+          <span className="home-task-progress-value">{task.progress}%</span>
+        </span>
       </Link>
       <button
         type="button"
@@ -77,7 +84,6 @@ function TodayPage() {
     weekday: "long", month: "long", day: "numeric", year: "numeric",
   }).format(now)
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
-  const { data: counts } = useCounts()
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["today", "tasks"],
     queryFn: () => fetchTasks({ limit: 100 }),
@@ -204,23 +210,6 @@ function TodayPage() {
         </section>
       )}
 
-      <nav className="home-spaces" aria-label="Your spaces">
-        <Link to="/inbox" className="home-space">
-          <Inbox size={20} strokeWidth={1.7} aria-hidden="true" />
-          <strong>Inbox</strong>
-          <span>{counts?.inbox ?? 0} captured items</span>
-        </Link>
-        <Link to="/notes" className="home-space">
-          <FileText size={20} strokeWidth={1.7} aria-hidden="true" />
-          <strong>Notes</strong>
-          <span>{counts?.notes ?? 0} saved notes</span>
-        </Link>
-        <Link to="/projects" className="home-space">
-          <FolderOpen size={20} strokeWidth={1.7} aria-hidden="true" />
-          <strong>Projects</strong>
-          <span>{counts?.projects ?? 0} projects</span>
-        </Link>
-      </nav>
     </div>
   )
 }

@@ -64,6 +64,7 @@ class CreateTaskInput(ToolInput):
     description: str = Field(default="", max_length=20_000)
     priority: int = Field(default=3, ge=1, le=5)
     urgency: int = Field(default=3, ge=1, le=5)
+    progress: int = Field(default=0, ge=0, le=100)
     status: str = "backlog"
     deadline: datetime | None = None
     project_id: int | None = Field(default=None, gt=0)
@@ -101,6 +102,7 @@ class UpdateTaskInput(ToolInput):
     description: str | None = Field(default=None, max_length=20_000)
     priority: int | None = Field(default=None, ge=1, le=5)
     urgency: int | None = Field(default=None, ge=1, le=5)
+    progress: int | None = Field(default=None, ge=0, le=100)
     status: str | None = None
     deadline: datetime | None = None
     project_id: int | None = Field(default=None, gt=0)

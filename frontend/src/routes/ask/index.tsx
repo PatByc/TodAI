@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router"
 import { ArrowUp, BookOpenText, Check, ChevronDown, Command, MessageCircleMore, Mic, MicOff, Pin, Plus, ShieldCheck, Wrench, Zap } from "lucide-react"
-import { useEffect, useRef, useState, type FormEvent } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { approveAgent, getAgentStatus, rejectAgent, startAgentRun, streamAgentRun, type AgentDecision, type AgentEvent, type AgentPlan, type AgentTurn } from "@/api/agent"
 import { useAskStore } from "@/stores/ask"
@@ -220,6 +220,7 @@ export function AskConversation({
   const setApprovalMode = useAskStore((state) => state.setApprovalMode)
   const endRef = useRef<HTMLDivElement>(null)
   const conversationRef = useRef<HTMLDivElement>(null)
+  const preservedConversationScrollRef = useRef<number | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const streamsRef = useRef<Map<string, () => void>>(new Map())
   const modeMenuRef = useRef<HTMLDivElement>(null)
@@ -247,10 +248,14 @@ export function AskConversation({
     })
   }, [])
 
-  useEffect(() => {
-    if (isOpen && conversationRef.current) {
-      conversationRef.current.scrollTop = conversationRef.current.scrollHeight
+  useLayoutEffect(() => {
+    if (!isOpen || !conversationRef.current) return
+    if (preservedConversationScrollRef.current !== null) {
+      conversationRef.current.scrollTop = preservedConversationScrollRef.current
+      preservedConversationScrollRef.current = null
+      return
     }
+    conversationRef.current.scrollTop = conversationRef.current.scrollHeight
   }, [conversation, busy, isOpen])
 
   useEffect(() => {
@@ -427,7 +432,7 @@ export function AskConversation({
     <div className="ask-page">
       <div className="ask-heading">
         <div className={`ask-mark${busy || deciding !== null ? " ask-mark-working" : ""}`}>
-          <TodWorkingLogo size={42} working={busy || deciding !== null} />
+          <TodWorkingLogo size={32} working={busy || deciding !== null} />
         </div>
         <div className="ask-heading-copy">
           <h1>Ask Tod</h1>
@@ -498,7 +503,10 @@ export function AskConversation({
                   events={entry.activity ?? []}
                   open={entry.activityOpen ?? false}
                   live={!entry.plan && !entry.error || deciding === index}
-                  onToggle={() => setConversation((entries) => entries.map((item, position) => position === index ? { ...item, activityOpen: !item.activityOpen } : item))}
+                  onToggle={() => {
+                    preservedConversationScrollRef.current = conversationRef.current?.scrollTop ?? null
+                    setConversation((entries) => entries.map((item, position) => position === index ? { ...item, activityOpen: !item.activityOpen } : item))
+                  }}
                 />
                 {entry.plan && (
                   <AgentReview
@@ -661,7 +669,7 @@ export function AskConversation({
             aria-label="Question for Tod"
             aria-expanded={commandMenuOpen}
             aria-controls={commandMenuOpen ? "ask-command-palette" : undefined}
-            rows={2}
+            rows={1}
           />
           <button
             type="button"

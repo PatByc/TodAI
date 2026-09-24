@@ -64,6 +64,7 @@ export interface Task {
   description: string | null
   priority: number
   urgency: number
+  progress: number
   status: TaskStatus
   deadline: string | null
   completed_at: string | null
@@ -79,6 +80,7 @@ export interface TaskCreate {
   description?: string
   priority?: number
   urgency?: number
+  progress?: number
   status?: TaskStatus
   deadline?: string
   project_id?: number
@@ -89,6 +91,7 @@ export interface TaskUpdate {
   description?: string
   priority?: number
   urgency?: number
+  progress?: number
   status?: TaskStatus
   deadline?: string | null
   project_id?: number | null
@@ -144,7 +147,7 @@ export interface StateTransition {
   entity_type: "task" | "note" | "idea"
   entity_id: number
   entity_title: string
-  field: "status" | "state" | "pinned" | "archived"
+  field: "created" | "status" | "state" | "pinned" | "archived"
   old_value: unknown
   new_value: unknown
   created_at: string

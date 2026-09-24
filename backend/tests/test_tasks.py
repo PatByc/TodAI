@@ -17,6 +17,7 @@ async def test_create_task_defaults(async_client: AsyncClient):
     assert data["title"] == "Default Task"
     assert data["priority"] == 3
     assert data["urgency"] == 3
+    assert data["progress"] == 0
     assert data["status"] == "backlog"
     assert data["completed_at"] is None
     assert data["created_at"] is not None
@@ -50,6 +51,7 @@ async def test_update_task_status_done(async_client: AsyncClient):
     data = update_resp.json()
     assert data["status"] == "done"
     assert data["completed_at"] is not None
+    assert data["progress"] == 100
 
     # Set back to todo - completed_at should be cleared
     update_resp2 = await async_client.put(
@@ -59,6 +61,36 @@ async def test_update_task_status_done(async_client: AsyncClient):
     data2 = update_resp2.json()
     assert data2["status"] == "todo"
     assert data2["completed_at"] is None
+    assert data2["progress"] == 0
+
+
+@pytest.mark.asyncio
+async def test_task_progress_keeps_completion_state_in_sync(async_client: AsyncClient):
+    """Progress at 100 completes a task; lowering it reopens the task."""
+    create_resp = await async_client.post(
+        "/api/v1/tasks/",
+        json={"title": "Track Me", "status": "in_progress", "progress": 35},
+    )
+    task_id = create_resp.json()["id"]
+    assert create_resp.json()["progress"] == 35
+
+    complete_resp = await async_client.put(
+        f"/api/v1/tasks/{task_id}",
+        json={"progress": 100},
+    )
+    completed = complete_resp.json()
+    assert completed["status"] == "done"
+    assert completed["progress"] == 100
+    assert completed["completed_at"] is not None
+
+    reopen_resp = await async_client.put(
+        f"/api/v1/tasks/{task_id}",
+        json={"progress": 60},
+    )
+    reopened = reopen_resp.json()
+    assert reopened["status"] == "in_progress"
+    assert reopened["progress"] == 60
+    assert reopened["completed_at"] is None
 
 
 @pytest.mark.asyncio

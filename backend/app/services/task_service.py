@@ -32,7 +32,11 @@ class TaskService:
 
     async def create(self, data: TaskCreate) -> Task:
         """Create a new task and log the creation to audit."""
-        task = await self.repo.create(data.model_dump())
+        create_data = data.model_dump()
+        if create_data["status"] == TaskStatus.DONE:
+            create_data["progress"] = 100
+            create_data["completed_at"] = datetime.now(timezone.utc).replace(tzinfo=None)
+        task = await self.repo.create(create_data)
         await self.audit.log(
             entity_type="task",
             entity_id=task.id,
@@ -42,6 +46,7 @@ class TaskService:
                 "description": task.description,
                 "priority": task.priority,
                 "urgency": task.urgency,
+                "progress": task.progress,
                 "status": task.status.value if task.status else None,
             },
         )
@@ -111,15 +116,34 @@ class TaskService:
         if not update_data:
             return existing
 
-        # Handle completed_at logic for status transitions
+        # Keep progress and completion state in sync in both directions.
         if "status" in update_data:
             new_status = update_data["status"]
             old_status = existing.status
-            if new_status == TaskStatus.DONE and old_status != TaskStatus.DONE:
+            if new_status == TaskStatus.DONE:
+                update_data["progress"] = 100
+                if old_status != TaskStatus.DONE:
+                    update_data["completed_at"] = datetime.now(timezone.utc).replace(
+                        tzinfo=None
+                    )
+            else:
+                if old_status == TaskStatus.DONE:
+                    update_data["completed_at"] = None
+                if update_data.get("progress") == 100 or (
+                    old_status == TaskStatus.DONE and "progress" not in update_data
+                ):
+                    update_data["progress"] = 0
+        elif "progress" in update_data:
+            new_progress = update_data["progress"]
+            if new_progress == 100 and existing.status != TaskStatus.DONE:
+                update_data["status"] = TaskStatus.DONE
                 update_data["completed_at"] = datetime.now(timezone.utc).replace(
                     tzinfo=None
                 )
-            elif new_status != TaskStatus.DONE and old_status == TaskStatus.DONE:
+            elif new_progress < 100 and existing.status == TaskStatus.DONE:
+                update_data["status"] = (
+                    TaskStatus.IN_PROGRESS if new_progress > 0 else TaskStatus.TODO
+                )
                 update_data["completed_at"] = None
 
         # Compute changes dict

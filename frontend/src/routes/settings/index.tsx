@@ -158,7 +158,7 @@ function SettingsPage() {
 
       <footer className="settings-version" aria-label="Application version">
         <span>TodAi</span>
-        <span>v1.0</span>
+        <span>v1.0.0</span>
       </footer>
     </div>
   )

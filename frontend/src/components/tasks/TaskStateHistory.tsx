@@ -39,13 +39,22 @@ export function TaskStateHistory({ taskId }: { taskId: number }) {
           {transitions.map((transition) => (
             <li key={`${transition.id}-${transition.field}`}>
               <span className="task-history-node" aria-hidden="true" />
-              <div className="task-history-transition">
-                <span>{transitionLabel(transition.field, transition.old_value)}</span>
-                <ArrowRight size={12} strokeWidth={1.7} aria-hidden="true" />
-                <strong data-state={String(transition.new_value)}>
-                  {transitionLabel(transition.field, transition.new_value)}
-                </strong>
-              </div>
+              {transition.field === "created" ? (
+                <div className="task-history-transition">
+                  <strong>Created</strong>
+                  {transition.new_value != null && (
+                    <span>as {transitionLabel("status", transition.new_value)}</span>
+                  )}
+                </div>
+              ) : (
+                <div className="task-history-transition">
+                  <span>{transitionLabel(transition.field, transition.old_value)}</span>
+                  <ArrowRight size={12} strokeWidth={1.7} aria-hidden="true" />
+                  <strong data-state={String(transition.new_value)}>
+                    {transitionLabel(transition.field, transition.new_value)}
+                  </strong>
+                </div>
+              )}
               <time dateTime={transition.created_at}>
                 {timestampFormatter.format(new Date(transition.created_at))}
               </time>

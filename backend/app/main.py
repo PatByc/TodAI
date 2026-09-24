@@ -56,7 +56,7 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     application = FastAPI(
         title="TodAI",
-        version="0.1.0",
+        version="1.0.0",
         lifespan=lifespan,
     )
 
