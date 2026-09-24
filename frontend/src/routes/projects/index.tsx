@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
+import { useState } from "react"
 import { useProjects, useCreateProject } from "@/hooks/useProjects"
 import { useFetchAllTags } from "@/hooks/useTags"
 import { useFilterStore } from "@/stores/filters"
 import { ProjectCard } from "@/components/entities/ProjectCard"
 import { EmptyState } from "@/components/entities/EmptyState"
-import { TagFilterBar } from "@/components/tags/TagFilterBar"
+import { EntityFilterBar } from "@/components/filters/EntityFilterBar"
+import type { ProjectStatus } from "@/types/entities"
 
 export const Route = createFileRoute("/projects/")({
   component: ProjectsPage,
@@ -13,7 +15,9 @@ export const Route = createFileRoute("/projects/")({
 
 function ProjectsPage() {
   const navigate = useNavigate()
-  const { selectedTagIds, tagLogic, includeArchived } = useFilterStore()
+  const [projectView, setProjectView] = useState<"all" | ProjectStatus>("all")
+  const [includeArchived, setIncludeArchived] = useState(false)
+  const { selectedTagIds, tagLogic } = useFilterStore()
   const { data: allTags = [] } = useFetchAllTags()
 
   const { data, isLoading } = useProjects({
@@ -36,6 +40,9 @@ function ProjectsPage() {
   }
 
   const projects = data?.items ?? []
+  const visibleProjects = projectView === "all"
+    ? projects
+    : projects.filter((project) => project.status === projectView)
 
   return (
     <div>
@@ -85,24 +92,37 @@ function ProjectsPage() {
         </button>
       </div>
 
-      {/* Filter bar */}
-      <div style={{ marginBottom: "16px" }}>
-        <TagFilterBar allTags={allTags} />
-      </div>
+      <EntityFilterBar
+        scope="projects"
+        allTags={allTags}
+        view={projectView}
+        defaultView="all"
+        viewOptions={[
+          { value: "all", label: "All projects" },
+          { value: "active", label: "Active" },
+          { value: "on_hold", label: "On hold" },
+          { value: "completed", label: "Completed" },
+        ]}
+        viewLabel="Project status"
+        onViewChange={(view) => setProjectView(view as "all" | ProjectStatus)}
+        includeArchived={includeArchived}
+        onIncludeArchivedChange={setIncludeArchived}
+        showProjectFilter={false}
+      />
 
       {/* Content */}
       {isLoading ? (
         <div style={{ color: "var(--muted-foreground)", fontSize: "14px" }}>
           Loading...
         </div>
-      ) : projects.length === 0 ? (
+      ) : visibleProjects.length === 0 ? (
         <EmptyState
-          heading="No projects yet"
-          body="Create a project to organize your notes, tasks, and ideas."
+          heading={projectView === "all" ? "No projects yet" : "No matching projects"}
+          body={projectView === "all" ? "Create a project to organize your notes, tasks, and ideas." : "Choose another status or clear the filters."}
         />
       ) : (
         <div>
-          {projects.map((project) => (
+          {visibleProjects.map((project) => (
             <ProjectCard key={project.id} project={project} />
           ))}
         </div>

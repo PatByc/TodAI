@@ -80,10 +80,12 @@ export function InboxCard({ item }: InboxCardProps) {
 
       {/* Action buttons row */}
       <div
+        className="inbox-card-actions"
         style={{
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-start",
           gap: "8px",
+          flexWrap: "wrap",
         }}
       >
         <ConvertDropdown sourceType="inbox" sourceId={item.id} />

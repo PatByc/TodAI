@@ -16,8 +16,10 @@ import { Route as IdeasIdeaIdRouteImport } from './routes/ideas/$ideaId'
 import { Route as InboxIndexRouteImport } from './routes/inbox/index'
 import { Route as NotesIndexRouteImport } from './routes/notes/index'
 import { Route as NotesNoteIdRouteImport } from './routes/notes/$noteId'
+import { Route as PlanIndexRouteImport } from './routes/plan/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
+import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as TasksIndexRouteImport } from './routes/tasks/index'
 import { Route as TasksTaskIdRouteImport } from './routes/tasks/$taskId'
 
@@ -56,6 +58,11 @@ const NotesNoteIdRoute = NotesNoteIdRouteImport.update({
   path: '/notes/$noteId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlanIndexRoute = PlanIndexRouteImport.update({
+  id: '/plan/',
+  path: '/plan/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   id: '/projects/',
   path: '/projects/',
@@ -64,6 +71,11 @@ const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
 const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
   id: '/projects/$projectId',
   path: '/projects/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TasksIndexRoute = TasksIndexRouteImport.update({
@@ -87,7 +99,9 @@ export interface FileRoutesByFullPath {
   '/ideas/': typeof IdeasIndexRoute
   '/inbox/': typeof InboxIndexRoute
   '/notes/': typeof NotesIndexRoute
+  '/plan/': typeof PlanIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/tasks/': typeof TasksIndexRoute
 }
 export interface FileRoutesByTo {
@@ -100,7 +114,9 @@ export interface FileRoutesByTo {
   '/ideas': typeof IdeasIndexRoute
   '/inbox': typeof InboxIndexRoute
   '/notes': typeof NotesIndexRoute
+  '/plan': typeof PlanIndexRoute
   '/projects': typeof ProjectsIndexRoute
+  '/settings': typeof SettingsIndexRoute
   '/tasks': typeof TasksIndexRoute
 }
 export interface FileRoutesById {
@@ -114,7 +130,9 @@ export interface FileRoutesById {
   '/ideas/': typeof IdeasIndexRoute
   '/inbox/': typeof InboxIndexRoute
   '/notes/': typeof NotesIndexRoute
+  '/plan/': typeof PlanIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/tasks/': typeof TasksIndexRoute
 }
 export interface FileRouteTypes {
@@ -129,7 +147,9 @@ export interface FileRouteTypes {
     | '/ideas/'
     | '/inbox/'
     | '/notes/'
+    | '/plan/'
     | '/projects/'
+    | '/settings/'
     | '/tasks/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -142,7 +162,9 @@ export interface FileRouteTypes {
     | '/ideas'
     | '/inbox'
     | '/notes'
+    | '/plan'
     | '/projects'
+    | '/settings'
     | '/tasks'
   id:
     | '__root__'
@@ -155,7 +177,9 @@ export interface FileRouteTypes {
     | '/ideas/'
     | '/inbox/'
     | '/notes/'
+    | '/plan/'
     | '/projects/'
+    | '/settings/'
     | '/tasks/'
   fileRoutesById: FileRoutesById
 }
@@ -169,7 +193,9 @@ export interface RootRouteChildren {
   IdeasIndexRoute: typeof IdeasIndexRoute
   InboxIndexRoute: typeof InboxIndexRoute
   NotesIndexRoute: typeof NotesIndexRoute
+  PlanIndexRoute: typeof PlanIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
   TasksIndexRoute: typeof TasksIndexRoute
 }
 
@@ -224,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotesNoteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/plan/': {
+      id: '/plan/'
+      path: '/plan'
+      fullPath: '/plan/'
+      preLoaderRoute: typeof PlanIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/': {
       id: '/projects/'
       path: '/projects'
@@ -236,6 +269,13 @@ declare module '@tanstack/react-router' {
       path: '/projects/$projectId'
       fullPath: '/projects/$projectId'
       preLoaderRoute: typeof ProjectsProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/': {
+      id: '/settings/'
+      path: '/settings'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tasks/': {
@@ -265,7 +305,9 @@ const rootRouteChildren: RootRouteChildren = {
   IdeasIndexRoute: IdeasIndexRoute,
   InboxIndexRoute: InboxIndexRoute,
   NotesIndexRoute: NotesIndexRoute,
+  PlanIndexRoute: PlanIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
   TasksIndexRoute: TasksIndexRoute,
 }
 export const routeTree = rootRouteImport

@@ -87,68 +87,16 @@ export function ExportButton() {
       </button>
 
       {isOpen && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "100%",
-            left: "8px",
-            marginBottom: "4px",
-            minWidth: "160px",
-            backgroundColor: "var(--secondary)",
-            border: "1px solid var(--border)",
-            borderRadius: "6px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-            zIndex: 30,
-            overflow: "hidden",
-          }}
-        >
+        <div className="ui-dropdown-menu ui-dropdown-menu-up">
           <button
             onClick={() => void handleExport("json")}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              width: "100%",
-              padding: "8px 12px",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--foreground)",
-              fontFamily: "var(--font-body)",
-              fontSize: "13px",
-              textAlign: "left",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "var(--bg-hover)"
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent"
-            }}
+            className="ui-dropdown-option"
           >
             Export as JSON
           </button>
           <button
             onClick={() => void handleExport("markdown")}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              width: "100%",
-              padding: "8px 12px",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--foreground)",
-              fontFamily: "var(--font-body)",
-              fontSize: "13px",
-              textAlign: "left",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "var(--bg-hover)"
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent"
-            }}
+            className="ui-dropdown-option"
           >
             Export as Markdown
           </button>

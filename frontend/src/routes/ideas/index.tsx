@@ -1,28 +1,57 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
+import { useState } from "react"
 import { useIdeas, useCreateIdea } from "@/hooks/useIdeas"
 import { useFetchAllTags } from "@/hooks/useTags"
 import { useFilterStore } from "@/stores/filters"
 import { IdeaCard } from "@/components/entities/IdeaCard"
 import { EmptyState } from "@/components/entities/EmptyState"
-import { TagFilterBar } from "@/components/tags/TagFilterBar"
+import { EntityFilterBar } from "@/components/filters/EntityFilterBar"
+import { DEFAULT_IDEA_DISPLAY_FIELDS, IdeaDisplayOptions } from "@/components/ideas/IdeaDisplayOptions"
+import type { IdeaDisplayField } from "@/components/ideas/IdeaDisplayOptions"
+import type { IdeaState } from "@/types/entities"
 
 export const Route = createFileRoute("/ideas/")({
   component: IdeasPage,
 })
 
+const DISPLAY_STORAGE_KEY = "todai.ideas.display-fields"
+
+function readDisplayFields(): IdeaDisplayField[] {
+  if (typeof window === "undefined") return DEFAULT_IDEA_DISPLAY_FIELDS
+  try {
+    const stored: unknown = JSON.parse(window.localStorage.getItem(DISPLAY_STORAGE_KEY) ?? "null")
+    if (!Array.isArray(stored)) return DEFAULT_IDEA_DISPLAY_FIELDS
+    const validFields = new Set<IdeaDisplayField>(DEFAULT_IDEA_DISPLAY_FIELDS)
+    return [...new Set(stored.filter((field): field is IdeaDisplayField => (
+      typeof field === "string" && validFields.has(field as IdeaDisplayField)
+    )))]
+  } catch {
+    return DEFAULT_IDEA_DISPLAY_FIELDS
+  }
+}
+
 function IdeasPage() {
   const navigate = useNavigate()
-  const { selectedTagIds, tagLogic, includeArchived } = useFilterStore()
+  const [ideaView, setIdeaView] = useState<"all" | IdeaState>("all")
+  const [includeArchived, setIncludeArchived] = useState(false)
+  const [displayFields, setDisplayFields] = useState<IdeaDisplayField[]>(readDisplayFields)
+  const { selectedTagIds, tagLogic } = useFilterStore()
   const { data: allTags = [] } = useFetchAllTags()
 
   const { data, isLoading } = useIdeas({
     include_archived: includeArchived || undefined,
     tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,
     tag_logic: selectedTagIds.length > 0 ? tagLogic : undefined,
+    state: ideaView === "all" ? undefined : ideaView,
   })
 
   const createIdea = useCreateIdea()
+
+  const updateDisplayFields = (fields: IdeaDisplayField[]) => {
+    setDisplayFields(fields)
+    window.localStorage.setItem(DISPLAY_STORAGE_KEY, JSON.stringify(fields))
+  }
 
   const handleNewIdea = () => {
     createIdea.mutate(
@@ -84,9 +113,23 @@ function IdeasPage() {
         </button>
       </div>
 
-      <div style={{ marginBottom: "16px" }}>
-        <TagFilterBar allTags={allTags} />
-      </div>
+      <EntityFilterBar
+        scope="ideas"
+        allTags={allTags}
+        view={ideaView}
+        defaultView="all"
+        viewOptions={[
+          { value: "all", label: "All ideas" },
+          { value: "raw", label: "Raw" },
+          { value: "developing", label: "Developing" },
+          { value: "converted", label: "Converted" },
+        ]}
+        viewLabel="Idea state"
+        onViewChange={(view) => setIdeaView(view as "all" | IdeaState)}
+        includeArchived={includeArchived}
+        onIncludeArchivedChange={setIncludeArchived}
+        extraControls={<IdeaDisplayOptions fields={displayFields} onChange={updateDisplayFields} />}
+      />
 
       {isLoading ? (
         <div style={{ color: "var(--muted-foreground)", fontSize: "14px" }}>
@@ -94,13 +137,13 @@ function IdeasPage() {
         </div>
       ) : ideas.length === 0 ? (
         <EmptyState
-          heading="Waiting for inspiration"
-          body="Jot down your next idea -- Tod will help you develop it."
+          heading={ideaView === "all" ? "Waiting for inspiration" : "No matching ideas"}
+          body={ideaView === "all" ? "Jot down your next idea -- Tod will help you develop it." : "Choose another state or clear the filters."}
         />
       ) : (
         <div>
           {ideas.map((idea) => (
-            <IdeaCard key={idea.id} idea={idea} />
+            <IdeaCard key={idea.id} idea={idea} displayFields={displayFields} />
           ))}
         </div>
       )}

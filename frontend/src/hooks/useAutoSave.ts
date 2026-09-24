@@ -6,44 +6,11 @@
 
 import { useRef, useCallback, useEffect, useState } from "react"
 import { useUpdateNote } from "@/hooks/useNotes"
-
-/**
- * Recursively extract plain text from Tiptap JSON content.
- * Walks the JSON node tree and concatenates all text content.
- */
-function extractPlainText(node: Record<string, unknown>): string {
-  const parts: string[] = []
-
-  if (node.text && typeof node.text === "string") {
-    parts.push(node.text)
-  }
-
-  if (Array.isArray(node.content)) {
-    for (const child of node.content) {
-      if (child && typeof child === "object") {
-        parts.push(extractPlainText(child as Record<string, unknown>))
-      }
-    }
-  }
-
-  // Add newline between block-level nodes
-  const nodeType = node.type as string | undefined
-  if (
-    nodeType === "paragraph" ||
-    nodeType === "heading" ||
-    nodeType === "codeBlock" ||
-    nodeType === "blockquote" ||
-    nodeType === "listItem" ||
-    nodeType === "taskItem"
-  ) {
-    parts.push("\n")
-  }
-
-  return parts.join("")
-}
+import { extractPlainText } from "@/lib/entryNaming"
 
 interface UseAutoSaveReturn {
   debouncedSave: (content: Record<string, unknown>) => void
+  flushSave: () => Promise<void>
   isSaving: boolean
   lastSaved: Date | null
 }
@@ -90,6 +57,22 @@ export function useAutoSave(noteId: number): UseAutoSaveReturn {
     [doSave],
   )
 
+  const flushSave = useCallback(async () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+    const content = pendingContentRef.current
+    if (!content) return
+    pendingContentRef.current = null
+    const contentText = extractPlainText(content).trim()
+    await updateNote.mutateAsync({
+      id: noteId,
+      data: { content, content_text: contentText },
+    })
+    setLastSaved(new Date())
+  }, [noteId, updateNote])
+
   // Flush pending save on unmount
   useEffect(() => {
     return () => {
@@ -105,6 +88,7 @@ export function useAutoSave(noteId: number): UseAutoSaveReturn {
 
   return {
     debouncedSave,
+    flushSave,
     isSaving: updateNote.isPending,
     lastSaved,
   }

@@ -4,9 +4,11 @@ import { StatusSelect } from "@/components/entities/StatusSelect"
 import { PrioritySelect } from "@/components/entities/PrioritySelect"
 import { TagInput } from "@/components/tags/TagInput"
 import { ProjectDropdown } from "@/components/entities/ProjectDropdown"
+import { DatePicker } from "@/components/ui/DatePicker"
 import { formatRelativeTime } from "@/lib/format"
+import { deriveEntryTitle, shouldAutoName } from "@/lib/entryNaming"
 import { useState, useCallback, useRef, useEffect } from "react"
-import { Archive, ArchiveRestore, Trash2 } from "lucide-react"
+import { Archive, ArchiveRestore, ArrowLeft, Trash2 } from "lucide-react"
 import type { TaskStatus } from "@/types/entities"
 
 export const Route = createFileRoute("/tasks/$taskId")({
@@ -91,8 +93,7 @@ function TaskDetailPage() {
   )
 
   const handleDeadlineChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value
+    (value: string) => {
       updateTask.mutate({ id, data: { deadline: value || null } })
     },
     [id, updateTask],
@@ -112,6 +113,31 @@ function TaskDetailPage() {
       archiveTask.mutate(id)
     }
   }, [id, task, archiveTask, unarchiveTask])
+
+  const handleReturn = useCallback(async () => {
+    if (!task) return
+    if (titleDebounceRef.current) {
+      clearTimeout(titleDebounceRef.current)
+      titleDebounceRef.current = null
+    }
+    if (descDebounceRef.current) {
+      clearTimeout(descDebounceRef.current)
+      descDebounceRef.current = null
+    }
+
+    try {
+      const resolvedTitle = shouldAutoName(title)
+        ? deriveEntryTitle(description, "Untitled Task")
+        : title.trim()
+      await updateTask.mutateAsync({
+        id,
+        data: { title: resolvedTitle, description },
+      })
+      await navigate({ to: "/tasks" })
+    } catch {
+      // Keep the editor open so the user can retry without losing their changes.
+    }
+  }, [description, id, navigate, task, title, updateTask])
 
   const handleDelete = useCallback(() => {
     deleteTask.mutate(id, {
@@ -147,6 +173,10 @@ function TaskDetailPage() {
   return (
     <div>
       <div style={{ maxWidth: "840px", margin: "0 auto", padding: "28px 40px 0" }}>
+        <button type="button" className="entry-return-button" onClick={() => void handleReturn()} disabled={updateTask.isPending}>
+          <ArrowLeft size={15} aria-hidden="true" />
+          <span>Tasks</span>
+        </button>
         {/* Header row: title + actions */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
           <input
@@ -244,16 +274,11 @@ function TaskDetailPage() {
           <span style={{ fontFamily: "var(--font-body)", fontSize: "12px", fontWeight: 500, color: "var(--text-3)", lineHeight: 1.5, marginBottom: "6px", display: "block" }}>
             Deadline
           </span>
-          <input
-            type="date"
+          <DatePicker
             value={deadlineValue}
             onChange={handleDeadlineChange}
-            style={{
-              appearance: "none", background: "var(--secondary)", color: deadlineValue ? "var(--foreground)" : "var(--muted-foreground)",
-              border: "1px solid var(--border)", borderRadius: "6px", padding: "6px 12px",
-              fontFamily: "var(--font-body)", fontSize: "14px", lineHeight: 1.5,
-              cursor: "pointer", outline: "none", colorScheme: "dark",
-            }}
+            ariaLabel="Task deadline"
+            placeholder="No deadline"
           />
         </div>
 

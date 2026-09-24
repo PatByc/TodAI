@@ -108,3 +108,26 @@ async def test_filter_entities_by_tag(async_client: AsyncClient):
     data = response.json()
     note_ids = [n["id"] for n in data["items"]]
     assert note1_id in note_ids
+    listed_note = next(note for note in data["items"] if note["id"] == note1_id)
+    assert listed_note["tags"] == [tag_resp.json()]
+
+
+@pytest.mark.asyncio
+async def test_task_list_includes_attached_tags(async_client: AsyncClient):
+    """Task cards receive their attached tags from the list endpoint."""
+    tag = (await async_client.post(
+        "/api/v1/tags/", json={"name": _unique("task-card-tag")}
+    )).json()
+    task = (await async_client.post(
+        "/api/v1/tasks/", json={"title": "Tagged task card"}
+    )).json()
+
+    response = await async_client.post(
+        "/api/v1/tags/entity",
+        json={"tag_id": tag["id"], "entity_type": "task", "entity_id": task["id"]},
+    )
+    assert response.status_code == 201
+
+    tasks = (await async_client.get("/api/v1/tasks/", params={"limit": 100})).json()["items"]
+    listed_task = next(item for item in tasks if item["id"] == task["id"])
+    assert listed_task["tags"] == [tag]

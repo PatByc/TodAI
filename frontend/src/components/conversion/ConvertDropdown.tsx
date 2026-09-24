@@ -5,6 +5,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from "react"
+import { createPortal } from "react-dom"
 import { ChevronDown, FileText, CheckSquare, Lightbulb, FolderOpen, Loader2 } from "lucide-react"
 import { useConvertInbox, useConvertIdea } from "@/hooks/useConvert"
 
@@ -35,7 +36,10 @@ const IDEA_TARGETS: TargetOption[] = [
 export function ConvertDropdown({ sourceType, sourceId, onConverted }: ConvertDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [menuPosition, setMenuPosition] = useState<{ left: number; top?: number; bottom?: number } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const convertInbox = useConvertInbox()
   const convertIdea = useConvertIdea()
@@ -43,6 +47,19 @@ export function ConvertDropdown({ sourceType, sourceId, onConverted }: ConvertDr
   const isPending = convertInbox.isPending || convertIdea.isPending
 
   const targets = sourceType === "inbox" ? INBOX_TARGETS : IDEA_TARGETS
+
+  const positionMenu = useCallback(() => {
+    const button = buttonRef.current
+    if (!button) return
+    const rect = button.getBoundingClientRect()
+    const menuWidth = 168
+    const estimatedMenuHeight = targets.length * 32 + 8
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - menuWidth - 8))
+    const opensAbove = window.innerHeight - rect.bottom < estimatedMenuHeight + 12
+    setMenuPosition(opensAbove
+      ? { left, bottom: window.innerHeight - rect.top + 5 }
+      : { left, top: rect.bottom + 5 })
+  }, [targets.length])
 
   const handleConvert = useCallback(
     (targetType: string) => {
@@ -71,7 +88,11 @@ export function ConvertDropdown({ sourceType, sourceId, onConverted }: ConvertDr
   // Click outside to close
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current
+        && !containerRef.current.contains(e.target as Node)
+        && !menuRef.current?.contains(e.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -80,6 +101,20 @@ export function ConvertDropdown({ sourceType, sourceId, onConverted }: ConvertDr
       return () => document.removeEventListener("mousedown", handleClickOutside)
     }
   }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) {
+      setMenuPosition(null)
+      return
+    }
+    positionMenu()
+    window.addEventListener("resize", positionMenu)
+    window.addEventListener("scroll", positionMenu, true)
+    return () => {
+      window.removeEventListener("resize", positionMenu)
+      window.removeEventListener("scroll", positionMenu, true)
+    }
+  }, [isOpen, positionMenu])
 
   // Close on Escape
   useEffect(() => {
@@ -95,8 +130,9 @@ export function ConvertDropdown({ sourceType, sourceId, onConverted }: ConvertDr
   }, [isOpen])
 
   return (
-    <div ref={containerRef} style={{ position: "relative", display: "inline-block" }}>
+    <div ref={containerRef} className="convert-dropdown">
       <button
+        ref={buttonRef}
         onClick={() => {
           if (!isPending) {
             setIsOpen((prev) => !prev)
@@ -136,55 +172,32 @@ export function ConvertDropdown({ sourceType, sourceId, onConverted }: ConvertDr
         <ChevronDown size={12} />
       </button>
 
-      {isOpen && (
+      {isOpen && menuPosition && createPortal(
         <div
+          ref={menuRef}
+          className="ui-dropdown-menu ui-dropdown-menu-compact convert-dropdown-menu"
           style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
-            marginTop: "4px",
-            minWidth: "140px",
-            backgroundColor: "var(--secondary)",
-            border: "1px solid var(--border)",
-            borderRadius: "6px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-            zIndex: 30,
-            overflow: "hidden",
+            position: "fixed",
+            left: `${menuPosition.left}px`,
+            top: menuPosition.top === undefined ? "auto" : `${menuPosition.top}px`,
+            bottom: menuPosition.bottom === undefined ? "auto" : `${menuPosition.bottom}px`,
+            zIndex: 1000,
           }}
         >
           {targets.map((target) => (
             <button
               key={target.type}
               onClick={() => handleConvert(target.type)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                width: "100%",
-                padding: "8px 12px",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--foreground)",
-                fontFamily: "var(--font-body)",
-                fontSize: "13px",
-                textAlign: "left",
-                transition: "background-color 0.1s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "color-mix(in srgb, var(--primary) 12%, transparent)"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent"
-              }}
+              className="ui-dropdown-option"
             >
-              <span style={{ color: "var(--muted-foreground)", display: "flex" }}>
+              <span className="ui-dropdown-option-icon">
                 {target.icon}
               </span>
               {target.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body,
       )}
 
       {error && (

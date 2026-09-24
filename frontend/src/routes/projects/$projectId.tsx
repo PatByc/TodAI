@@ -5,9 +5,11 @@ import { useTasks, useCreateTask } from "@/hooks/useTasks"
 import { useIdeas, useCreateIdea } from "@/hooks/useIdeas"
 import { TiptapEditor } from "@/components/editor/TiptapEditor"
 import { TagInput } from "@/components/tags/TagInput"
+import { SelectDropdown } from "@/components/ui/SelectDropdown"
 import { formatRelativeTime } from "@/lib/format"
+import { extractPlainText } from "@/lib/entryNaming"
 import { useState, useCallback, useRef, useEffect } from "react"
-import { Archive, ArchiveRestore, Trash2, Plus, FileText, CheckSquare, Lightbulb } from "lucide-react"
+import { Archive, ArchiveRestore, ArrowLeft, Trash2, Plus, FileText, CheckSquare, Lightbulb } from "lucide-react"
 import { Link } from "@tanstack/react-router"
 import type { ProjectStatus } from "@/types/entities"
 
@@ -29,34 +31,6 @@ const PROJECT_STATUS_OPTIONS: ProjectStatusOption[] = [
   { value: "completed", label: "Completed", color: "#5EA8D4" },
   { value: "archived", label: "Archived", color: "#5E7D69" },
 ]
-
-// ── Tiptap plain text extraction ──────────────────────────────────────
-
-function extractPlainText(node: Record<string, unknown>): string {
-  const parts: string[] = []
-  if (node.text && typeof node.text === "string") {
-    parts.push(node.text)
-  }
-  if (Array.isArray(node.content)) {
-    for (const child of node.content) {
-      if (child && typeof child === "object") {
-        parts.push(extractPlainText(child as Record<string, unknown>))
-      }
-    }
-  }
-  const nodeType = node.type as string | undefined
-  if (
-    nodeType === "paragraph" ||
-    nodeType === "heading" ||
-    nodeType === "codeBlock" ||
-    nodeType === "blockquote" ||
-    nodeType === "listItem" ||
-    nodeType === "taskItem"
-  ) {
-    parts.push("\n")
-  }
-  return parts.join("")
-}
 
 // ── Component ─────────────────────────────────────────────────────────
 
@@ -88,6 +62,7 @@ function ProjectDetailPage() {
   const goalsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const focusDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const descDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingDescriptionRef = useRef<Record<string, unknown> | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
@@ -154,10 +129,12 @@ function ProjectDetailPage() {
 
   const handleDescriptionUpdate = useCallback(
     (content: Record<string, unknown>) => {
+      pendingDescriptionRef.current = content
       if (descDebounceRef.current) clearTimeout(descDebounceRef.current)
       descDebounceRef.current = setTimeout(() => {
         const descriptionText = extractPlainText(content).trim()
         updateProject.mutate({ id, data: { description: content, description_text: descriptionText } })
+        pendingDescriptionRef.current = null
         descDebounceRef.current = null
       }, 1500)
     },
@@ -178,6 +155,36 @@ function ProjectDetailPage() {
       archiveProject.mutate(id)
     }
   }, [id, project, archiveProject, unarchiveProject])
+
+  const handleReturn = useCallback(async () => {
+    if (!project || !name.trim()) return
+    for (const timerRef of [nameDebounceRef, goalsDebounceRef, focusDebounceRef, descDebounceRef]) {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+    }
+    const pendingDescription = pendingDescriptionRef.current
+
+    try {
+      await updateProject.mutateAsync({
+        id,
+        data: {
+          name: name.trim(),
+          goals,
+          current_focus: currentFocus,
+          ...(pendingDescription ? {
+            description: pendingDescription,
+            description_text: extractPlainText(pendingDescription).trim(),
+          } : {}),
+        },
+      })
+      pendingDescriptionRef.current = null
+      await navigate({ to: "/projects" })
+    } catch {
+      // Keep the editor open so the user can retry without losing changes.
+    }
+  }, [currentFocus, goals, id, name, navigate, project, updateProject])
 
   const handleDelete = useCallback(() => {
     deleteProject.mutate(id, {
@@ -255,11 +262,13 @@ function ProjectDetailPage() {
   const linkedTasks = tasksData?.items ?? []
   const linkedIdeas = ideasData?.items ?? []
 
-  const currentStatus = PROJECT_STATUS_OPTIONS.find((o) => o.value === project.status) ?? PROJECT_STATUS_OPTIONS[0]
-
   return (
     <div>
       <div style={{ maxWidth: "840px", margin: "0 auto", padding: "28px 40px 0" }}>
+        <button type="button" className="entry-return-button" onClick={() => void handleReturn()} disabled={updateProject.isPending}>
+          <ArrowLeft size={15} aria-hidden="true" />
+          <span>Projects</span>
+        </button>
         {/* Header row: name + actions */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
           <input
@@ -312,57 +321,12 @@ function ProjectDetailPage() {
 
         {/* Status dropdown */}
         <div style={{ marginTop: "12px" }}>
-          <div style={{ position: "relative", display: "inline-block" }}>
-            <select
-              value={project.status}
-              onChange={(e) => handleStatusChange(e.target.value as ProjectStatus)}
-              style={{
-                appearance: "none",
-                background: "var(--secondary)",
-                color: "var(--foreground)",
-                border: "1px solid var(--border)",
-                borderRadius: "6px",
-                padding: "6px 32px 6px 28px",
-                fontFamily: "var(--font-body)",
-                fontSize: "14px",
-                lineHeight: 1.5,
-                cursor: "pointer",
-                outline: "none",
-              }}
-            >
-              {PROJECT_STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <span
-              style={{
-                position: "absolute",
-                left: "10px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                width: "7px",
-                height: "7px",
-                borderRadius: "50%",
-                backgroundColor: currentStatus.color,
-                pointerEvents: "none",
-              }}
-            />
-            <span
-              style={{
-                position: "absolute",
-                right: "10px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                pointerEvents: "none",
-                color: "var(--muted-foreground)",
-                fontSize: "10px",
-              }}
-            >
-              &#9662;
-            </span>
-          </div>
+          <SelectDropdown
+            value={project.status}
+            options={PROJECT_STATUS_OPTIONS}
+            onChange={(nextValue) => handleStatusChange(nextValue as ProjectStatus)}
+            ariaLabel="Project status"
+          />
         </div>
 
         {/* Tags */}

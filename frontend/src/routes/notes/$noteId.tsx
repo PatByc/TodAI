@@ -5,8 +5,9 @@ import { TiptapEditor } from "@/components/editor/TiptapEditor"
 import { TagInput } from "@/components/tags/TagInput"
 import { ProjectDropdown } from "@/components/entities/ProjectDropdown"
 import { formatRelativeTime } from "@/lib/format"
+import { deriveEntryTitle, extractPlainText, shouldAutoName } from "@/lib/entryNaming"
 import { useState, useCallback, useRef, useEffect } from "react"
-import { Archive, ArchiveRestore, Trash2 } from "lucide-react"
+import { Archive, ArchiveRestore, ArrowLeft, Trash2 } from "lucide-react"
 
 export const Route = createFileRoute("/notes/$noteId")({
   component: NoteDetailPage,
@@ -21,21 +22,24 @@ function NoteDetailPage() {
   const archiveNote = useArchiveNote()
   const unarchiveNote = useUnarchiveNote()
   const deleteNote = useDeleteNote()
-  const { debouncedSave } = useAutoSave(id)
+  const { debouncedSave, flushSave, isSaving } = useAutoSave(id)
 
   const [title, setTitle] = useState("")
   const titleInitialized = useRef(false)
+  const latestContentRef = useRef<Record<string, unknown> | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     if (note && !titleInitialized.current) {
       setTitle(note.title)
+      latestContentRef.current = note.content
       titleInitialized.current = true
     }
   }, [note])
 
   useEffect(() => {
     titleInitialized.current = false
+    latestContentRef.current = null
   }, [id])
 
   const handleProjectChange = useCallback(
@@ -62,6 +66,7 @@ function NoteDetailPage() {
 
   const handleEditorUpdate = useCallback(
     (content: Record<string, unknown>) => {
+      latestContentRef.current = content
       debouncedSave(content)
     },
     [debouncedSave],
@@ -74,6 +79,23 @@ function NoteDetailPage() {
       archiveNote.mutate(id)
     }
   }, [id, note, archiveNote, unarchiveNote])
+
+  const handleReturn = useCallback(async () => {
+    if (!note) return
+    try {
+      const contentText = extractPlainText(latestContentRef.current ?? note.content).trim()
+      const resolvedTitle = shouldAutoName(title)
+        ? deriveEntryTitle(contentText, "Untitled Note")
+        : title.trim()
+      if (resolvedTitle !== note.title) {
+        await updateNote.mutateAsync({ id, data: { title: resolvedTitle } })
+      }
+      await flushSave()
+      await navigate({ to: "/notes" })
+    } catch {
+      // Keep the editor open so the user can retry without losing changes.
+    }
+  }, [flushSave, id, navigate, note, title, updateNote])
 
   const handleDelete = useCallback(() => {
     deleteNote.mutate(id, {
@@ -109,6 +131,10 @@ function NoteDetailPage() {
   return (
     <div>
       <div style={{ maxWidth: "840px", margin: "0 auto", padding: "28px 40px 0" }}>
+        <button type="button" className="entry-return-button" onClick={() => void handleReturn()} disabled={updateNote.isPending || isSaving}>
+          <ArrowLeft size={15} aria-hidden="true" />
+          <span>Notes</span>
+        </button>
         {/* Header row: title + actions */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
           <input

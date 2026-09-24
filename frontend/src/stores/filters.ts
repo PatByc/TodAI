@@ -8,11 +8,10 @@ import { create } from "zustand"
 interface FilterState {
   selectedTagIds: number[]
   tagLogic: "and" | "or"
-  includeArchived: boolean
   selectedProjectId: number | null
   toggleTag: (id: number) => void
+  clearTags: () => void
   setTagLogic: (logic: "and" | "or") => void
-  setIncludeArchived: (value: boolean) => void
   setSelectedProjectId: (id: number | null) => void
   clearFilters: () => void
 }
@@ -20,7 +19,6 @@ interface FilterState {
 export const useFilterStore = create<FilterState>((set) => ({
   selectedTagIds: [],
   tagLogic: "and",
-  includeArchived: false,
   selectedProjectId: null,
 
   toggleTag: (id: number) =>
@@ -30,15 +28,14 @@ export const useFilterStore = create<FilterState>((set) => ({
         : [...state.selectedTagIds, id],
     })),
 
+  clearTags: () => set({ selectedTagIds: [], tagLogic: "and" }),
+
   setTagLogic: (logic: "and" | "or") =>
     set({ tagLogic: logic }),
-
-  setIncludeArchived: (value: boolean) =>
-    set({ includeArchived: value }),
 
   setSelectedProjectId: (id: number | null) =>
     set({ selectedProjectId: id }),
 
   clearFilters: () =>
-    set({ selectedTagIds: [], tagLogic: "and", includeArchived: false, selectedProjectId: null }),
+    set({ selectedTagIds: [], tagLogic: "and", selectedProjectId: null }),
 }))

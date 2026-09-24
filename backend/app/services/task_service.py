@@ -21,6 +21,15 @@ class TaskService:
         self.tag_repo = TagRepository(session)
         self.audit = AuditService(session)
 
+    async def _attach_tags(self, tasks: list[Task]) -> list[Task]:
+        """Populate the response-only tag collection without N+1 queries."""
+        tags_by_task = await self.tag_repo.get_tags_for_entities(
+            "task", [task.id for task in tasks]
+        )
+        for task in tasks:
+            task.tags = tags_by_task[task.id]
+        return tasks
+
     async def create(self, data: TaskCreate) -> Task:
         """Create a new task and log the creation to audit."""
         task = await self.repo.create(data.model_dump())
@@ -38,6 +47,7 @@ class TaskService:
         )
         await self.session.commit()
         await self.session.refresh(task)
+        await self._attach_tags([task])
         return task
 
     async def get(self, task_id: int) -> Task:
@@ -45,6 +55,7 @@ class TaskService:
         task = await self.repo.get_by_id(task_id)
         if task is None:
             raise EntityNotFoundError("task", task_id)
+        await self._attach_tags([task])
         return task
 
     async def list(
@@ -69,7 +80,7 @@ class TaskService:
                 return [], 0
 
         if status is not None:
-            return await self.repo.list_by_status(
+            tasks, total = await self.repo.list_by_status(
                 status=status,
                 skip=skip,
                 limit=limit,
@@ -77,14 +88,16 @@ class TaskService:
                 project_id=project_id,
                 entity_ids=entity_ids,
             )
-
-        return await self.repo.list_all(
-            skip=skip,
-            limit=limit,
-            include_archived=include_archived,
-            project_id=project_id,
-            entity_ids=entity_ids,
-        )
+        else:
+            tasks, total = await self.repo.list_all(
+                skip=skip,
+                limit=limit,
+                include_archived=include_archived,
+                project_id=project_id,
+                entity_ids=entity_ids,
+            )
+        await self._attach_tags(tasks)
+        return tasks, total
 
     async def update(self, task_id: int, data: TaskUpdate) -> Task:
         """Update a task and log changes to audit.
@@ -141,6 +154,7 @@ class TaskService:
             )
         await self.session.commit()
         await self.session.refresh(task)
+        await self._attach_tags([task])
         return task
 
     async def delete(self, task_id: int) -> None:
@@ -166,6 +180,7 @@ class TaskService:
         )
         await self.session.commit()
         await self.session.refresh(task)
+        await self._attach_tags([task])
         return task
 
     async def unarchive(self, task_id: int) -> Task:
@@ -180,4 +195,5 @@ class TaskService:
         )
         await self.session.commit()
         await self.session.refresh(task)
+        await self._attach_tags([task])
         return task

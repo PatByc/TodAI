@@ -5,8 +5,9 @@ import { TagInput } from "@/components/tags/TagInput"
 import { ProjectDropdown } from "@/components/entities/ProjectDropdown"
 import { ConvertDropdown } from "@/components/conversion/ConvertDropdown"
 import { formatRelativeTime } from "@/lib/format"
+import { deriveEntryTitle, shouldAutoName } from "@/lib/entryNaming"
 import { useState, useCallback, useRef, useEffect } from "react"
-import { Archive, ArchiveRestore, Trash2 } from "lucide-react"
+import { Archive, ArchiveRestore, ArrowLeft, Trash2 } from "lucide-react"
 import type { IdeaState } from "@/types/entities"
 
 export const Route = createFileRoute("/ideas/$ideaId")({
@@ -106,6 +107,31 @@ function IdeaDetailPage() {
     }
   }, [id, idea, archiveIdea, unarchiveIdea])
 
+  const handleReturn = useCallback(async () => {
+    if (!idea) return
+    if (titleDebounceRef.current) {
+      clearTimeout(titleDebounceRef.current)
+      titleDebounceRef.current = null
+    }
+    if (contentDebounceRef.current) {
+      clearTimeout(contentDebounceRef.current)
+      contentDebounceRef.current = null
+    }
+
+    try {
+      const resolvedTitle = shouldAutoName(title)
+        ? deriveEntryTitle(content, "Untitled Idea")
+        : title.trim()
+      await updateIdea.mutateAsync({
+        id,
+        data: { title: resolvedTitle, content },
+      })
+      await navigate({ to: "/ideas" })
+    } catch {
+      // Keep the editor open so the user can retry without losing changes.
+    }
+  }, [content, id, idea, navigate, title, updateIdea])
+
   const handleDelete = useCallback(() => {
     deleteIdea.mutate(id, {
       onSuccess: () => { void navigate({ to: "/ideas" }) },
@@ -141,6 +167,10 @@ function IdeaDetailPage() {
   return (
     <div style={{ borderLeft: showCelebration ? "3px solid #4EBE5E" : "3px solid transparent", transition: "border-color 0.3s ease" }}>
       <div style={{ maxWidth: "840px", margin: "0 auto", padding: "28px 40px 0" }}>
+        <button type="button" className="entry-return-button" onClick={() => void handleReturn()} disabled={updateIdea.isPending}>
+          <ArrowLeft size={15} aria-hidden="true" />
+          <span>Ideas</span>
+        </button>
         {/* Header row: title + actions */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
           <input

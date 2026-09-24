@@ -127,6 +127,29 @@ class TagRepository:
         )
         return list(result.scalars().all())
 
+    async def get_tags_for_entities(
+        self,
+        entity_type: str,
+        entity_ids: list[int],
+    ) -> dict[int, list[Tag]]:
+        """Get tags for multiple entities in one query, grouped by entity ID."""
+        tags_by_entity = {entity_id: [] for entity_id in entity_ids}
+        if not entity_ids:
+            return tags_by_entity
+
+        result = await self.session.execute(
+            select(EntityTag.entity_id, Tag)
+            .join(Tag, Tag.id == EntityTag.tag_id)
+            .where(
+                EntityTag.entity_type == entity_type,
+                EntityTag.entity_id.in_(entity_ids),
+            )
+            .order_by(EntityTag.entity_id, Tag.name)
+        )
+        for entity_id, tag in result.all():
+            tags_by_entity[entity_id].append(tag)
+        return tags_by_entity
+
     async def get_entities_by_tags(
         self,
         entity_type: str,

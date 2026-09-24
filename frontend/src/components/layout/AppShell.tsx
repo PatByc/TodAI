@@ -8,6 +8,33 @@ export function AppShell() {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
 
   useEffect(() => {
+    const activityTimers = new Map<Element, number>()
+    const handleScroll = (event: Event) => {
+      const scrollable = event.target instanceof Element
+        ? event.target
+        : document.scrollingElement
+      if (!scrollable) return
+
+      scrollable.classList.add("is-scrolling")
+      const existingTimer = activityTimers.get(scrollable)
+      if (existingTimer !== undefined) window.clearTimeout(existingTimer)
+      activityTimers.set(scrollable, window.setTimeout(() => {
+        scrollable.classList.remove("is-scrolling")
+        activityTimers.delete(scrollable)
+      }, 550))
+    }
+
+    document.addEventListener("scroll", handleScroll, true)
+    return () => {
+      document.removeEventListener("scroll", handleScroll, true)
+      for (const [scrollable, timer] of activityTimers) {
+        window.clearTimeout(timer)
+        scrollable.classList.remove("is-scrolling")
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     const hash = window.location.hash.slice(1)
     if (!hash) return
     const targetId = decodeURIComponent(hash)

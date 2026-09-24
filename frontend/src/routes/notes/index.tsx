@@ -1,19 +1,41 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
+import { useState } from "react"
 import { useNotes, useCreateNote } from "@/hooks/useNotes"
 import { useFetchAllTags } from "@/hooks/useTags"
 import { useFilterStore } from "@/stores/filters"
 import { NoteCard } from "@/components/entities/NoteCard"
 import { EmptyState } from "@/components/entities/EmptyState"
-import { TagFilterBar } from "@/components/tags/TagFilterBar"
+import { EntityFilterBar } from "@/components/filters/EntityFilterBar"
+import { DEFAULT_NOTE_DISPLAY_FIELDS, NoteDisplayOptions } from "@/components/notes/NoteDisplayOptions"
+import type { NoteDisplayField } from "@/components/notes/NoteDisplayOptions"
 
 export const Route = createFileRoute("/notes/")({
   component: NotesPage,
 })
 
+const DISPLAY_STORAGE_KEY = "todai.notes.display-fields"
+
+function readDisplayFields(): NoteDisplayField[] {
+  if (typeof window === "undefined") return DEFAULT_NOTE_DISPLAY_FIELDS
+  try {
+    const stored: unknown = JSON.parse(window.localStorage.getItem(DISPLAY_STORAGE_KEY) ?? "null")
+    if (!Array.isArray(stored)) return DEFAULT_NOTE_DISPLAY_FIELDS
+    const validFields = new Set<NoteDisplayField>(DEFAULT_NOTE_DISPLAY_FIELDS)
+    return [...new Set(stored.filter((field): field is NoteDisplayField => (
+      typeof field === "string" && validFields.has(field as NoteDisplayField)
+    )))]
+  } catch {
+    return DEFAULT_NOTE_DISPLAY_FIELDS
+  }
+}
+
 function NotesPage() {
   const navigate = useNavigate()
-  const { selectedTagIds, tagLogic, includeArchived } = useFilterStore()
+  const [noteView, setNoteView] = useState<"all" | "pinned">("all")
+  const [includeArchived, setIncludeArchived] = useState(false)
+  const [displayFields, setDisplayFields] = useState<NoteDisplayField[]>(readDisplayFields)
+  const { selectedTagIds, tagLogic } = useFilterStore()
   const { data: allTags = [] } = useFetchAllTags()
 
   const { data, isLoading } = useNotes({
@@ -23,6 +45,11 @@ function NotesPage() {
   })
 
   const createNote = useCreateNote()
+
+  const updateDisplayFields = (fields: NoteDisplayField[]) => {
+    setDisplayFields(fields)
+    window.localStorage.setItem(DISPLAY_STORAGE_KEY, JSON.stringify(fields))
+  }
 
   const handleNewNote = () => {
     createNote.mutate(
@@ -39,6 +66,7 @@ function NotesPage() {
   }
 
   const notes = data?.items ?? []
+  const visibleNotes = noteView === "pinned" ? notes.filter((note) => note.pinned) : notes
 
   return (
     <div>
@@ -88,25 +116,36 @@ function NotesPage() {
         </button>
       </div>
 
-      {/* Filter bar */}
-      <div style={{ marginBottom: "16px" }}>
-        <TagFilterBar allTags={allTags} />
-      </div>
+      <EntityFilterBar
+        scope="notes"
+        allTags={allTags}
+        view={noteView}
+        defaultView="all"
+        viewOptions={[
+          { value: "all", label: "All notes" },
+          { value: "pinned", label: "Pinned" },
+        ]}
+        viewLabel="Note view"
+        onViewChange={(view) => setNoteView(view as "all" | "pinned")}
+        includeArchived={includeArchived}
+        onIncludeArchivedChange={setIncludeArchived}
+        extraControls={<NoteDisplayOptions fields={displayFields} onChange={updateDisplayFields} />}
+      />
 
       {/* Content */}
       {isLoading ? (
         <div style={{ color: "var(--muted-foreground)", fontSize: "14px" }}>
           Loading...
         </div>
-      ) : notes.length === 0 ? (
+      ) : visibleNotes.length === 0 ? (
         <EmptyState
-          heading="No notes yet"
-          body="Create your first note to start capturing ideas."
+          heading={noteView === "pinned" ? "No pinned notes" : "No notes yet"}
+          body={noteView === "pinned" ? "Pin a note to keep it easy to find." : "Create your first note to start capturing ideas."}
         />
       ) : (
         <div>
-          {notes.map((note) => (
-            <NoteCard key={note.id} note={note} />
+          {visibleNotes.map((note) => (
+            <NoteCard key={note.id} note={note} displayFields={displayFields} />
           ))}
         </div>
       )}

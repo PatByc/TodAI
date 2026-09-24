@@ -55,6 +55,8 @@ export function useUpdateTask() {
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: ["tasks"] })
       void queryClient.invalidateQueries({ queryKey: ["tasks", variables.id] })
+      void queryClient.invalidateQueries({ queryKey: ["today", "tasks"] })
+      void queryClient.invalidateQueries({ queryKey: ["counts"] })
     },
   })
 }

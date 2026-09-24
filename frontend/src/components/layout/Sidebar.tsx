@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from "react"
 import { Link, useRouterState } from "@tanstack/react-router"
-import { Archive, ArrowUpRight, CheckSquare, FileText, FolderOpen, Home, Inbox, Lightbulb } from "lucide-react"
+import { ArrowUpRight, CalendarDays, CheckSquare, FileText, FolderOpen, Home, Inbox, Lightbulb, Settings } from "lucide-react"
 import { useSidebarStore } from "@/stores/sidebar"
 import { useAskStore } from "@/stores/ask"
 import { useCounts } from "@/hooks/useCounts"
-import { useFilterStore } from "@/stores/filters"
 import { ExportButton } from "@/components/export/ExportButton"
 import { TodLogo } from "@/components/TodLogo"
 
@@ -54,16 +53,16 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
   const openAsk = useAskStore((state) => state.open)
   const askRunning = useAskStore((state) => state.isRunning)
   const { data: counts } = useCounts()
-  const { includeArchived, setIncludeArchived } = useFilterStore()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
 
   const navItems = [
-    { to: "/" as const, label: "Today", icon: Home, count: undefined },
-    { to: "/inbox" as const, label: "Inbox", icon: Inbox, count: counts?.inbox },
-    { to: "/tasks" as const, label: "Tasks", icon: CheckSquare, count: counts?.tasks },
-    { to: "/notes" as const, label: "Notes", icon: FileText, count: counts?.notes },
-    { to: "/ideas" as const, label: "Ideas", icon: Lightbulb, count: counts?.ideas },
-    { to: "/projects" as const, label: "Projects", icon: FolderOpen, count: counts?.projects },
+    { to: "/" as const, label: "Today", description: "See what needs attention now", icon: Home, count: undefined },
+    { to: "/plan" as const, label: "Plan", description: "Shape the days ahead", icon: CalendarDays, count: undefined },
+    { to: "/inbox" as const, label: "Inbox", description: "Capture first, organize later", icon: Inbox, count: counts?.inbox },
+    { to: "/tasks" as const, label: "Tasks", description: "Track actionable work", icon: CheckSquare, count: counts?.tasks },
+    { to: "/notes" as const, label: "Notes", description: "Keep knowledge and context", icon: FileText, count: counts?.notes },
+    { to: "/ideas" as const, label: "Ideas", description: "Develop early thoughts", icon: Lightbulb, count: counts?.ideas },
+    { to: "/projects" as const, label: "Projects", description: "Connect related work", icon: FolderOpen, count: counts?.projects },
   ]
 
   return (
@@ -74,16 +73,26 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
         onClick={() => { openAsk(); onNavClick() }}
         aria-expanded={askOpen}
         aria-controls="ask-drawer"
+        aria-describedby="nav-hint-ask"
       >
         <TodLogo size={25} />
         <span>Ask Tod</span>
         {askRunning && <span className="ask-running-badge" aria-label="Tod is working" />}
         <ArrowUpRight size={15} aria-hidden="true" />
+        <span id="nav-hint-ask" role="tooltip" className="sidebar-hint">
+          <span className="sidebar-hint-head">
+            <TodLogo size={18} />
+            <strong>Ask Tod</strong>
+          </span>
+          <span className="sidebar-hint-description">Open the AI workspace</span>
+          <span className="sidebar-hint-route">Assistant panel</span>
+        </span>
       </button>
 
       <nav className="sidebar-nav" aria-label="Workspace">
-        {navItems.map(({ to, label, icon: Icon, count }) => {
+        {navItems.map(({ to, label, description, icon: Icon, count }) => {
           const active = to === "/" ? pathname === "/" : pathname.startsWith(to)
+          const hintId = `nav-hint-${label.toLowerCase()}`
           return (
             <Link
               key={to}
@@ -91,26 +100,45 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
               onClick={onNavClick}
               className={`sidebar-link${active ? " sidebar-link-active" : ""}`}
               aria-current={active ? "page" : undefined}
+              aria-describedby={hintId}
             >
               <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
               <span>{label}</span>
               {count !== undefined && <small className="sidebar-count">{count}</small>}
+              <span id={hintId} role="tooltip" className="sidebar-hint">
+                <span className="sidebar-hint-head">
+                  <Icon size={15} strokeWidth={1.8} aria-hidden="true" />
+                  <strong>{label}</strong>
+                  {count !== undefined && <small>{count} {count === 1 ? "item" : "items"}</small>}
+                </span>
+                <span className="sidebar-hint-description">{description}</span>
+                <span className="sidebar-hint-route">{to}</span>
+              </span>
             </Link>
           )
         })}
       </nav>
 
       <div className="sidebar-footer">
-        <button
-          type="button"
-          className={`sidebar-link sidebar-archive${includeArchived ? " sidebar-archive-active" : ""}`}
-          onClick={() => { setIncludeArchived(!includeArchived); onNavClick() }}
-          aria-pressed={includeArchived}
-        >
-          <Archive size={17} strokeWidth={1.8} aria-hidden="true" />
-          <span>Show archived</span>
-        </button>
         <ExportButton />
+        <Link
+          to="/settings"
+          onClick={onNavClick}
+          className={`sidebar-link${pathname.startsWith("/settings") ? " sidebar-link-active" : ""}`}
+          aria-current={pathname.startsWith("/settings") ? "page" : undefined}
+          aria-describedby="nav-hint-settings"
+        >
+          <Settings size={17} strokeWidth={1.8} aria-hidden="true" />
+          <span>Settings</span>
+          <span id="nav-hint-settings" role="tooltip" className="sidebar-hint">
+            <span className="sidebar-hint-head">
+              <Settings size={15} strokeWidth={1.8} aria-hidden="true" />
+              <strong>Settings</strong>
+            </span>
+            <span className="sidebar-hint-description">Configure TodAI</span>
+            <span className="sidebar-hint-route">/settings</span>
+          </span>
+        </Link>
       </div>
     </div>
   )

@@ -19,6 +19,15 @@ class IdeaService:
         self.tag_repo = TagRepository(session)
         self.audit = AuditService(session)
 
+    async def _attach_tags(self, ideas: list[Idea]) -> list[Idea]:
+        """Populate the response-only tag collection without N+1 queries."""
+        tags_by_idea = await self.tag_repo.get_tags_for_entities(
+            "idea", [idea.id for idea in ideas]
+        )
+        for idea in ideas:
+            idea.tags = tags_by_idea[idea.id]
+        return ideas
+
     async def create(self, data: IdeaCreate) -> Idea:
         """Create a new idea and log the creation to audit."""
         idea = await self.repo.create(data.model_dump())
@@ -34,6 +43,7 @@ class IdeaService:
         )
         await self.session.commit()
         await self.session.refresh(idea)
+        await self._attach_tags([idea])
         return idea
 
     async def get(self, idea_id: int) -> Idea:
@@ -41,6 +51,7 @@ class IdeaService:
         idea = await self.repo.get_by_id(idea_id)
         if idea is None:
             raise EntityNotFoundError("idea", idea_id)
+        await self._attach_tags([idea])
         return idea
 
     async def list(
@@ -65,7 +76,7 @@ class IdeaService:
                 return [], 0
 
         if state is not None:
-            return await self.repo.list_by_state(
+            ideas, total = await self.repo.list_by_state(
                 state=state,
                 skip=skip,
                 limit=limit,
@@ -73,14 +84,16 @@ class IdeaService:
                 project_id=project_id,
                 entity_ids=entity_ids,
             )
-
-        return await self.repo.list_all(
-            skip=skip,
-            limit=limit,
-            include_archived=include_archived,
-            project_id=project_id,
-            entity_ids=entity_ids,
-        )
+        else:
+            ideas, total = await self.repo.list_all(
+                skip=skip,
+                limit=limit,
+                include_archived=include_archived,
+                project_id=project_id,
+                entity_ids=entity_ids,
+            )
+        await self._attach_tags(ideas)
+        return ideas, total
 
     async def update(self, idea_id: int, data: IdeaUpdate) -> Idea:
         """Update an idea and log changes to audit."""
@@ -121,6 +134,7 @@ class IdeaService:
             )
         await self.session.commit()
         await self.session.refresh(idea)
+        await self._attach_tags([idea])
         return idea
 
     async def delete(self, idea_id: int) -> None:
@@ -146,6 +160,7 @@ class IdeaService:
         )
         await self.session.commit()
         await self.session.refresh(idea)
+        await self._attach_tags([idea])
         return idea
 
     async def unarchive(self, idea_id: int) -> Idea:
@@ -160,4 +175,5 @@ class IdeaService:
         )
         await self.session.commit()
         await self.session.refresh(idea)
+        await self._attach_tags([idea])
         return idea

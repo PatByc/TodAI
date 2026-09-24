@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Plus } from "lucide-react"
-import { useSearchTags, useEntityTags, useAddTag, useRemoveTag, useCreateTag } from "@/hooks/useTags"
+import { useFetchAllTags, useEntityTags, useAddTag, useRemoveTag, useCreateTag } from "@/hooks/useTags"
 import { getTagColor } from "@/lib/colors"
 import { TagBadge } from "./TagBadge"
 import type { TagResponse } from "@/types/entities"
@@ -18,22 +18,24 @@ export function TagInput({ entityType, entityId }: TagInputProps) {
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const { data: entityTags = [] } = useEntityTags(entityType, entityId)
-  const { data: searchResults = [] } = useSearchTags(query)
+  const { data: allTags = [] } = useFetchAllTags()
   const addTag = useAddTag()
   const removeTag = useRemoveTag()
   const createTag = useCreateTag()
 
+  const normalizedQuery = query.trim().toLowerCase()
   const existingTagIds = new Set(entityTags.map((t: TagResponse) => t.id))
 
-  const filteredResults = searchResults.filter(
-    (t: TagResponse) => !existingTagIds.has(t.id),
+  const filteredResults = allTags.filter(
+    (tag: TagResponse) => !existingTagIds.has(tag.id)
+      && (normalizedQuery.length === 0 || tag.name.toLowerCase().includes(normalizedQuery)),
   )
 
-  const hasExactMatch = searchResults.some(
-    (t: TagResponse) => t.name.toLowerCase() === query.toLowerCase(),
+  const hasExactMatch = allTags.some(
+    (tag: TagResponse) => tag.name.toLowerCase() === normalizedQuery,
   )
 
-  const showCreateOption = query.length >= 2 && !hasExactMatch
+  const showCreateOption = normalizedQuery.length >= 2 && !hasExactMatch
 
   const totalOptions = filteredResults.length + (showCreateOption ? 1 : 0)
 
@@ -90,14 +92,7 @@ export function TagInput({ entityType, entityId }: TagInputProps) {
     [isOpen, totalOptions, activeIndex, filteredResults, showCreateOption, handleAddExisting, handleCreateAndAdd],
   )
 
-  useEffect(() => {
-    if (query.length >= 2) {
-      setIsOpen(true)
-      setActiveIndex(0)
-    } else {
-      setIsOpen(false)
-    }
-  }, [query])
+  useEffect(() => setActiveIndex(0), [query])
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -130,6 +125,7 @@ export function TagInput({ entityType, entityId }: TagInputProps) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder="Add tag..."
           style={{
@@ -147,38 +143,14 @@ export function TagInput({ entityType, entityId }: TagInputProps) {
         {isOpen && totalOptions > 0 && (
           <div
             ref={dropdownRef}
-            style={{
-              position: "absolute",
-              top: "100%",
-              left: 0,
-              marginTop: "4px",
-              minWidth: "200px",
-              backgroundColor: "var(--secondary)",
-              border: "1px solid var(--border)",
-              borderRadius: "6px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-              zIndex: 20,
-              overflow: "hidden",
-            }}
+            className="ui-dropdown-menu ui-dropdown-menu-tags"
           >
             {filteredResults.map((tag: TagResponse, i: number) => (
               <button
+                type="button"
                 key={tag.id}
                 onClick={() => handleAddExisting(tag)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  width: "100%",
-                  padding: "8px 12px",
-                  background: i === activeIndex ? "var(--bg-hover)" : "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "var(--foreground)",
-                  fontFamily: "var(--font-body)",
-                  fontSize: "13px",
-                  textAlign: "left",
-                }}
+                className={`ui-dropdown-option${i === activeIndex ? " is-active" : ""}`}
               >
                 <span
                   style={{
@@ -195,25 +167,9 @@ export function TagInput({ entityType, entityId }: TagInputProps) {
 
             {showCreateOption && (
               <button
+                type="button"
                 onClick={() => void handleCreateAndAdd()}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  width: "100%",
-                  padding: "8px 12px",
-                  background:
-                    activeIndex === filteredResults.length
-                      ? "var(--bg-hover)"
-                      : "transparent",
-                  border: "none",
-                  borderTop: filteredResults.length > 0 ? "1px solid var(--border-subtle)" : "none",
-                  cursor: "pointer",
-                  color: "var(--primary)",
-                  fontFamily: "var(--font-body)",
-                  fontSize: "13px",
-                  textAlign: "left",
-                }}
+                className={`ui-dropdown-option ui-dropdown-option-accent${filteredResults.length > 0 ? " ui-dropdown-option-divider" : ""}${activeIndex === filteredResults.length ? " is-active" : ""}`}
               >
                 <Plus size={14} />
                 Create &ldquo;{query}&rdquo;

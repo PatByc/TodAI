@@ -5,6 +5,7 @@
  */
 
 import type { TaskStatus } from "@/types/entities"
+import { SelectDropdown } from "@/components/ui/SelectDropdown"
 
 interface StatusOption {
   value: TaskStatus
@@ -26,62 +27,12 @@ interface StatusSelectProps {
 }
 
 export function StatusSelect({ value, onChange }: StatusSelectProps) {
-  const current = STATUS_OPTIONS.find((o) => o.value === value) ?? STATUS_OPTIONS[0]
-
   return (
-    <div style={{ position: "relative", display: "inline-block" }}>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as TaskStatus)}
-        style={{
-          appearance: "none",
-          background: "var(--secondary)",
-          color: "var(--foreground)",
-          border: "1px solid var(--border)",
-          borderRadius: "6px",
-          padding: "6px 32px 6px 28px",
-          fontFamily: "var(--font-body)",
-          fontSize: "14px",
-          lineHeight: 1.5,
-          cursor: "pointer",
-          outline: "none",
-          width: "100%",
-        }}
-      >
-        {STATUS_OPTIONS.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-      {/* Status dot overlay on the left side of the select */}
-      <span
-        style={{
-          position: "absolute",
-          left: "10px",
-          top: "50%",
-          transform: "translateY(-50%)",
-          width: "7px",
-          height: "7px",
-          borderRadius: "50%",
-          backgroundColor: current.color,
-          pointerEvents: "none",
-        }}
-      />
-      {/* Dropdown chevron on the right */}
-      <span
-        style={{
-          position: "absolute",
-          right: "10px",
-          top: "50%",
-          transform: "translateY(-50%)",
-          pointerEvents: "none",
-          color: "var(--muted-foreground)",
-          fontSize: "10px",
-        }}
-      >
-        &#9662;
-      </span>
-    </div>
+    <SelectDropdown
+      value={value}
+      options={STATUS_OPTIONS}
+      onChange={(nextValue) => onChange(nextValue as TaskStatus)}
+      ariaLabel="Task status"
+    />
   )
 }

@@ -20,6 +20,15 @@ class NoteService:
         self.tag_repo = TagRepository(session)
         self.audit = AuditService(session)
 
+    async def _attach_tags(self, notes: list[Note]) -> list[Note]:
+        """Populate the response-only tag collection without N+1 queries."""
+        tags_by_note = await self.tag_repo.get_tags_for_entities(
+            "note", [note.id for note in notes]
+        )
+        for note in notes:
+            note.tags = tags_by_note[note.id]
+        return notes
+
     async def create(self, data: NoteCreate) -> Note:
         """Create a new note and log the creation to audit."""
         create_data = data.model_dump()
@@ -37,6 +46,7 @@ class NoteService:
         )
         await self.session.commit()
         await self.session.refresh(note)
+        await self._attach_tags([note])
         return note
 
     async def get(self, note_id: int) -> Note:
@@ -44,6 +54,7 @@ class NoteService:
         note = await self.repo.get_by_id(note_id)
         if note is None:
             raise EntityNotFoundError("note", note_id)
+        await self._attach_tags([note])
         return note
 
     async def list(
@@ -66,13 +77,15 @@ class NoteService:
                 return [], 0
         else:
             entity_ids = None
-        return await self.repo.list_all(
+        notes, total = await self.repo.list_all(
             skip=skip,
             limit=limit,
             include_archived=include_archived,
             project_id=project_id,
             entity_ids=entity_ids,
         )
+        await self._attach_tags(notes)
+        return notes, total
 
     async def update(self, note_id: int, data: NoteUpdate) -> Note:
         """Update a note and log changes to audit."""
@@ -115,6 +128,7 @@ class NoteService:
             )
         await self.session.commit()
         await self.session.refresh(note)
+        await self._attach_tags([note])
         return note
 
     async def delete(self, note_id: int) -> None:
@@ -140,6 +154,7 @@ class NoteService:
         )
         await self.session.commit()
         await self.session.refresh(note)
+        await self._attach_tags([note])
         return note
 
     async def unarchive(self, note_id: int) -> Note:
@@ -154,4 +169,5 @@ class NoteService:
         )
         await self.session.commit()
         await self.session.refresh(note)
+        await self._attach_tags([note])
         return note
