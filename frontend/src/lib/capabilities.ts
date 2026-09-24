@@ -2,6 +2,7 @@ import {
   Archive,
   CalendarDays,
   CheckSquare,
+  Clock3,
   FilePlus2,
   FileText,
   FolderOpen,
@@ -17,7 +18,7 @@ import {
 import type { LucideIcon } from "lucide-react"
 
 export type CapabilityCategory = "Navigate" | "Create" | "Find" | "Review" | "Organize"
-export type CapabilityRoute = "/" | "/plan" | "/inbox" | "/tasks" | "/notes" | "/ideas" | "/projects" | "/settings"
+export type CapabilityRoute = "/" | "/plan" | "/time" | "/inbox" | "/tasks" | "/notes" | "/ideas" | "/projects" | "/settings"
 
 export interface Capability {
   id: string
@@ -37,6 +38,7 @@ const scopedPrompt = (scope: string, argumentsText: string) =>
 export const capabilities: Capability[] = [
   { id: "today", command: "/today", label: "Today", description: "Open today’s workspace", example: "/today", category: "Navigate", icon: Home, route: "/", prompt: (args) => scopedPrompt("Today", args) },
   { id: "plan", command: "/plan", label: "Plan", description: "Open the planning workspace", example: "/plan", category: "Navigate", icon: CalendarDays, route: "/plan", prompt: (args) => scopedPrompt("Plan", args) },
+  { id: "time", command: "/time", label: "Time", description: "Review tracked time", example: "/time", category: "Navigate", icon: Clock3, route: "/time", prompt: (args) => scopedPrompt("Time", args) },
   { id: "inbox", command: "/inbox", label: "Inbox", description: "Open unclassified captures", example: "/inbox", category: "Navigate", icon: Inbox, route: "/inbox", prompt: (args) => scopedPrompt("Inbox", args) },
   { id: "tasks", command: "/tasks", label: "Tasks", description: "Open or ask about tasks", example: "/tasks overdue this week", category: "Navigate", icon: CheckSquare, route: "/tasks", prompt: (args) => scopedPrompt("Tasks", args) },
   { id: "notes", command: "/notes", label: "Notes", description: "Open or ask about notes", example: "/notes about OptimizeLabs", category: "Navigate", icon: FileText, route: "/notes", prompt: (args) => scopedPrompt("Notes", args) },

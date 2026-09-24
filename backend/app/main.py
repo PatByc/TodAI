@@ -17,6 +17,7 @@ from app.api.export import router as export_router
 from app.api.ideas import router as ideas_router
 from app.api.inbox import router as inbox_router
 from app.api.notes import router as notes_router
+from app.api.planning import router as planning_router
 from app.api.projects import router as projects_router
 from app.api.search import router as search_router
 from app.api.system import router as system_router
@@ -92,6 +93,7 @@ def create_app() -> FastAPI:
     application.include_router(agent_router, prefix="/api/v1")
     application.include_router(activity_router, prefix="/api/v1")
     application.include_router(time_tracking_router, prefix="/api/v1")
+    application.include_router(planning_router, prefix="/api/v1")
 
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
     if frontend_dir.exists():

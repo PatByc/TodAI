@@ -3,9 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Check, ArrowUpRight } from "lucide-react"
 import { useState } from "react"
 import { fetchTasks, updateTask } from "@/api/tasks"
+import { useRoutines, useSetRoutineCompletion, useTimeGoals } from "@/hooks/usePlanning"
+import { useTimeEntries } from "@/hooks/useTimeConfiguration"
 import { playCompletionChime } from "@/lib/completionChime"
+import { durationLabel, parseServerTime } from "@/lib/time"
 import { isThemeActive } from "@/lib/themes"
-import type { PaginatedResponse, Task, TaskStatus } from "@/types/entities"
+import type { GoalPeriod, PaginatedResponse, Task, TaskStatus } from "@/types/entities"
 
 export const Route = createFileRoute("/")({ component: TodayPage })
 
@@ -82,6 +85,12 @@ function TodayPage() {
     queryKey: ["today", "tasks"],
     queryFn: () => fetchTasks({ limit: 100 }),
   })
+  const { data: routines = [] } = useRoutines(false)
+  const { data: goals = [] } = useTimeGoals(false)
+  const setRoutineCompletion = useSetRoutineCompletion()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+  const { data: monthEntries = [] } = useTimeEntries({ limit: 500, from_at: monthStart.toISOString(), to_at: monthEnd.toISOString() })
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: TaskStatus }) => updateTask(id, { status }),
     onSuccess: (updated) => {
@@ -105,6 +114,26 @@ function TodayPage() {
       && !completingIds.has(task.id)
       && task.completed_at?.slice(0, 10) === today)
     .sort((first, second) => (second.completed_at ?? second.updated_at).localeCompare(first.completed_at ?? first.updated_at))
+  const weekday = (now.getDay() + 6) % 7
+  const todayRoutines = routines.filter((routine) => routine.weekdays.includes(weekday))
+  const goalProgress = (period: GoalPeriod, streamId: number | null) => {
+    let start: Date
+    let end: Date
+    if (period === "daily") {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+    } else if (period === "weekly") {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - weekday)
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - weekday + 7)
+    } else {
+      start = monthStart
+      end = monthEnd
+    }
+    return monthEntries.filter((entry) => {
+      const started = parseServerTime(entry.started_at)
+      return started >= start && started < end && (!streamId || entry.stream_id === streamId)
+    }).reduce((sum, entry) => sum + (entry.duration_seconds ?? 0), 0)
+  }
 
   const completeTask = async (taskId: number) => {
     if (completingIds.has(taskId)) return
@@ -181,6 +210,18 @@ function TodayPage() {
         )}
         {completionError && <p className="home-task-error" role="alert">{completionError}</p>}
       </section>
+
+      {(todayRoutines.length > 0 || goals.length > 0) && <section className="home-section home-plan" aria-labelledby="home-plan-title">
+        <div className="home-section-head"><h2 id="home-plan-title">Plan today</h2><Link to="/plan">Open plan <ArrowUpRight size={14} /></Link></div>
+        {todayRoutines.length > 0 && <div className="home-routine-list">{todayRoutines.map((routine) => {
+          const done = routine.completed_dates.includes(today)
+          return <button type="button" key={routine.id} className={done ? "is-complete" : ""} onClick={() => setRoutineCompletion.mutate({ id: routine.id, data: { completed_on: today, completed: !done } })}><span className="home-routine-check">{done && <Check size={11} />}</span><strong>{routine.title}</strong><time>{routine.scheduled_time?.slice(0, 5) ?? "Anytime"}</time></button>
+        })}</div>}
+        {goals.length > 0 && <div className="home-goal-strip">{goals.map((goal) => {
+          const progress = goalProgress(goal.period, goal.stream_id)
+          return <div key={goal.id}><span><strong>{goal.title}</strong><small>{durationLabel(progress)} / {durationLabel(goal.target_seconds)}</small></span><i><b style={{ width: `${Math.min(100, progress / goal.target_seconds * 100)}%` }} /></i></div>
+        })}</div>}
+      </section>}
 
       {completedTasks.length > 0 && (
         <section className="home-section home-completed" aria-labelledby="completed-title">

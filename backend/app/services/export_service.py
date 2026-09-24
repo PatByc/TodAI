@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.idea_repo import IdeaRepository
 from app.repositories.inbox_repo import InboxRepository
 from app.repositories.note_repo import NoteRepository
+from app.repositories.planning_repo import PlanningRepository
 from app.repositories.project_repo import ProjectRepository
 from app.repositories.tag_repo import TagRepository
 from app.repositories.task_repo import TaskRepository
@@ -29,6 +30,7 @@ class ExportService:
         self.inbox_repo = InboxRepository(session)
         self.tag_repo = TagRepository(session)
         self.time_config_repo = TimeConfigurationRepository(session)
+        self.planning_repo = PlanningRepository(session)
 
     async def export_json(self) -> dict:
         """Export all entities as a structured JSON dict.
@@ -56,6 +58,8 @@ class ExportService:
         inbox_items, _ = await self.inbox_repo.list_all(skip=0, limit=100000)
         time_streams = await self.time_config_repo.list_streams(include_inactive=True)
         time_entries = await self.time_config_repo.list_entries(limit=100000)
+        routines = await self.planning_repo.list_routines(include_inactive=True)
+        time_goals = await self.planning_repo.list_goals(include_inactive=True)
 
         return {
             "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -104,6 +108,38 @@ class ExportService:
                     "updated_at": entry.updated_at.isoformat(),
                 }
                 for entry in time_entries
+            ],
+            "routines": [
+                {
+                    "id": routine.id,
+                    "title": routine.title,
+                    "description": routine.description,
+                    "scheduled_time": routine.scheduled_time.isoformat()
+                    if routine.scheduled_time
+                    else None,
+                    "weekdays": routine.weekdays,
+                    "is_active": routine.is_active,
+                    "completed_dates": [
+                        completion.completed_on.isoformat()
+                        for completion in routine.completions
+                    ],
+                    "created_at": routine.created_at.isoformat(),
+                    "updated_at": routine.updated_at.isoformat(),
+                }
+                for routine in routines
+            ],
+            "time_goals": [
+                {
+                    "id": goal.id,
+                    "title": goal.title,
+                    "period": goal.period.value,
+                    "target_seconds": goal.target_seconds,
+                    "stream_id": goal.stream_id,
+                    "is_active": goal.is_active,
+                    "created_at": goal.created_at.isoformat(),
+                    "updated_at": goal.updated_at.isoformat(),
+                }
+                for goal in time_goals
             ],
         }
 

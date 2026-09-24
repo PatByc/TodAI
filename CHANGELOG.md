@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Added persistent time tracking with a daily timeline, manual entries, and
+  day/week/month history with stream allocation.
+- Added weekly routines, daily routine completion, and tracked-time goals to
+  Plan, with compact progress on Today.
+
 ## 1.0.0 — 2026-09-24
 
 First release of the rebuilt local-first TodAI application.

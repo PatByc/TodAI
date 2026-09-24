@@ -82,14 +82,17 @@ async def test_alembic_history_builds_fresh_sqlite_database(tmp_path):
             "inbox_items",
             "notes",
             "projects",
+            "routine_completions",
+            "routines",
             "search_chunks",
             "tags",
             "tasks",
             "time_categories",
             "time_entries",
+            "time_goals",
             "time_streams",
         }.issubset(tables)
-        assert revision == "b8c0d2e4f6a8"
+        assert revision == "c9d1e3f5a7b9"
         assert any(key["referred_table"] == "projects" for key in foreign_keys)
         assert created_at is not None
 

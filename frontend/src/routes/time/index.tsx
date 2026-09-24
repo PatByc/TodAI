@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react"
+import { Check, ChevronLeft, ChevronRight, Pencil, Plus, Trash2, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import type { FormEvent } from "react"
 import { DatePicker } from "@/components/ui/DatePicker"
@@ -249,7 +249,17 @@ function TimePage() {
   const now = new Date()
   const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
-  const { data: entries = [], isLoading, error } = useTimeEntries()
+  const [historyPeriod, setHistoryPeriod] = useState<"day" | "week" | "month">("week")
+  const [historyAnchor, setHistoryAnchor] = useState(() => new Date())
+  const historyBounds = useMemo(() => {
+    if (historyPeriod === "day") return [new Date(historyAnchor.getFullYear(), historyAnchor.getMonth(), historyAnchor.getDate()), new Date(historyAnchor.getFullYear(), historyAnchor.getMonth(), historyAnchor.getDate() + 1)]
+    if (historyPeriod === "week") {
+      const offset = (historyAnchor.getDay() + 6) % 7
+      return [new Date(historyAnchor.getFullYear(), historyAnchor.getMonth(), historyAnchor.getDate() - offset), new Date(historyAnchor.getFullYear(), historyAnchor.getMonth(), historyAnchor.getDate() - offset + 7)]
+    }
+    return [new Date(historyAnchor.getFullYear(), historyAnchor.getMonth(), 1), new Date(historyAnchor.getFullYear(), historyAnchor.getMonth() + 1, 1)]
+  }, [historyAnchor, historyPeriod])
+  const { data: entries = [], isLoading, error } = useTimeEntries({ limit: 500, from_at: historyBounds[0].toISOString(), to_at: historyBounds[1].toISOString() })
   const { data: todayEntries = [], isLoading: todayLoading } = useTimeEntries({
     limit: 500,
     from_at: dayStart.toISOString(),
@@ -285,6 +295,23 @@ function TimePage() {
     }
   }
 
+  const historyTotal = entries.reduce((sum, entry) => sum + (entry.duration_seconds ?? 0), 0)
+  const allocations = [...entries.reduce((totals, entry) => {
+    const key = entry.stream_id ?? 0
+    totals.set(key, (totals.get(key) ?? 0) + (entry.duration_seconds ?? 0))
+    return totals
+  }, new Map<number, number>())].sort((first, second) => second[1] - first[1])
+  const historyLabel = historyPeriod === "day"
+    ? new Intl.DateTimeFormat("en", { weekday: "long", month: "short", day: "numeric" }).format(historyBounds[0])
+    : `${new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(historyBounds[0])} – ${new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(historyBounds[1].getTime() - 1))}`
+  const moveHistory = (direction: number) => {
+    const next = new Date(historyAnchor)
+    if (historyPeriod === "day") next.setDate(next.getDate() + direction)
+    else if (historyPeriod === "week") next.setDate(next.getDate() + direction * 7)
+    else next.setMonth(next.getMonth() + direction)
+    setHistoryAnchor(next)
+  }
+
   return (
     <div className="time-page">
       <div className="time-page-head">
@@ -302,6 +329,23 @@ function TimePage() {
       )}
 
       <DailyTimeline entries={todayEntries} streams={streams} loading={todayLoading} />
+
+      <section className="time-history" aria-labelledby="time-history-title">
+        <div className="time-history-head">
+          <div><h2 id="time-history-title">History</h2><span>{historyLabel}</span></div>
+          <div className="time-history-controls">
+            <div className="time-period-switch" aria-label="History range">{(["day", "week", "month"] as const).map((period) => <button type="button" key={period} className={historyPeriod === period ? "is-active" : ""} onClick={() => { setHistoryPeriod(period); setHistoryAnchor(new Date()) }}>{period}</button>)}</div>
+            <button type="button" onClick={() => moveHistory(-1)} aria-label={`Previous ${historyPeriod}`}><ChevronLeft size={14} /></button>
+            <button type="button" onClick={() => setHistoryAnchor(new Date())}>Now</button>
+            <button type="button" onClick={() => moveHistory(1)} aria-label={`Next ${historyPeriod}`}><ChevronRight size={14} /></button>
+          </div>
+        </div>
+        {!isLoading && entries.length > 0 && <div className="time-allocation"><div className="time-allocation-total"><strong>{durationLabel(historyTotal)}</strong><span>tracked</span></div><div className="time-allocation-bars">{allocations.map(([streamId, seconds]) => {
+          const stream = streamById.get(streamId)
+          const color = stream ? WORKSPACE_COLORS[stream.color_index % WORKSPACE_COLORS.length].value : "#69726e"
+          return <div key={streamId}><span><i style={{ background: color }} />{stream?.name ?? "Unassigned"}</span><div><i style={{ width: `${historyTotal ? seconds / historyTotal * 100 : 0}%`, background: color }} /></div><strong>{durationLabel(seconds)}</strong></div>
+        })}</div></div>}
+      </section>
 
       {mutationError && <p className="time-entry-error" role="alert">{mutationError}</p>}
       {isLoading ? <p className="time-entry-state">Loading time…</p> : error ? (

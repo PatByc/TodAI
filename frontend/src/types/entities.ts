@@ -305,3 +305,65 @@ export interface TimeEntryUpdate {
   project_id?: number | null
   notes?: string | null
 }
+
+// ── Planning ──────────────────────────────────────────────────────────
+
+export type GoalPeriod = "daily" | "weekly" | "monthly"
+
+export interface Routine {
+  id: number
+  title: string
+  description: string | null
+  scheduled_time: string | null
+  weekdays: number[]
+  is_active: boolean
+  completed_dates: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface RoutineCreate {
+  title: string
+  description?: string
+  scheduled_time?: string
+  weekdays: number[]
+}
+
+export interface RoutineUpdate {
+  title?: string
+  description?: string | null
+  scheduled_time?: string | null
+  weekdays?: number[]
+  is_active?: boolean
+}
+
+export interface RoutineCompletionUpdate {
+  completed_on: string
+  completed: boolean
+}
+
+export interface TimeGoal {
+  id: number
+  title: string
+  period: GoalPeriod
+  target_seconds: number
+  stream_id: number | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface TimeGoalCreate {
+  title: string
+  period: GoalPeriod
+  target_seconds: number
+  stream_id?: number
+}
+
+export interface TimeGoalUpdate {
+  title?: string
+  period?: GoalPeriod
+  target_seconds?: number
+  stream_id?: number | null
+  is_active?: boolean
+}
