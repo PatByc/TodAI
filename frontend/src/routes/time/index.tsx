@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { FormEvent } from "react"
 import { DatePicker } from "@/components/ui/DatePicker"
 import { SelectDropdown } from "@/components/ui/SelectDropdown"
@@ -44,6 +44,83 @@ function entryPayload(values: ReturnType<typeof toFormValues>): TimeEntryCreate 
     project_id: values.projectId === "none" ? undefined : Number(values.projectId),
     notes: values.notes.trim() || undefined,
   }
+}
+
+function DailyTimeline({ entries, streams, loading }: {
+  entries: TimeEntry[]
+  streams: TimeStream[]
+  loading: boolean
+}) {
+  const running = entries.some((entry) => entry.ended_at === null)
+  const [now, setNow] = useState(Date.now)
+  useEffect(() => {
+    if (!running) return
+    const interval = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(interval)
+  }, [running])
+
+  const current = new Date(now)
+  const dayStart = new Date(current.getFullYear(), current.getMonth(), current.getDate()).getTime()
+  const dayEnd = new Date(current.getFullYear(), current.getMonth(), current.getDate() + 1).getTime()
+  const dayLength = dayEnd - dayStart
+  const streamById = new Map(streams.map((stream) => [stream.id, stream]))
+  const ordered = [...entries].sort((first, second) => first.started_at.localeCompare(second.started_at))
+  const intervals = ordered.map((entry) => {
+    const start = Math.max(parseServerTime(entry.started_at).getTime(), dayStart)
+    const end = Math.min(entry.ended_at ? parseServerTime(entry.ended_at).getTime() : now, dayEnd)
+    const seconds = Math.max(0, Math.floor((end - start) / 1000))
+    const stream = entry.stream_id ? streamById.get(entry.stream_id) : undefined
+    const category = stream?.categories.find((item) => item.id === entry.category_id)
+    return { entry, start, end, seconds, stream, label: category?.name ?? stream?.name ?? "Unassigned" }
+  }).filter((interval) => interval.end > interval.start)
+  const totalSeconds = intervals.reduce((sum, interval) => sum + interval.seconds, 0)
+
+  return (
+    <section className="home-time time-page-timeline" aria-labelledby="time-today-title">
+      <div className="home-section-head">
+        <h2 id="time-today-title">Tracked today</h2>
+        {!loading && <span className="time-page-timeline-total">{durationLabel(totalSeconds)}</span>}
+      </div>
+      <div className={`home-time-rail${loading ? " is-loading" : ""}`}>
+        <div className="home-time-scale" aria-hidden="true">
+          {[0, 6, 12, 18, 24].map((hour) => <span key={hour} style={{ left: `${hour / 24 * 100}%` }}>{String(hour).padStart(2, "0")}</span>)}
+        </div>
+        <div className="home-time-track" aria-label="Today time timeline">
+          {intervals.map(({ entry, start, end, seconds, stream, label }) => (
+            <span
+              key={entry.id}
+              className={`home-time-segment${entry.ended_at ? "" : " is-running"}`}
+              style={{
+                left: `${(start - dayStart) / dayLength * 100}%`,
+                width: `${Math.max((end - start) / dayLength * 100, .32)}%`,
+                background: stream ? WORKSPACE_COLORS[stream.color_index % WORKSPACE_COLORS.length].value : undefined,
+              }}
+              title={`${localTimeValue(new Date(start))}–${entry.ended_at ? localTimeValue(new Date(end)) : "now"} · ${label} · ${durationLabel(seconds)}`}
+              aria-label={`${label}, ${durationLabel(seconds)}`}
+            />
+          ))}
+        </div>
+      </div>
+      {!loading && intervals.length === 0 ? (
+        <p className="home-time-empty">No time tracked yet. Use the timer when you begin.</p>
+      ) : (
+        <div className="home-time-legend">
+          {intervals.slice(0, 5).map(({ entry, start, seconds, stream, label }) => (
+            <span key={entry.id}>
+              <i
+                className={entry.ended_at ? "" : "is-running"}
+                style={{ background: entry.ended_at && stream ? WORKSPACE_COLORS[stream.color_index % WORKSPACE_COLORS.length].value : undefined }}
+              />
+              <time>{localTimeValue(new Date(start))}</time>
+              <strong>{label}</strong>
+              <small>{entry.ended_at ? durationLabel(seconds) : "Running"}</small>
+            </span>
+          ))}
+          {intervals.length > 5 && <span className="home-time-more">+{intervals.length - 5} more</span>}
+        </div>
+      )}
+    </section>
+  )
 }
 
 function EntryForm({ entry, streams, onClose }: {
@@ -169,7 +246,15 @@ function EntryForm({ entry, streams, onClose }: {
 }
 
 function TimePage() {
+  const now = new Date()
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
   const { data: entries = [], isLoading, error } = useTimeEntries()
+  const { data: todayEntries = [], isLoading: todayLoading } = useTimeEntries({
+    limit: 500,
+    from_at: dayStart.toISOString(),
+    to_at: dayEnd.toISOString(),
+  })
   const { data: streams = [] } = useTimeStreams()
   const { data: projects } = useProjects({ limit: 100, include_archived: true })
   const deleteEntry = useDeleteTimeEntry()
@@ -216,6 +301,8 @@ function TimePage() {
         />
       )}
 
+      <DailyTimeline entries={todayEntries} streams={streams} loading={todayLoading} />
+
       {mutationError && <p className="time-entry-error" role="alert">{mutationError}</p>}
       {isLoading ? <p className="time-entry-state">Loading time…</p> : error ? (
         <p className="time-entry-error" role="alert">Could not load time entries.</p>
@@ -225,10 +312,11 @@ function TimePage() {
         <div className="time-entry-groups">
           {groups.map(([date, dateEntries]) => {
             const total = dateEntries.reduce((sum, entry) => sum + (entry.duration_seconds ?? 0), 0)
-            const heading = date === today ? "Today" : new Intl.DateTimeFormat("en", { weekday: "long", month: "long", day: "numeric" }).format(new Date(`${date}T12:00:00`))
+            const isToday = date === today
+            const heading = new Intl.DateTimeFormat("en", { weekday: "long", month: "long", day: "numeric" }).format(new Date(`${date}T12:00:00`))
             return (
-              <section className="time-entry-group" key={date}>
-                <div className="time-entry-group-head"><h2>{heading}</h2><span>{durationLabel(total)}</span></div>
+              <section className={`time-entry-group${isToday ? " is-today" : ""}`} key={date}>
+                {!isToday && <div className="time-entry-group-head"><h2>{heading}</h2><span>{durationLabel(total)}</span></div>}
                 <div className="time-entry-list">
                   {dateEntries.map((entry) => {
                     const start = parseServerTime(entry.started_at)

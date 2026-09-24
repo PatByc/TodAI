@@ -262,8 +262,10 @@ body {
 .time-entry-form-actions p { flex: 1; margin: 0; color: var(--destructive); font: 11px/1.4 var(--font-body); }
 .time-entry-form-actions > button:not(.time-entry-save) { min-height: 32px; padding: 5px 10px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--muted-foreground); font: 500 12px var(--font-body); cursor: pointer; }
 .time-entry-form-actions > button:not(.time-entry-save):hover { border-color: var(--border); background: var(--bg-hover); color: var(--foreground); }
-.time-entry-groups { border-top: 1px solid var(--border); }
+.time-entry-groups { border-top: 0; }
 .time-entry-group { padding: 22px 0 4px; }
+.time-entry-group.is-today { padding-top: 0; }
+.time-entry-group.is-today .time-entry-row:first-child { border-top: 0; }
 .time-entry-group + .time-entry-group { margin-top: 12px; border-top: 1px solid var(--border); }
 .time-entry-group-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
 .time-entry-group-head h2 { margin: 0; color: var(--muted-foreground); font: 500 15px/1.4 var(--font-display); letter-spacing: -.02em; }
@@ -387,8 +389,9 @@ body {
 .home-task-done .home-task-link:hover .home-task-title { color: var(--foreground); }
 .home-task-error { margin: 10px 0 0; color: var(--destructive); font: 12px/1.4 var(--font-body); }
 .home-time { margin-top: 32px; }
-.home-time-head-actions { display: flex; align-items: center; gap: 16px; }
-.home-time-head-actions > span { color: var(--text-3); font: 10px var(--font-mono); }
+.time-page-timeline { margin: 0 0 30px; }
+.time-page-timeline .home-section-head h2 { color: var(--muted-foreground); font-size: 16px; letter-spacing: -.025em; }
+.time-page-timeline-total { color: var(--text-3); font: 10px var(--font-mono); }
 .home-time-rail { position: relative; padding-top: 23px; }
 .home-time-rail.is-loading { opacity: .48; }
 .home-time-scale { position: absolute; top: 0; right: 0; left: 0; height: 17px; color: var(--text-3); font: 9px var(--font-mono); }
@@ -661,8 +664,6 @@ body {
 }
 
 @media (max-width: 420px) {
-  .home-time-head-actions { gap: 10px; }
-  .home-time-head-actions > span { display: none; }
   .home-time-legend { align-items: flex-start; flex-direction: column; gap: 7px; }
   .time-page-head { align-items: stretch; flex-direction: column; }
   .time-page-head > button { align-self: flex-start; }
