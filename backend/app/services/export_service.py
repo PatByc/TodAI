@@ -55,7 +55,7 @@ class ExportService:
         )
         inbox_items, _ = await self.inbox_repo.list_all(skip=0, limit=100000)
         time_streams = await self.time_config_repo.list_streams(include_inactive=True)
-        time_entries = await self.time_config_repo.list_entries()
+        time_entries = await self.time_config_repo.list_entries(limit=100000)
 
         return {
             "exported_at": datetime.now(timezone.utc).isoformat(),

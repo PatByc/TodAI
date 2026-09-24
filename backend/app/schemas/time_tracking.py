@@ -92,6 +92,24 @@ class TimerStart(BaseModel):
     notes: str | None = Field(default=None, max_length=5000)
 
 
+class TimeEntryCreate(BaseModel):
+    started_at: datetime
+    ended_at: datetime
+    stream_id: int | None = Field(default=None, gt=0)
+    category_id: int | None = Field(default=None, gt=0)
+    project_id: int | None = Field(default=None, gt=0)
+    notes: str | None = Field(default=None, max_length=5000)
+
+
+class TimeEntryUpdate(BaseModel):
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    stream_id: int | None = Field(default=None, gt=0)
+    category_id: int | None = Field(default=None, gt=0)
+    project_id: int | None = Field(default=None, gt=0)
+    notes: str | None = Field(default=None, max_length=5000)
+
+
 class TimeEntryResponse(BaseModel):
     id: int
     stream_id: int | None

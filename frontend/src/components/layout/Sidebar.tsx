@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { Link, useRouterState } from "@tanstack/react-router"
-import { CalendarDays, CheckSquare, FileText, FolderOpen, Home, Inbox, Lightbulb, Settings } from "lucide-react"
+import { CalendarDays, CheckSquare, Clock3, FileText, FolderOpen, Home, Inbox, Lightbulb, Settings } from "lucide-react"
 import { useSidebarStore } from "@/stores/sidebar"
 import { useCounts } from "@/hooks/useCounts"
 import { ExportButton } from "@/components/export/ExportButton"
@@ -53,6 +53,7 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
   const navItems = [
     { to: "/" as const, label: "Today", description: "See what needs attention now", icon: Home, count: undefined },
     { to: "/plan" as const, label: "Plan", description: "Shape the days ahead", icon: CalendarDays, count: undefined },
+    { to: "/time" as const, label: "Time", description: "Review and adjust tracked time", icon: Clock3, count: undefined },
     { to: "/inbox" as const, label: "Inbox", description: "Capture first, organize later", icon: Inbox, count: counts?.inbox },
     { to: "/tasks" as const, label: "Tasks", description: "Track actionable work", icon: CheckSquare, count: counts?.tasks },
     { to: "/notes" as const, label: "Notes", description: "Keep knowledge and context", icon: FileText, count: counts?.notes },

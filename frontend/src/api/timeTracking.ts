@@ -7,8 +7,26 @@ import type {
   TimeStreamCreate,
   TimeStreamUpdate,
   TimeEntry,
+  TimeEntryCreate,
+  TimeEntryUpdate,
   TimerStart,
 } from "@/types/entities"
+
+export function fetchTimeEntries(): Promise<TimeEntry[]> {
+  return apiClient.get<TimeEntry[]>("/time/entries")
+}
+
+export function createTimeEntry(data: TimeEntryCreate): Promise<TimeEntry> {
+  return apiClient.post<TimeEntry>("/time/entries", data)
+}
+
+export function updateTimeEntry(id: number, data: TimeEntryUpdate): Promise<TimeEntry> {
+  return apiClient.put<TimeEntry>(`/time/entries/${id}`, data)
+}
+
+export function deleteTimeEntry(id: number): Promise<void> {
+  return apiClient.del<void>(`/time/entries/${id}`)
+}
 
 export function fetchActiveTimer(): Promise<TimeEntry | null> {
   return apiClient.get<TimeEntry | null>("/time/timer")

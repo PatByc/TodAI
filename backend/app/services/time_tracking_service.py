@@ -5,11 +5,14 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import EntityNotFoundError, ValidationError
+from app.models.project import Project
 from app.models.time_tracking import TimeCategory, TimeEntry, TimeStream
 from app.repositories.time_tracking_repo import TimeConfigurationRepository
 from app.schemas.time_tracking import (
     TimeCategoryCreate,
     TimeCategoryUpdate,
+    TimeEntryCreate,
+    TimeEntryUpdate,
     TimerStart,
     TimeStreamCreate,
     TimeStreamUpdate,
@@ -96,27 +99,70 @@ class TimeConfigurationService:
     async def get_active_timer(self) -> TimeEntry | None:
         return await self.repo.get_active_entry()
 
+    async def list_entries(self, skip: int = 0, limit: int = 100) -> list[TimeEntry]:
+        return await self.repo.list_entries(skip=skip, limit=limit)
+
+    async def create_entry(self, data: TimeEntryCreate) -> TimeEntry:
+        values = data.model_dump()
+        await self._validate_entry_references(values, require_active=True)
+        self._normalize_entry_times(values)
+        entry = await self.repo.create_entry(values)
+        await self.audit.log(
+            "time_entry", entry.id, "create", snapshot=self._audit_values(values)
+        )
+        await self.session.commit()
+        await self.session.refresh(entry)
+        return entry
+
+    async def update_entry(self, entry_id: int, data: TimeEntryUpdate) -> TimeEntry:
+        entry = await self._require_entry(entry_id)
+        if entry.ended_at is None:
+            raise ValidationError("Stop the running timer before editing it")
+        values = data.model_dump(exclude_unset=True)
+        if not values:
+            return entry
+
+        merged = {
+            "started_at": values.get("started_at", entry.started_at),
+            "ended_at": values.get("ended_at", entry.ended_at),
+            "stream_id": values.get("stream_id", entry.stream_id),
+            "category_id": values.get("category_id", entry.category_id),
+            "project_id": values.get("project_id", entry.project_id),
+            "notes": values.get("notes", entry.notes),
+        }
+        await self._validate_entry_references(merged, require_active=False)
+        self._normalize_entry_times(merged)
+
+        changes = {}
+        for field, value in merged.items():
+            previous = getattr(entry, field)
+            if previous != value:
+                changes[field] = {
+                    "old": self._audit_value(previous),
+                    "new": self._audit_value(value),
+                }
+                setattr(entry, field, value)
+
+        if changes:
+            await self.audit.log("time_entry", entry.id, "update", changes=changes)
+            await self.session.commit()
+            await self.session.refresh(entry)
+        return entry
+
+    async def delete_entry(self, entry_id: int) -> None:
+        entry = await self._require_entry(entry_id)
+        if entry.ended_at is None:
+            raise ValidationError("Stop the running timer before deleting it")
+        await self.repo.delete_entry(entry)
+        await self.audit.log("time_entry", entry_id, "delete")
+        await self.session.commit()
+
     async def start_timer(self, data: TimerStart) -> TimeEntry:
         if await self.repo.get_active_entry() is not None:
             raise ValidationError("A timer is already running")
 
-        if data.stream_id is not None:
-            stream = await self._require_stream(data.stream_id)
-            if not stream.is_active:
-                raise ValidationError("The selected time stream is inactive")
-
-        if data.category_id is not None:
-            category = await self.repo.get_category(data.category_id)
-            if category is None:
-                raise EntityNotFoundError("time_category", data.category_id)
-            if not category.is_active:
-                raise ValidationError("The selected time category is inactive")
-            if data.stream_id is not None and category.stream_id != data.stream_id:
-                raise ValidationError(
-                    "The selected category does not belong to the stream"
-                )
-
         values = data.model_dump(exclude_none=True)
+        await self._validate_entry_references(values, require_active=True)
         values["started_at"] = datetime.now(UTC).replace(tzinfo=None)
         entry = await self.repo.create_entry(values)
         snapshot = {**values, "started_at": values["started_at"].isoformat()}
@@ -153,6 +199,64 @@ class TimeConfigurationService:
         if stream is None:
             raise EntityNotFoundError("time_stream", stream_id)
         return stream
+
+    async def _require_entry(self, entry_id: int) -> TimeEntry:
+        entry = await self.repo.get_entry(entry_id)
+        if entry is None:
+            raise EntityNotFoundError("time_entry", entry_id)
+        return entry
+
+    async def _validate_entry_references(
+        self, values: dict, *, require_active: bool
+    ) -> None:
+        stream_id = values.get("stream_id")
+        category_id = values.get("category_id")
+        if stream_id is not None:
+            stream = await self._require_stream(stream_id)
+            if require_active and not stream.is_active:
+                raise ValidationError("The selected time stream is inactive")
+
+        if category_id is not None:
+            category = await self.repo.get_category(category_id)
+            if category is None:
+                raise EntityNotFoundError("time_category", category_id)
+            if require_active and not category.is_active:
+                raise ValidationError("The selected time category is inactive")
+            if stream_id is None:
+                values["stream_id"] = category.stream_id
+            elif category.stream_id != stream_id:
+                raise ValidationError(
+                    "The selected category does not belong to the stream"
+                )
+
+        project_id = values.get("project_id")
+        if (
+            project_id is not None
+            and await self.session.get(Project, project_id) is None
+        ):
+            raise EntityNotFoundError("project", project_id)
+
+    @staticmethod
+    def _normalize_entry_times(values: dict) -> None:
+        for field in ("started_at", "ended_at"):
+            value = values.get(field)
+            if value is None:
+                raise ValidationError("Time entries need both a start and an end")
+            if value.tzinfo is not None:
+                values[field] = value.astimezone(UTC).replace(tzinfo=None)
+        if values["ended_at"] <= values["started_at"]:
+            raise ValidationError("End time must be after start time")
+        values["duration_seconds"] = int(
+            (values["ended_at"] - values["started_at"]).total_seconds()
+        )
+
+    @staticmethod
+    def _audit_value(value):
+        return value.isoformat() if isinstance(value, datetime) else value
+
+    @classmethod
+    def _audit_values(cls, values: dict) -> dict:
+        return {key: cls._audit_value(value) for key, value in values.items()}
 
     @staticmethod
     def _apply_changes(entity, values: dict) -> dict:

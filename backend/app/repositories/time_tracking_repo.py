@@ -78,11 +78,17 @@ class TimeConfigurationRepository:
         )
         return result.scalars().first()
 
-    async def list_entries(self) -> list[TimeEntry]:
+    async def list_entries(self, skip: int = 0, limit: int = 100) -> list[TimeEntry]:
         result = await self.session.execute(
-            select(TimeEntry).order_by(TimeEntry.started_at, TimeEntry.id)
+            select(TimeEntry)
+            .order_by(TimeEntry.started_at.desc(), TimeEntry.id.desc())
+            .offset(skip)
+            .limit(limit)
         )
         return list(result.scalars().all())
+
+    async def get_entry(self, entry_id: int) -> TimeEntry | None:
+        return await self.session.get(TimeEntry, entry_id)
 
     async def create_entry(self, data: dict) -> TimeEntry:
         entry = TimeEntry(**data)
@@ -90,3 +96,7 @@ class TimeConfigurationRepository:
         await self.session.flush()
         await self.session.refresh(entry)
         return entry
+
+    async def delete_entry(self, entry: TimeEntry) -> None:
+        await self.session.delete(entry)
+        await self.session.flush()

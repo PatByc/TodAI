@@ -287,3 +287,21 @@ export interface TimerStart {
   project_id?: number
   notes?: string
 }
+
+export interface TimeEntryCreate {
+  started_at: string
+  ended_at: string
+  stream_id?: number
+  category_id?: number
+  project_id?: number
+  notes?: string
+}
+
+export interface TimeEntryUpdate {
+  started_at?: string
+  ended_at?: string
+  stream_id?: number | null
+  category_id?: number | null
+  project_id?: number | null
+  notes?: string | null
+}

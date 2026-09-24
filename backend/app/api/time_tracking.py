@@ -8,7 +8,9 @@ from app.schemas.time_tracking import (
     TimeCategoryCreate,
     TimeCategoryResponse,
     TimeCategoryUpdate,
+    TimeEntryCreate,
     TimeEntryResponse,
+    TimeEntryUpdate,
     TimerStart,
     TimeStreamCreate,
     TimeStreamResponse,
@@ -23,6 +25,43 @@ def get_service(
     session: AsyncSession = Depends(get_db),
 ) -> TimeConfigurationService:
     return TimeConfigurationService(session)
+
+
+@router.get("/entries", response_model=list[TimeEntryResponse])
+async def list_time_entries(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    service: TimeConfigurationService = Depends(get_service),
+) -> list[TimeEntryResponse]:
+    entries = await service.list_entries(skip=skip, limit=limit)
+    return [TimeEntryResponse.model_validate(entry) for entry in entries]
+
+
+@router.post(
+    "/entries", response_model=TimeEntryResponse, status_code=status.HTTP_201_CREATED
+)
+async def create_time_entry(
+    data: TimeEntryCreate,
+    service: TimeConfigurationService = Depends(get_service),
+) -> TimeEntryResponse:
+    return TimeEntryResponse.model_validate(await service.create_entry(data))
+
+
+@router.put("/entries/{entry_id}", response_model=TimeEntryResponse)
+async def update_time_entry(
+    entry_id: int,
+    data: TimeEntryUpdate,
+    service: TimeConfigurationService = Depends(get_service),
+) -> TimeEntryResponse:
+    return TimeEntryResponse.model_validate(await service.update_entry(entry_id, data))
+
+
+@router.delete("/entries/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_time_entry(
+    entry_id: int,
+    service: TimeConfigurationService = Depends(get_service),
+) -> None:
+    await service.delete_entry(entry_id)
 
 
 @router.get("/timer", response_model=TimeEntryResponse | None)
