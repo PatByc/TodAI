@@ -13,21 +13,10 @@ import {
 } from "@/hooks/useTimeConfiguration"
 import { useProjects } from "@/hooks/useProjects"
 import { WORKSPACE_COLORS } from "@/lib/colorPalette"
+import { durationLabel, localDateValue, localTimeValue, parseServerTime } from "@/lib/time"
 import type { TimeEntry, TimeEntryCreate, TimeStream } from "@/types/entities"
 
 export const Route = createFileRoute("/time/")({ component: TimePage })
-
-function localDateValue(date = new Date()) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
-}
-
-function localTimeValue(date: Date) {
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`
-}
-
-function parseServerTime(value: string) {
-  return new Date(`${value}${/[zZ]|[+-]\d\d:\d\d$/.test(value) ? "" : "Z"}`)
-}
 
 function toFormValues(entry?: TimeEntry) {
   const end = entry?.ended_at ? parseServerTime(entry.ended_at) : new Date()
@@ -41,15 +30,6 @@ function toFormValues(entry?: TimeEntry) {
     projectId: entry?.project_id ? String(entry.project_id) : "none",
     notes: entry?.notes ?? "",
   }
-}
-
-function durationLabel(seconds: number) {
-  if (seconds > 0 && seconds < 60) return "<1m"
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  if (hours && minutes) return `${hours}h ${minutes}m`
-  if (hours) return `${hours}h`
-  return `${minutes}m`
 }
 
 function entryPayload(values: ReturnType<typeof toFormValues>): TimeEntryCreate {

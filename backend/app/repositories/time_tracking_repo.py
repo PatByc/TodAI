@@ -1,6 +1,8 @@
-"""Persistence operations for time stream configuration."""
+"""Persistence operations for time tracking and configuration."""
 
-from sqlalchemy import func, select
+from datetime import datetime
+
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -78,10 +80,22 @@ class TimeConfigurationRepository:
         )
         return result.scalars().first()
 
-    async def list_entries(self, skip: int = 0, limit: int = 100) -> list[TimeEntry]:
+    async def list_entries(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        from_at: datetime | None = None,
+        to_at: datetime | None = None,
+    ) -> list[TimeEntry]:
+        query = select(TimeEntry)
+        if from_at is not None:
+            query = query.where(
+                or_(TimeEntry.ended_at.is_(None), TimeEntry.ended_at > from_at)
+            )
+        if to_at is not None:
+            query = query.where(TimeEntry.started_at < to_at)
         result = await self.session.execute(
-            select(TimeEntry)
-            .order_by(TimeEntry.started_at.desc(), TimeEntry.id.desc())
+            query.order_by(TimeEntry.started_at.desc(), TimeEntry.id.desc())
             .offset(skip)
             .limit(limit)
         )

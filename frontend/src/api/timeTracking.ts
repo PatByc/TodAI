@@ -12,8 +12,19 @@ import type {
   TimerStart,
 } from "@/types/entities"
 
-export function fetchTimeEntries(): Promise<TimeEntry[]> {
-  return apiClient.get<TimeEntry[]>("/time/entries")
+export interface FetchTimeEntriesParams {
+  limit?: number
+  from_at?: string
+  to_at?: string
+}
+
+export function fetchTimeEntries(params: FetchTimeEntriesParams = {}): Promise<TimeEntry[]> {
+  const query = buildQueryString({
+    limit: params.limit,
+    from_at: params.from_at,
+    to_at: params.to_at,
+  })
+  return apiClient.get<TimeEntry[]>(`/time/entries${query}`)
 }
 
 export function createTimeEntry(data: TimeEntryCreate): Promise<TimeEntry> {

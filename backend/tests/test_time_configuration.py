@@ -236,3 +236,38 @@ async def test_manual_time_entry_crud_and_reference_validation(
         ).scalars()
     )
     assert [row.action for row in audit_rows] == ["create", "update", "delete"]
+
+
+@pytest.mark.asyncio
+async def test_time_entries_can_be_filtered_to_an_overlapping_day(
+    async_client: AsyncClient,
+):
+    for started_at, ended_at in [
+        ("2026-09-23T23:30:00Z", "2026-09-24T00:30:00Z"),
+        ("2026-09-24T12:00:00Z", "2026-09-24T13:00:00Z"),
+        ("2026-09-25T08:00:00Z", "2026-09-25T09:00:00Z"),
+    ]:
+        response = await async_client.post(
+            "/api/v1/time/entries",
+            json={"started_at": started_at, "ended_at": ended_at},
+        )
+        assert response.status_code == 201
+
+    filtered = await async_client.get(
+        "/api/v1/time/entries",
+        params={
+            "from_at": "2026-09-24T00:00:00Z",
+            "to_at": "2026-09-25T00:00:00Z",
+        },
+    )
+    assert filtered.status_code == 200
+    assert len(filtered.json()) == 2
+
+    invalid = await async_client.get(
+        "/api/v1/time/entries",
+        params={
+            "from_at": "2026-09-25T00:00:00Z",
+            "to_at": "2026-09-24T00:00:00Z",
+        },
+    )
+    assert invalid.status_code == 409

@@ -99,8 +99,23 @@ class TimeConfigurationService:
     async def get_active_timer(self) -> TimeEntry | None:
         return await self.repo.get_active_entry()
 
-    async def list_entries(self, skip: int = 0, limit: int = 100) -> list[TimeEntry]:
-        return await self.repo.list_entries(skip=skip, limit=limit)
+    async def list_entries(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        from_at: datetime | None = None,
+        to_at: datetime | None = None,
+    ) -> list[TimeEntry]:
+        normalized_from = self._normalize_optional_time(from_at)
+        normalized_to = self._normalize_optional_time(to_at)
+        if normalized_from and normalized_to and normalized_from >= normalized_to:
+            raise ValidationError("The time range end must be after its start")
+        return await self.repo.list_entries(
+            skip=skip,
+            limit=limit,
+            from_at=normalized_from,
+            to_at=normalized_to,
+        )
 
     async def create_entry(self, data: TimeEntryCreate) -> TimeEntry:
         values = data.model_dump()
@@ -249,6 +264,12 @@ class TimeConfigurationService:
         values["duration_seconds"] = int(
             (values["ended_at"] - values["started_at"]).total_seconds()
         )
+
+    @staticmethod
+    def _normalize_optional_time(value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is not None:
+            return value.astimezone(UTC).replace(tzinfo=None)
+        return value
 
     @staticmethod
     def _audit_value(value):

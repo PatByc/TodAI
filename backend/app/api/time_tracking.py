@@ -1,4 +1,6 @@
-"""Time stream and category configuration endpoints."""
+"""Time tracking and configuration endpoints."""
+
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,9 +33,13 @@ def get_service(
 async def list_time_entries(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    from_at: datetime | None = Query(None),
+    to_at: datetime | None = Query(None),
     service: TimeConfigurationService = Depends(get_service),
 ) -> list[TimeEntryResponse]:
-    entries = await service.list_entries(skip=skip, limit=limit)
+    entries = await service.list_entries(
+        skip=skip, limit=limit, from_at=from_at, to_at=to_at
+    )
     return [TimeEntryResponse.model_validate(entry) for entry in entries]
 
 

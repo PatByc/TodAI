@@ -13,6 +13,7 @@ import {
   updateTimeEntry,
   updateTimeStream,
 } from "@/api/timeTracking"
+import type { FetchTimeEntriesParams } from "@/api/timeTracking"
 import type {
   TimeCategoryCreate,
   TimeCategoryUpdate,
@@ -27,8 +28,11 @@ const queryKey = ["time", "streams"] as const
 const timerQueryKey = ["time", "timer"] as const
 const entriesQueryKey = ["time", "entries"] as const
 
-export function useTimeEntries() {
-  return useQuery({ queryKey: entriesQueryKey, queryFn: fetchTimeEntries })
+export function useTimeEntries(params: FetchTimeEntriesParams = {}) {
+  return useQuery({
+    queryKey: [...entriesQueryKey, params],
+    queryFn: () => fetchTimeEntries(params),
+  })
 }
 
 export function useCreateTimeEntry() {
