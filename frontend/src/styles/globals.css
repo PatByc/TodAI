@@ -318,7 +318,7 @@ body {
 .time-allocation-bars > div > strong { color: var(--text-3); font: 500 9px var(--font-mono); text-align: right; }
 
 /* Plan: one weekly rail and measured goals, with today as the only accent. */
-.plan-page { max-width: 1080px; }
+.plan-page { max-width: 1180px; }
 .plan-page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 30px; }
 .plan-page-head h1 { margin: 0; color: var(--foreground); font: 700 28px/1.15 var(--font-display); letter-spacing: -.035em; }
 .plan-page-head p { margin: 6px 0 0; color: var(--muted-foreground); font: 13px/1.5 var(--font-body); }
@@ -338,6 +338,8 @@ body {
 .plan-editor-fields input { height: 34px; box-sizing: border-box; padding: 6px 9px; border: 1px solid var(--border); border-radius: 5px; outline: 0; background: var(--secondary); color: var(--foreground); color-scheme: dark; font: 500 12px var(--font-body); }
 .plan-editor-fields input:focus { border-color: #59635e; box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 34%, transparent); }
 .plan-goal-fields { grid-template-columns: minmax(180px, 1.4fr) 130px 95px minmax(160px, 1fr); }
+.plan-block-fields { grid-template-columns: minmax(180px, 1.4fr) 160px 105px 105px; }
+.plan-block-fields > :nth-child(5), .plan-block-fields > :nth-child(6) { grid-column: span 2; }
 .plan-weekday-picker { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 13px; }
 .plan-weekday-picker button { height: 30px; border: 1px solid var(--border); border-radius: 5px; background: transparent; color: var(--text-3); font: 500 10px var(--font-body); cursor: pointer; }
 .plan-weekday-picker button.is-selected { border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
@@ -347,11 +349,61 @@ body {
 .plan-editor-actions button.is-primary { border-color: var(--primary); background: var(--primary); color: var(--primary-foreground); }
 .plan-editor-actions button.plan-editor-status { margin-right: auto; padding-left: 4px; }
 .plan-editor-actions button.plan-editor-status.is-active { color: var(--primary); }
+.plan-editor-actions button.is-danger { color: var(--destructive); }
 .plan-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; margin-bottom: 11px; }
 .plan-section-head > div { display: flex; align-items: baseline; gap: 10px; }
 .plan-section-head h2 { margin: 0; color: var(--foreground); font: 500 19px var(--font-display); letter-spacing: -.035em; }
 .plan-section-head span, .plan-section-head p { margin: 0; color: var(--text-3); font: 10px var(--font-body); }
 .plan-section-head p strong { color: var(--primary); font: 500 11px var(--font-mono); }
+.plan-calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 10px; }
+.plan-calendar-toolbar > div { display: flex; align-items: baseline; gap: 10px; }
+.plan-calendar-toolbar h2 { margin: 0; color: var(--foreground); font: 500 19px var(--font-display); letter-spacing: -.035em; }
+.plan-calendar-toolbar span { color: var(--text-3); font: 10px var(--font-mono); }
+.plan-calendar-toolbar > div:last-child { gap: 3px; }
+.plan-calendar-toolbar button { min-width: 29px; height: 29px; display: grid; place-items: center; padding: 0 8px; border: 0; border-radius: 4px; background: transparent; color: var(--text-3); font: 500 10px var(--font-body); cursor: pointer; }
+.plan-calendar-toolbar button:hover { background: var(--bg-hover); color: var(--foreground); }
+.plan-calendar-shell { overflow-x: auto; overflow-y: hidden; border: 1px solid var(--border); border-radius: 7px; background: #121517; }
+.plan-calendar { min-width: 850px; }
+.plan-calendar-head { display: grid; grid-template-columns: 56px repeat(7, minmax(0, 1fr)); min-height: 54px; border-bottom: 1px solid var(--border); background: #171a1c; }
+.plan-calendar-head > span { border-right: 1px solid var(--border-subtle); }
+.plan-calendar-head > div { display: flex; align-items: center; justify-content: center; gap: 7px; border-right: 1px solid var(--border-subtle); color: var(--text-3); }
+.plan-calendar-head > div:last-child { border-right: 0; }
+.plan-calendar-head > div span { font: 500 9px var(--font-body); }
+.plan-calendar-head > div strong { color: var(--muted-foreground); font: 500 17px var(--font-display); }
+.plan-calendar-head > div.is-today { background: color-mix(in srgb, var(--primary) 6%, transparent); }
+.plan-calendar-head > div.is-today span, .plan-calendar-head > div.is-today strong { color: var(--primary); }
+.plan-calendar-allday { display: grid; grid-template-columns: 56px repeat(7, minmax(0, 1fr)); min-height: 31px; border-bottom: 1px solid var(--border); background: #15181a; }
+.plan-calendar-allday > span { display: flex; align-items: center; justify-content: flex-end; padding-right: 9px; border-right: 1px solid var(--border-subtle); color: #59615e; font: 8px var(--font-body); }
+.plan-calendar-allday > div { min-width: 0; display: flex; align-items: stretch; flex-direction: column; gap: 3px; padding: 3px 4px; border-right: 1px solid var(--border-subtle); }
+.plan-calendar-allday > div:last-child { border-right: 0; }
+.plan-calendar-allday button { width: 100%; min-width: 0; height: 22px; display: flex; align-items: center; gap: 4px; overflow: hidden; padding: 0 5px; border: 1px solid #4d4a3e; border-radius: 3px; background: #24231f; color: #bdb8aa; font: 500 8px var(--font-body); text-overflow: ellipsis; white-space: nowrap; cursor: default; }
+.plan-calendar-allday button.is-routine { border-color: #414946; background: #202426; color: var(--muted-foreground); cursor: pointer; }
+.plan-calendar-allday button i { width: 4px; height: 4px; flex: 0 0 4px; border-radius: 50%; background: #a08b5f; }
+.plan-calendar-allday button.is-routine i { background: #69736e; }
+.plan-calendar-body { display: grid; grid-template-columns: 56px repeat(7, minmax(0, 1fr)); height: var(--calendar-height); }
+.plan-calendar-hours { position: relative; height: var(--calendar-height); border-right: 1px solid var(--border-subtle); }
+.plan-calendar-hours span { position: absolute; right: 9px; color: #59615e; font: 8px var(--font-mono); transform: translateY(-50%); }
+.plan-calendar-day { position: relative; height: var(--calendar-height); border-right: 1px solid var(--border-subtle); background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--calendar-hour-height) / 2 - 1px), rgba(87,96,92,.08) calc(var(--calendar-hour-height) / 2 - 1px), rgba(87,96,92,.08) calc(var(--calendar-hour-height) / 2), transparent calc(var(--calendar-hour-height) / 2), transparent calc(var(--calendar-hour-height) - 1px), rgba(108,119,114,.18) calc(var(--calendar-hour-height) - 1px), rgba(108,119,114,.18) var(--calendar-hour-height)); }
+.plan-calendar-day:last-child { border-right: 0; }
+.plan-calendar-day.is-today { background-color: color-mix(in srgb, var(--primary) 2.5%, transparent); }
+.plan-calendar-now { position: absolute; z-index: 5; right: 0; left: 0; height: 1px; background: var(--primary); box-shadow: 0 0 5px color-mix(in srgb, var(--primary) 45%, transparent); pointer-events: none; }
+.plan-calendar-now::before { content: ""; position: absolute; top: -3px; left: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+.plan-calendar-event { position: absolute; z-index: 2; right: 4px; left: 4px; min-height: 25px; overflow: hidden; display: flex; align-items: flex-start; flex-direction: column; gap: 2px; padding: 4px 5px; border: 0; border-left: 3px solid var(--event-color, #69736e); border-radius: 3px; background: color-mix(in srgb, var(--event-color, #69736e) 14%, #1b1f20); color: var(--foreground); text-align: left; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.22); }
+.plan-calendar-event:hover { z-index: 4; filter: brightness(1.13); }
+.plan-calendar-event time, .plan-calendar-event > span { color: color-mix(in srgb, var(--event-color, #89938e) 70%, var(--muted-foreground)); font: 8px var(--font-mono); }
+.plan-calendar-event strong { width: 100%; overflow: hidden; font: 500 9px/1.25 var(--font-body); text-overflow: ellipsis; white-space: nowrap; }
+.plan-calendar-event.is-routine { right: 8px; left: 8px; --event-color: #67726d; border-left-style: dashed; background: #202426; opacity: .82; }
+.plan-calendar-event.is-task { right: 11px; left: 11px; --event-color: #92815e; background: #24231f; }
+.plan-calendar-hint { margin: 0; padding: 7px 10px; border-top: 1px solid var(--border-subtle); color: #59615e; font: 9px var(--font-body); text-align: right; }
+.plan-routines { margin-top: 35px; }
+.plan-routine-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); border-top: 1px solid var(--border); }
+.plan-routine-summary > button { min-width: 0; min-height: 53px; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; padding: 7px 9px; border: 0; border-right: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); background: transparent; color: var(--muted-foreground); text-align: left; cursor: pointer; }
+.plan-routine-summary > button:hover { background: var(--accent-glow); }
+.plan-routine-summary > button.is-inactive { opacity: .45; }
+.plan-routine-summary svg { grid-row: 1 / 3; color: var(--text-3); }
+.plan-routine-summary strong { overflow: hidden; color: var(--foreground); font: 500 11px var(--font-body); text-overflow: ellipsis; white-space: nowrap; }
+.plan-routine-summary span { color: var(--text-3); font: 9px var(--font-mono); }
+.plan-routine-summary small { grid-column: 2 / 4; overflow: hidden; color: var(--text-3); font: 9px var(--font-body); text-overflow: ellipsis; white-space: nowrap; }
 .plan-week-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .plan-week-grid > section { min-width: 0; min-height: 174px; padding: 10px 8px 12px; border-right: 1px solid var(--border-subtle); }
 .plan-week-grid > section:last-child { border-right: 0; }
@@ -515,6 +567,11 @@ body {
 .home-time-more { color: var(--text-3) !important; font: 10px var(--font-body); }
 .home-time-empty { margin: 11px 0 0; color: var(--text-3); font: 11px/1.5 var(--font-body); }
 .home-plan { padding-top: 2px; }
+.home-planned-list { border-top: 1px solid var(--border-subtle); }
+.home-planned-list > div { min-height: 43px; display: grid; grid-template-columns: 118px minmax(0, 1fr); align-items: center; gap: 12px; padding: 4px; border-bottom: 1px solid var(--border-subtle); }
+.home-planned-list time { display: flex; gap: 5px; color: var(--text-3); font: 9px var(--font-mono); }
+.home-planned-list time span { color: #535b58; }
+.home-planned-list strong { overflow: hidden; color: var(--foreground); font: 500 12px var(--font-body); text-overflow: ellipsis; white-space: nowrap; }
 .home-routine-list { border-top: 1px solid var(--border-subtle); }
 .home-routine-list > button { width: 100%; min-height: 44px; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 4px; border: 0; border-bottom: 1px solid var(--border-subtle); background: transparent; color: var(--foreground); text-align: left; cursor: pointer; }
 .home-routine-list > button:hover { background: var(--accent-glow); }
@@ -752,7 +809,7 @@ body {
   .plan-day-empty { padding: 8px 0; text-align: left; }
   .plan-goal-list > article { grid-template-columns: minmax(150px, 1fr) minmax(220px, 1.2fr) auto; gap: 14px; }
   .plan-row-actions { opacity: 1; }
-  .plan-editor-fields, .plan-goal-fields { grid-template-columns: 1fr 1fr; }
+  .plan-editor-fields, .plan-goal-fields, .plan-block-fields { grid-template-columns: 1fr 1fr; }
   .plan-editor-description { grid-column: 1 / -1; }
   .time-history-head { align-items: flex-start; flex-direction: column; }
   .time-history-controls { width: 100%; }
@@ -797,7 +854,8 @@ body {
 @media (max-width: 420px) {
   .plan-page-head { align-items: stretch; flex-direction: column; }
   .plan-head-actions button { flex: 1; justify-content: center; }
-  .plan-editor-fields, .plan-goal-fields { grid-template-columns: 1fr; }
+  .plan-editor-fields, .plan-goal-fields, .plan-block-fields { grid-template-columns: 1fr; }
+  .plan-block-fields > :nth-child(5), .plan-block-fields > :nth-child(6) { grid-column: auto; }
   .plan-editor-description { grid-column: auto; }
   .plan-weekday-picker { grid-template-columns: repeat(4, 1fr); }
   .plan-goal-list > article { grid-template-columns: 1fr auto; gap: 10px; }

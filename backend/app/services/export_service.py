@@ -60,6 +60,9 @@ class ExportService:
         time_entries = await self.time_config_repo.list_entries(limit=100000)
         routines = await self.planning_repo.list_routines(include_inactive=True)
         time_goals = await self.planning_repo.list_goals(include_inactive=True)
+        export_start = datetime(1970, 1, 1)
+        export_end = datetime(9999, 1, 1)
+        planned_blocks = await self.planning_repo.list_blocks(export_start, export_end)
 
         return {
             "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -140,6 +143,20 @@ class ExportService:
                     "updated_at": goal.updated_at.isoformat(),
                 }
                 for goal in time_goals
+            ],
+            "planned_blocks": [
+                {
+                    "id": block.id,
+                    "title": block.title,
+                    "description": block.description,
+                    "starts_at": block.starts_at.isoformat(),
+                    "ends_at": block.ends_at.isoformat(),
+                    "stream_id": block.stream_id,
+                    "project_id": block.project_id,
+                    "created_at": block.created_at.isoformat(),
+                    "updated_at": block.updated_at.isoformat(),
+                }
+                for block in planned_blocks
             ],
         }
 

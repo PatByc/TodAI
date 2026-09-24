@@ -98,3 +98,40 @@ class TimeGoalResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class PlannedBlockCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=160)
+    description: str | None = Field(default=None, max_length=5000)
+    starts_at: datetime
+    ends_at: datetime
+    stream_id: int | None = Field(default=None, gt=0)
+    project_id: int | None = Field(default=None, gt=0)
+
+    @field_validator("title")
+    @classmethod
+    def normalize_title(cls, value: str) -> str:
+        return " ".join(value.split())
+
+
+class PlannedBlockUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=160)
+    description: str | None = Field(default=None, max_length=5000)
+    starts_at: datetime | None = None
+    ends_at: datetime | None = None
+    stream_id: int | None = Field(default=None, gt=0)
+    project_id: int | None = Field(default=None, gt=0)
+
+
+class PlannedBlockResponse(BaseModel):
+    id: int
+    title: str
+    description: str | None
+    starts_at: datetime
+    ends_at: datetime
+    stream_id: int | None
+    project_id: int | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

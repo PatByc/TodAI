@@ -9,7 +9,7 @@ from .base import Base, SoftDeleteMixin, TimestampMixin
 from .idea import Idea, IdeaState
 from .inbox_item import InboxItem
 from .note import Note
-from .planning import GoalPeriod, Routine, RoutineCompletion, TimeGoal
+from .planning import GoalPeriod, PlannedBlock, Routine, RoutineCompletion, TimeGoal
 from .project import Project, ProjectStatus
 from .search_chunk import SearchChunk
 from .tag import EntityTag, Tag
@@ -25,6 +25,7 @@ __all__ = [
     "IdeaState",
     "InboxItem",
     "Note",
+    "PlannedBlock",
     "GoalPeriod",
     "Project",
     "ProjectStatus",

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Check, ArrowUpRight } from "lucide-react"
 import { useState } from "react"
 import { fetchTasks, updateTask } from "@/api/tasks"
-import { useRoutines, useSetRoutineCompletion, useTimeGoals } from "@/hooks/usePlanning"
+import { usePlannedBlocks, useRoutines, useSetRoutineCompletion, useTimeGoals } from "@/hooks/usePlanning"
 import { useTimeEntries } from "@/hooks/useTimeConfiguration"
 import { playCompletionChime } from "@/lib/completionChime"
 import { durationLabel, parseServerTime } from "@/lib/time"
@@ -88,6 +88,9 @@ function TodayPage() {
   const { data: routines = [] } = useRoutines(false)
   const { data: goals = [] } = useTimeGoals(false)
   const setRoutineCompletion = useSetRoutineCompletion()
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  const { data: plannedBlocks = [] } = usePlannedBlocks(dayStart.toISOString(), dayEnd.toISOString())
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
   const { data: monthEntries = [] } = useTimeEntries({ limit: 500, from_at: monthStart.toISOString(), to_at: monthEnd.toISOString() })
@@ -211,8 +214,13 @@ function TodayPage() {
         {completionError && <p className="home-task-error" role="alert">{completionError}</p>}
       </section>
 
-      {(todayRoutines.length > 0 || goals.length > 0) && <section className="home-section home-plan" aria-labelledby="home-plan-title">
+      {(plannedBlocks.length > 0 || todayRoutines.length > 0 || goals.length > 0) && <section className="home-section home-plan" aria-labelledby="home-plan-title">
         <div className="home-section-head"><h2 id="home-plan-title">Plan today</h2><Link to="/plan">Open plan <ArrowUpRight size={14} /></Link></div>
+        {plannedBlocks.length > 0 && <div className="home-planned-list">{plannedBlocks.map((block) => {
+          const start = parseServerTime(block.starts_at)
+          const end = parseServerTime(block.ends_at)
+          return <div key={block.id}><time>{start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}<span>–</span>{end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time><strong>{block.title}</strong></div>
+        })}</div>}
         {todayRoutines.length > 0 && <div className="home-routine-list">{todayRoutines.map((routine) => {
           const done = routine.completed_dates.includes(today)
           return <button type="button" key={routine.id} className={done ? "is-complete" : ""} onClick={() => setRoutineCompletion.mutate({ id: routine.id, data: { completed_on: today, completed: !done } })}><span className="home-routine-check">{done && <Check size={11} />}</span><strong>{routine.title}</strong><time>{routine.scheduled_time?.slice(0, 5) ?? "Anytime"}</time></button>

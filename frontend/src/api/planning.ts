@@ -1,5 +1,8 @@
 import { apiClient, buildQueryString } from "./client"
 import type {
+  PlannedBlock,
+  PlannedBlockCreate,
+  PlannedBlockUpdate,
   Routine,
   RoutineCompletionUpdate,
   RoutineCreate,
@@ -8,6 +11,22 @@ import type {
   TimeGoalCreate,
   TimeGoalUpdate,
 } from "@/types/entities"
+
+export function fetchPlannedBlocks(fromAt: string, toAt: string): Promise<PlannedBlock[]> {
+  return apiClient.get<PlannedBlock[]>(`/plan/blocks${buildQueryString({ from_at: fromAt, to_at: toAt })}`)
+}
+
+export function createPlannedBlock(data: PlannedBlockCreate): Promise<PlannedBlock> {
+  return apiClient.post<PlannedBlock>("/plan/blocks", data)
+}
+
+export function updatePlannedBlock(id: number, data: PlannedBlockUpdate): Promise<PlannedBlock> {
+  return apiClient.put<PlannedBlock>(`/plan/blocks/${id}`, data)
+}
+
+export function deletePlannedBlock(id: number): Promise<void> {
+  return apiClient.del<void>(`/plan/blocks/${id}`)
+}
 
 export function fetchRoutines(includeInactive = true): Promise<Routine[]> {
   return apiClient.get<Routine[]>(`/plan/routines${buildQueryString({ include_inactive: includeInactive })}`)

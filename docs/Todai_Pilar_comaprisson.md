@@ -449,10 +449,11 @@ the TodAI project model.
 
 ### TodAI
 
-**Status:** Placeholder
+**Status:** Active
 
-The top action menu displays “Start timer,” but no timer state, persistence,
-time-entry model, timeline, or timer API currently backs the button.
+TodAI now has a persistent timer, configurable streams and categories, manual
+time entries, a daily timeline, and day/week/month history with allocation by
+stream. Entries may also carry project context and notes.
 
 ### Pilar
 
@@ -492,10 +493,13 @@ TodAI's existing dummy timer should become the launcher for this module.
 
 ### TodAI Plan
 
-**Status:** Placeholder
+**Status:** Active
 
-The navigation and route exist, but the page contains only an empty feature
-surface. Slash-command navigation to `/plan` is also present.
+Plan is now a seven-day time-grid calendar. Users can create persistent planned
+blocks, move them across days and times, and see dated tasks and weekly routines
+in the same week. The Today page reads the current day's planned blocks and
+routines from this shared schedule. Time goals remain supporting feedback below
+the calendar.
 
 ### Pilar routines
 

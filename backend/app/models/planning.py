@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import date, datetime, time
 from enum import StrEnum
 
 from sqlalchemy import (
@@ -72,3 +72,21 @@ class TimeGoal(TimestampMixin, Base):
         ForeignKey("time_streams.id", ondelete="SET NULL"), nullable=True, index=True
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+
+
+class PlannedBlock(TimestampMixin, Base):
+    """A concrete intention occupying time on the weekly calendar."""
+
+    __tablename__ = "planned_blocks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(160))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    starts_at: Mapped[datetime] = mapped_column(index=True)
+    ends_at: Mapped[datetime] = mapped_column(index=True)
+    stream_id: Mapped[int | None] = mapped_column(
+        ForeignKey("time_streams.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    project_id: Mapped[int | None] = mapped_column(
+        ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True
+    )

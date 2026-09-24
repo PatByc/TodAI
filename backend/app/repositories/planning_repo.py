@@ -1,12 +1,12 @@
 """Persistence for routines, completions, and time goals."""
 
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.planning import Routine, RoutineCompletion, TimeGoal
+from app.models.planning import PlannedBlock, Routine, RoutineCompletion, TimeGoal
 
 
 class PlanningRepository:
@@ -62,3 +62,22 @@ class PlanningRepository:
         self.session.add(goal)
         await self.session.flush()
         return goal
+
+    async def list_blocks(
+        self, from_at: datetime, to_at: datetime
+    ) -> list[PlannedBlock]:
+        result = await self.session.execute(
+            select(PlannedBlock)
+            .where(PlannedBlock.ends_at > from_at, PlannedBlock.starts_at < to_at)
+            .order_by(PlannedBlock.starts_at, PlannedBlock.id)
+        )
+        return list(result.scalars().all())
+
+    async def get_block(self, block_id: int) -> PlannedBlock | None:
+        return await self.session.get(PlannedBlock, block_id)
+
+    async def create_block(self, values: dict) -> PlannedBlock:
+        block = PlannedBlock(**values)
+        self.session.add(block)
+        await self.session.flush()
+        return block

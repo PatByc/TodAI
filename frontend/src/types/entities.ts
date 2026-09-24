@@ -367,3 +367,33 @@ export interface TimeGoalUpdate {
   stream_id?: number | null
   is_active?: boolean
 }
+
+export interface PlannedBlock {
+  id: number
+  title: string
+  description: string | null
+  starts_at: string
+  ends_at: string
+  stream_id: number | null
+  project_id: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PlannedBlockCreate {
+  title: string
+  description?: string
+  starts_at: string
+  ends_at: string
+  stream_id?: number
+  project_id?: number
+}
+
+export interface PlannedBlockUpdate {
+  title?: string
+  description?: string | null
+  starts_at?: string
+  ends_at?: string
+  stream_id?: number | null
+  project_id?: number | null
+}

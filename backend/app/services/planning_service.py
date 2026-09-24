@@ -2,11 +2,14 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import EntityNotFoundError
-from app.models.planning import Routine, RoutineCompletion, TimeGoal
+from app.core.exceptions import EntityNotFoundError, ValidationError
+from app.models.planning import PlannedBlock, Routine, RoutineCompletion, TimeGoal
+from app.models.project import Project
 from app.models.time_tracking import TimeStream
 from app.repositories.planning_repo import PlanningRepository
 from app.schemas.planning import (
+    PlannedBlockCreate,
+    PlannedBlockUpdate,
     RoutineCompletionRequest,
     RoutineCreate,
     RoutineUpdate,
@@ -106,6 +109,53 @@ class PlanningService:
         await self.audit.log("time_goal", goal_id, "delete")
         await self.session.commit()
 
+    async def list_blocks(self, from_at, to_at) -> list[PlannedBlock]:
+        normalized_from = self._normalize_time(from_at)
+        normalized_to = self._normalize_time(to_at)
+        if normalized_from >= normalized_to:
+            raise ValidationError("The calendar range end must be after its start")
+        return await self.repo.list_blocks(normalized_from, normalized_to)
+
+    async def create_block(self, data: PlannedBlockCreate) -> PlannedBlock:
+        values = data.model_dump()
+        await self._validate_block(values)
+        block = await self.repo.create_block(values)
+        await self.audit.log(
+            "planned_block", block.id, "create", snapshot=self._serializable(values)
+        )
+        await self.session.commit()
+        await self.session.refresh(block)
+        return block
+
+    async def update_block(
+        self, block_id: int, data: PlannedBlockUpdate
+    ) -> PlannedBlock:
+        block = await self._require_block(block_id)
+        values = data.model_dump(exclude_unset=True)
+        merged = {
+            "title": values.get("title", block.title),
+            "description": values.get("description", block.description),
+            "starts_at": values.get("starts_at", block.starts_at),
+            "ends_at": values.get("ends_at", block.ends_at),
+            "stream_id": values.get("stream_id", block.stream_id),
+            "project_id": values.get("project_id", block.project_id),
+        }
+        await self._validate_block(merged)
+        changes = self._apply(block, merged)
+        if changes:
+            await self.audit.log(
+                "planned_block", block.id, "update", changes=self._serializable(changes)
+            )
+            await self.session.commit()
+            await self.session.refresh(block)
+        return block
+
+    async def delete_block(self, block_id: int) -> None:
+        block = await self._require_block(block_id)
+        await self.session.delete(block)
+        await self.audit.log("planned_block", block_id, "delete")
+        await self.session.commit()
+
     async def _require_routine(self, routine_id: int) -> Routine:
         routine = await self.repo.get_routine(routine_id)
         if routine is None:
@@ -117,6 +167,35 @@ class PlanningService:
         if goal is None:
             raise EntityNotFoundError("time_goal", goal_id)
         return goal
+
+    async def _require_block(self, block_id: int) -> PlannedBlock:
+        block = await self.repo.get_block(block_id)
+        if block is None:
+            raise EntityNotFoundError("planned_block", block_id)
+        return block
+
+    async def _validate_block(self, values: dict) -> None:
+        values["starts_at"] = self._normalize_time(values["starts_at"])
+        values["ends_at"] = self._normalize_time(values["ends_at"])
+        if values["ends_at"] <= values["starts_at"]:
+            raise ValidationError("A planned block must end after it starts")
+        await self._validate_stream(values.get("stream_id"))
+        project_id = values.get("project_id")
+        if (
+            project_id is not None
+            and await self.session.get(Project, project_id) is None
+        ):
+            raise EntityNotFoundError("project", project_id)
+
+    @staticmethod
+    def _normalize_time(value):
+        from datetime import UTC
+
+        return (
+            value.astimezone(UTC).replace(tzinfo=None)
+            if value.tzinfo is not None
+            else value
+        )
 
     async def _validate_stream(self, stream_id: int | None) -> None:
         if (

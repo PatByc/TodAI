@@ -6,6 +6,8 @@
   day/week/month history with stream allocation.
 - Added weekly routines, daily routine completion, and tracked-time goals to
   Plan, with compact progress on Today.
+- Added a seven-day planning calendar with persistent time blocks, task and
+  routine overlays, drag-to-reschedule, and a matching daily scope on Today.
 
 ## 1.0.0 — 2026-09-24
 

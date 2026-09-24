@@ -1,11 +1,16 @@
 """Plan endpoints for routines and time goals."""
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
 from app.models.planning import Routine
 from app.schemas.planning import (
+    PlannedBlockCreate,
+    PlannedBlockResponse,
+    PlannedBlockUpdate,
     RoutineCompletionRequest,
     RoutineCreate,
     RoutineResponse,
@@ -113,3 +118,42 @@ async def delete_goal(
     goal_id: int, service: PlanningService = Depends(get_service)
 ) -> None:
     await service.delete_goal(goal_id)
+
+
+@router.get("/blocks", response_model=list[PlannedBlockResponse])
+async def list_blocks(
+    from_at: datetime = Query(...),
+    to_at: datetime = Query(...),
+    service: PlanningService = Depends(get_service),
+) -> list[PlannedBlockResponse]:
+    return [
+        PlannedBlockResponse.model_validate(item)
+        for item in await service.list_blocks(from_at, to_at)
+    ]
+
+
+@router.post(
+    "/blocks", response_model=PlannedBlockResponse, status_code=status.HTTP_201_CREATED
+)
+async def create_block(
+    data: PlannedBlockCreate, service: PlanningService = Depends(get_service)
+) -> PlannedBlockResponse:
+    return PlannedBlockResponse.model_validate(await service.create_block(data))
+
+
+@router.put("/blocks/{block_id}", response_model=PlannedBlockResponse)
+async def update_block(
+    block_id: int,
+    data: PlannedBlockUpdate,
+    service: PlanningService = Depends(get_service),
+) -> PlannedBlockResponse:
+    return PlannedBlockResponse.model_validate(
+        await service.update_block(block_id, data)
+    )
+
+
+@router.delete("/blocks/{block_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_block(
+    block_id: int, service: PlanningService = Depends(get_service)
+) -> None:
+    await service.delete_block(block_id)
