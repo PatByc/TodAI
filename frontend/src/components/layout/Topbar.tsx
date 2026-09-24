@@ -113,7 +113,6 @@ export function Topbar() {
                 <span className="timer-elapsed">{elapsed}</span>
               </span>
             </button>
-            <span className="timer-active-label" aria-hidden="true">Start timer</span>
           </div>
           <button
             type="button"
