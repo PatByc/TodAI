@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react"
 import { Link, useRouterState } from "@tanstack/react-router"
-import { CalendarDays, CheckSquare, Clock3, FileText, FolderOpen, Home, Inbox, Lightbulb, Settings } from "lucide-react"
+import { CalendarDays, CheckSquare, ChevronRight, Clock3, FileText, FolderOpen, Home, Inbox, Library, Lightbulb, Settings } from "lucide-react"
 import { useSidebarStore } from "@/stores/sidebar"
 import { useCounts } from "@/hooks/useCounts"
-import { ExportButton } from "@/components/export/ExportButton"
+
+const LIBRARY_STORAGE_KEY = "todai.sidebar.library-open"
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() =>
@@ -49,51 +50,82 @@ export function Sidebar() {
 function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
   const { data: counts } = useCounts()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const [libraryOpen, setLibraryOpen] = useState(() => (
+    typeof window !== "undefined" && window.localStorage.getItem(LIBRARY_STORAGE_KEY) === "true"
+  ))
 
-  const navItems = [
+  useEffect(() => {
+    window.localStorage.setItem(LIBRARY_STORAGE_KEY, String(libraryOpen))
+  }, [libraryOpen])
+
+  const primaryItems = [
     { to: "/" as const, label: "Today", description: "See what needs attention now", icon: Home, count: undefined },
     { to: "/plan" as const, label: "Plan", description: "Shape the days ahead", icon: CalendarDays, count: undefined },
-    { to: "/time" as const, label: "Time", description: "Review and adjust tracked time", icon: Clock3, count: undefined },
-    { to: "/inbox" as const, label: "Inbox", description: "Capture first, organize later", icon: Inbox, count: counts?.inbox },
     { to: "/tasks" as const, label: "Tasks", description: "Track actionable work", icon: CheckSquare, count: counts?.tasks },
+    { to: "/time" as const, label: "Time", description: "Review and adjust tracked time", icon: Clock3, count: undefined },
+  ]
+  const libraryItems = [
+    { to: "/inbox" as const, label: "Inbox", description: "Capture first, organize later", icon: Inbox, count: counts?.inbox },
     { to: "/notes" as const, label: "Notes", description: "Keep knowledge and context", icon: FileText, count: counts?.notes },
     { to: "/ideas" as const, label: "Ideas", description: "Develop early thoughts", icon: Lightbulb, count: counts?.ideas },
     { to: "/projects" as const, label: "Projects", description: "Connect related work", icon: FolderOpen, count: counts?.projects },
   ]
+  const activeLibraryItem = libraryItems.find(({ to }) => pathname.startsWith(to))
+
+  const renderLink = ({ to, label, description, icon: Icon, count }: (typeof primaryItems)[number] | (typeof libraryItems)[number], nested = false) => {
+    const active = to === "/" ? pathname === "/" : pathname.startsWith(to)
+    const hintId = `nav-hint-${label.toLowerCase()}`
+    return (
+      <Link
+        key={to}
+        to={to}
+        onClick={onNavClick}
+        className={`sidebar-link${nested ? " sidebar-link-nested" : ""}${active ? " sidebar-link-active" : ""}`}
+        aria-current={active ? "page" : undefined}
+        aria-describedby={hintId}
+        tabIndex={nested && !libraryOpen ? -1 : undefined}
+      >
+        <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
+        <span>{label}</span>
+        <span id={hintId} role="tooltip" className="sidebar-hint">
+          <span className="sidebar-hint-head">
+            <Icon size={15} strokeWidth={1.8} aria-hidden="true" />
+            <strong>{label}</strong>
+            {count !== undefined && <small>{count} {count === 1 ? "item" : "items"}</small>}
+          </span>
+          <span className="sidebar-hint-description">{description}</span>
+          <span className="sidebar-hint-route">{to}</span>
+        </span>
+      </Link>
+    )
+  }
 
   return (
     <div className="sidebar-content">
       <nav className="sidebar-nav" aria-label="Workspace">
-        {navItems.map(({ to, label, description, icon: Icon, count }) => {
-          const active = to === "/" ? pathname === "/" : pathname.startsWith(to)
-          const hintId = `nav-hint-${label.toLowerCase()}`
-          return (
-            <Link
-              key={to}
-              to={to}
-              onClick={onNavClick}
-              className={`sidebar-link${active ? " sidebar-link-active" : ""}`}
-              aria-current={active ? "page" : undefined}
-              aria-describedby={hintId}
-            >
-              <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
-              <span>{label}</span>
-              <span id={hintId} role="tooltip" className="sidebar-hint">
-                <span className="sidebar-hint-head">
-                  <Icon size={15} strokeWidth={1.8} aria-hidden="true" />
-                  <strong>{label}</strong>
-                  {count !== undefined && <small>{count} {count === 1 ? "item" : "items"}</small>}
-                </span>
-                <span className="sidebar-hint-description">{description}</span>
-                <span className="sidebar-hint-route">{to}</span>
-              </span>
-            </Link>
-          )
-        })}
+        {primaryItems.map((item) => renderLink(item))}
+        <div className={`sidebar-library${libraryOpen ? " is-open" : ""}`}>
+          <button
+            type="button"
+            className={`sidebar-group-trigger${activeLibraryItem && !libraryOpen ? " sidebar-group-active" : ""}`}
+            onClick={() => setLibraryOpen((current) => !current)}
+            aria-expanded={libraryOpen}
+            aria-controls="sidebar-library-items"
+          >
+            <Library size={17} strokeWidth={1.8} aria-hidden="true" />
+            <span>Library</span>
+            {!libraryOpen && activeLibraryItem && <small>{activeLibraryItem.label}</small>}
+            <ChevronRight className="sidebar-group-chevron" size={14} strokeWidth={1.8} aria-hidden="true" />
+          </button>
+          <div id="sidebar-library-items" className="sidebar-library-reveal" aria-hidden={!libraryOpen}>
+            <div className="sidebar-library-items">
+              {libraryItems.map((item) => renderLink(item, true))}
+            </div>
+          </div>
+        </div>
       </nav>
 
       <div className="sidebar-footer">
-        <ExportButton />
         <Link
           to="/settings"
           onClick={onNavClick}

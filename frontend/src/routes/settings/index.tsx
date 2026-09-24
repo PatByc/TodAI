@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useRef, useState } from "react"
-import { Check, ChevronDown, Clock3, Palette, SlidersHorizontal } from "lucide-react"
+import { Check, ChevronDown, Clock3, Database, Palette, SlidersHorizontal } from "lucide-react"
 import { SelectDropdown } from "@/components/ui/SelectDropdown"
 import { TimeSettings } from "@/components/settings/TimeSettings"
+import { ExportButton } from "@/components/export/ExportButton"
 import { readEnabledThemes, saveEnabledThemes, THEMES } from "@/lib/themes"
 import type { ThemeId } from "@/lib/themes"
 
@@ -76,7 +77,7 @@ export const Route = createFileRoute("/settings/")({
 })
 
 function SettingsPage() {
-  const [activeSection, setActiveSection] = useState<"overall" | "design" | "time">("overall")
+  const [activeSection, setActiveSection] = useState<"overall" | "design" | "time" | "data">("overall")
   const [language, setLanguage] = useState(() => {
     if (typeof window === "undefined") return "en"
     const stored = window.localStorage.getItem("todai.settings.language")
@@ -127,9 +128,32 @@ function SettingsPage() {
             <Clock3 size={15} strokeWidth={1.7} aria-hidden="true" />
             <span>Time</span>
           </button>
+          <button
+            type="button"
+            className={activeSection === "data" ? "is-active" : ""}
+            aria-current={activeSection === "data" ? "page" : undefined}
+            onClick={() => setActiveSection("data")}
+          >
+            <Database size={15} strokeWidth={1.7} aria-hidden="true" />
+            <span>Data</span>
+          </button>
         </nav>
 
-        {activeSection === "time" ? <TimeSettings /> : activeSection === "overall" ? (
+        {activeSection === "time" ? <TimeSettings /> : activeSection === "data" ? (
+          <section className="settings-panel" aria-labelledby="settings-data-title">
+            <div className="settings-section-heading">
+              <h2 id="settings-data-title">Data</h2>
+              <p>Export or manage the information stored by TodAI.</p>
+            </div>
+            <div className="settings-row">
+              <div>
+                <strong>Export data</strong>
+                <span>Download a portable JSON backup or readable Markdown copy.</span>
+              </div>
+              <ExportButton />
+            </div>
+          </section>
+        ) : activeSection === "overall" ? (
           <section className="settings-panel" aria-labelledby="settings-overall-title">
             <div className="settings-section-heading">
               <h2 id="settings-overall-title">Overall</h2>

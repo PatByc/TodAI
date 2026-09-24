@@ -53,8 +53,12 @@ export function ExportButton() {
   }, [isOpen])
 
   return (
-    <div ref={containerRef} style={{ position: "relative" }}>
+    <div ref={containerRef} className="export-control">
       <button
+        type="button"
+        className="export-trigger"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
         onClick={() => {
           if (!isExporting) {
             setIsOpen((prev) => !prev)
@@ -62,24 +66,9 @@ export function ExportButton() {
           }
         }}
         disabled={isExporting}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          padding: "8px 16px",
-          fontSize: "13px",
-          color: "var(--muted-foreground)",
-          background: "transparent",
-          border: "none",
-          cursor: isExporting ? "wait" : "pointer",
-          width: "100%",
-          textAlign: "left",
-          fontFamily: "var(--font-body)",
-          opacity: isExporting ? 0.7 : 1,
-        }}
       >
         {isExporting ? (
-          <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
+          <Loader2 className="export-spinner" size={14} />
         ) : (
           <Download size={14} />
         )}
@@ -87,14 +76,18 @@ export function ExportButton() {
       </button>
 
       {isOpen && (
-        <div className="ui-dropdown-menu ui-dropdown-menu-up">
+        <div className="ui-dropdown-menu export-menu" role="menu" aria-label="Export format">
           <button
+            type="button"
+            role="menuitem"
             onClick={() => void handleExport("json")}
             className="ui-dropdown-option"
           >
             Export as JSON
           </button>
           <button
+            type="button"
+            role="menuitem"
             onClick={() => void handleExport("markdown")}
             className="ui-dropdown-option"
           >
@@ -104,32 +97,10 @@ export function ExportButton() {
       )}
 
       {error && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "100%",
-            left: "8px",
-            marginBottom: "4px",
-            padding: "6px 10px",
-            fontSize: "12px",
-            color: "var(--destructive)",
-            fontFamily: "var(--font-body)",
-            backgroundColor: "var(--card)",
-            border: "1px solid var(--destructive)",
-            borderRadius: "4px",
-            whiteSpace: "nowrap",
-          }}
-        >
+        <div className="export-error" role="alert">
           {error}
         </div>
       )}
-
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   )
 }
