@@ -6,10 +6,12 @@ export function AskCommandPalette({
   capabilities,
   activeIndex,
   onSelect,
+  mode = "commands",
 }: {
   capabilities: Capability[]
   activeIndex: number
   onSelect: (capability: Capability) => void
+  mode?: "capabilities" | "commands"
 }) {
   if (capabilities.length === 0) {
     return (
@@ -20,9 +22,9 @@ export function AskCommandPalette({
   }
 
   return (
-    <div id="ask-command-palette" className="ask-command-palette" role="listbox" aria-label="Tod capabilities">
+    <div id="ask-command-palette" className="ask-command-palette" role="listbox" aria-label={mode === "commands" ? "Tod commands" : "Tod capabilities"}>
       <div className="ask-command-intro">
-        <span>Capabilities</span>
+        <span>{mode === "commands" ? "Commands" : "Capabilities"}</span>
         <small><CornerDownLeft size={11} /> choose</small>
       </div>
       <div className="ask-command-scroll">
@@ -50,7 +52,7 @@ export function AskCommandPalette({
                       <strong>{capability.label}</strong>
                       <small>{capability.description}</small>
                     </span>
-                    <code>{capability.command}</code>
+                    {mode === "commands" && <code>{capability.command}</code>}
                   </button>
                 )
               })}

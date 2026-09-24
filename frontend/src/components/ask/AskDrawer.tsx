@@ -58,7 +58,14 @@ export function AskDrawer() {
 
   return (
     <>
-      {isOpen && !isPinned && <button type="button" className="ask-backdrop" onClick={close} aria-label="Close Ask Tod" tabIndex={-1} />}
+      <button
+        type="button"
+        className={`ask-backdrop${isOpen && !isPinned ? " ask-backdrop-visible" : ""}`}
+        onClick={close}
+        aria-label="Close Ask Tod"
+        aria-hidden={!isOpen || isPinned}
+        tabIndex={-1}
+      />
       <aside
         id="ask-drawer"
         ref={panelRef}
@@ -71,6 +78,10 @@ export function AskDrawer() {
       >
         <AskConversation isOpen={isOpen} isPinned={isPinned} onClose={close} onTogglePinned={togglePinned} />
       </aside>
+      <div
+        className={`ask-dock-space${docked ? " ask-dock-space-active" : ""}`}
+        aria-hidden="true"
+      />
     </>
   )
 }

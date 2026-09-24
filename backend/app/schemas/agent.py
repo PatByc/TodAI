@@ -30,7 +30,9 @@ class AgentAction(BaseModel):
 
 
 class AgentPlanRequest(BaseModel):
-    question: str = Field(min_length=1, max_length=2000)
+    # Long-form capture is a core workflow: users may paste meeting transcripts,
+    # brain dumps, or a full set of notes for Tod to organize in one pass.
+    question: str = Field(min_length=1, max_length=50_000)
     history: list[AskTurn] = Field(default_factory=list, max_length=12)
     approval_mode: Literal["manual", "auto"] = "manual"
 

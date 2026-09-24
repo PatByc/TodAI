@@ -17,6 +17,27 @@ export class ApiError extends Error {
   }
 }
 
+function formatErrorDetail(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) return value
+  if (Array.isArray(value)) {
+    const messages = value.map((item) => {
+      if (!item || typeof item !== "object") return formatErrorDetail(item)
+      const error = item as Record<string, unknown>
+      const message = formatErrorDetail(error.msg ?? error.message ?? error.detail)
+      const location = Array.isArray(error.loc)
+        ? error.loc.filter((part) => part !== "body").map(String).join(" → ")
+        : ""
+      return message ? `${location ? `${location}: ` : ""}${message}` : undefined
+    }).filter((message): message is string => Boolean(message))
+    return messages.length > 0 ? messages.join("; ") : undefined
+  }
+  if (value && typeof value === "object") {
+    const detail = value as Record<string, unknown>
+    return formatErrorDetail(detail.detail ?? detail.message ?? detail.error)
+  }
+  return undefined
+}
+
 /**
  * Build a query string from params, omitting undefined/null values.
  */
@@ -41,10 +62,8 @@ async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let detail = `HTTP ${response.status}`
     try {
-      const body = await response.json() as { detail?: string }
-      if (body.detail) {
-        detail = body.detail
-      }
+      const body = await response.json() as { detail?: unknown }
+      detail = formatErrorDetail(body.detail) ?? detail
     } catch {
       // response body is not JSON; use status text
       detail = response.statusText || detail

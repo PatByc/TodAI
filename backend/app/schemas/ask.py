@@ -7,11 +7,11 @@ from pydantic import BaseModel, Field
 
 class AskTurn(BaseModel):
     role: Literal["user", "assistant"]
-    content: str = Field(min_length=1, max_length=4000)
+    content: str = Field(min_length=1, max_length=50_000)
 
 
 class AskRequest(BaseModel):
-    question: str = Field(min_length=1, max_length=2000)
+    question: str = Field(min_length=1, max_length=50_000)
     history: list[AskTurn] = Field(default_factory=list, max_length=12)
 
 

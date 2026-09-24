@@ -32,6 +32,18 @@ def create_task(title: str = "Prepare launch") -> PlannedToolCall:
     return PlannedToolCall("create_task", {"input": {"title": title}})
 
 
+def test_agent_request_accepts_long_note_dump():
+    note_dump = "A detailed note to organize. " * 500
+
+    request = AgentPlanRequest(
+        question=note_dump,
+        history=[{"role": "user", "content": note_dump}],
+    )
+
+    assert request.question == note_dump
+    assert request.history[0].content == note_dump
+
+
 @pytest.mark.asyncio
 async def test_mcp_catalog_is_private_granular_and_callable(async_session):
     mcp = TodMCP(async_session)

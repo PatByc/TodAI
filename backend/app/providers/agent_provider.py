@@ -204,7 +204,7 @@ class OpenAIActionPlanner:
                     async def progress(
                         progress: float,
                         total: float | None,
-                        message: str | None,
+                        message: object,
                         *,
                         tool_name: str = call.name,
                         tool_label: str = label,
@@ -215,7 +215,9 @@ class OpenAIActionPlanner:
                                 "tool": tool_name,
                                 "progress": progress,
                                 "total": total,
-                                "message": message or tool_label,
+                                "message": message.strip()
+                                if isinstance(message, str) and message.strip()
+                                else tool_label,
                             },
                         )
 

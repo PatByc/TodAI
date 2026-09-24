@@ -1,11 +1,11 @@
 import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router"
-import { ArrowUp, BookOpenText, Check, ChevronDown, MessageCircleMore, Mic, MicOff, Pin, ShieldCheck, Zap } from "lucide-react"
+import { ArrowUp, BookOpenText, Check, ChevronDown, Command, MessageCircleMore, Mic, MicOff, Pin, Plus, ShieldCheck, Wrench, Zap } from "lucide-react"
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { approveAgent, getAgentStatus, rejectAgent, startAgentRun, streamAgentRun, type AgentDecision, type AgentEvent, type AgentPlan, type AgentTurn } from "@/api/agent"
 import { useAskStore } from "@/stores/ask"
 import { useLocalDictation } from "@/hooks/useLocalDictation"
-import { TodLogo } from "@/components/TodLogo"
+import { TodWorkingLogo } from "@/components/TodWorkingLogo"
 import { AskCommandPalette } from "@/components/ask/AskCommandPalette"
 import { matchCapabilities, parseCapabilityCommand } from "@/lib/capabilities"
 import type { Capability } from "@/lib/capabilities"
@@ -74,6 +74,25 @@ function LiveActivityTicker({ text }: { text: string }) {
   )
 }
 
+function activityText(value: unknown, fallback: string): string {
+  if (typeof value === "string" && value.trim()) return value
+  if (typeof value === "number" || typeof value === "boolean") return String(value)
+  if (value && typeof value === "object") {
+    for (const key of ["message", "detail", "label", "status"]) {
+      const candidate = (value as Record<string, unknown>)[key]
+      if (typeof candidate === "string" && candidate.trim()) return candidate
+    }
+  }
+  return fallback
+}
+
+function activityMessage(event: AgentEvent): string {
+  const tool = typeof event.data.tool === "string"
+    ? event.data.tool.replaceAll("_", " ")
+    : "Working on your request"
+  return activityText(event.data.message, tool)
+}
+
 function ActivityTrace({ events, open, live, onToggle }: { events: AgentEvent[]; open: boolean; live: boolean; onToggle: () => void }) {
   const hasToolActivity = events.some((event) => event.event.startsWith("tool_") || event.event === "tools_selected" || event.event.startsWith("batch_"))
   const visible = (live || hasToolActivity ? events : [])
@@ -85,7 +104,7 @@ function ActivityTrace({ events, open, live, onToggle }: { events: AgentEvent[];
       }
       return [...steps, event]
     }, [])
-  const latest = visible.at(-1)?.data.message as string | undefined
+  const latest = visible.length > 0 ? activityMessage(visible[visible.length - 1]) : undefined
   const elapsedByRun = new Map<string, number>()
   for (const event of events) {
     const runId = String(event.data.run_id ?? "run")
@@ -109,8 +128,8 @@ function ActivityTrace({ events, open, live, onToggle }: { events: AgentEvent[];
       </button>
       {open && <ol className="ask-activity-list">
         {visible.map((event, index) => <li key={`${event.sequence}-${event.event}`} className={live && index === visible.length - 1 ? "ask-activity-current" : ""}>
-          {String(event.data.message)}
-          {Boolean(event.data.outcome) && <small>{String(event.data.outcome)}</small>}
+          {activityMessage(event)}
+          {Boolean(event.data.outcome) && <small>{activityText(event.data.outcome, "")}</small>}
         </li>)}
       </ol>}
     </div>
@@ -192,6 +211,8 @@ export function AskConversation({
   const [busy, setBusy] = useState(false)
   const [deciding, setDeciding] = useState<number | null>(null)
   const [modeMenuOpen, setModeMenuOpen] = useState(false)
+  const [composerToolsOpen, setComposerToolsOpen] = useState(false)
+  const [composerPanel, setComposerPanel] = useState<"capabilities" | "commands" | null>(null)
   const [commandMenuDismissed, setCommandMenuDismissed] = useState(false)
   const [activeCommandIndex, setActiveCommandIndex] = useState(0)
   const setRunning = useAskStore((state) => state.setRunning)
@@ -207,12 +228,14 @@ export function AskConversation({
     inputRef.current?.focus()
   })
   const commandMatch = question.match(/^\/([^\s]*)$/)
-  const commandOptions = commandMatch && !commandMenuDismissed
+  const typedCommandMenuOpen = commandMatch !== null && !commandMenuDismissed
+  const paletteMode = typedCommandMenuOpen ? "commands" : composerPanel
+  const commandOptions = typedCommandMenuOpen
     ? matchCapabilities(commandMatch[1], pathname)
-    : []
-  const commandMenuOpen = commandMatch !== null && !commandMenuDismissed
+    : paletteMode ? matchCapabilities("", pathname) : []
+  const commandMenuOpen = paletteMode !== null
 
-  useEffect(() => setActiveCommandIndex(0), [question])
+  useEffect(() => setActiveCommandIndex(0), [question, composerPanel])
 
   useEffect(() => {
     void getAgentStatus().then((result) => {
@@ -353,6 +376,7 @@ export function AskConversation({
 
   const selectCommand = (capability: Capability) => {
     setCommandMenuDismissed(true)
+    setComposerPanel(null)
     if (capability.route) {
       setQuestion("")
       void navigate({ to: capability.route })
@@ -402,7 +426,9 @@ export function AskConversation({
   return (
     <div className="ask-page">
       <div className="ask-heading">
-        <div className="ask-mark"><TodLogo size={28} /></div>
+        <div className={`ask-mark${busy || deciding !== null ? " ask-mark-working" : ""}`}>
+          <TodWorkingLogo size={42} working={busy || deciding !== null} />
+        </div>
         <div className="ask-heading-copy">
           <h1>Ask Tod</h1>
           <p>Ask questions or propose changes.</p>
@@ -464,7 +490,9 @@ export function AskConversation({
           <div className="ask-exchange" key={`${index}-${entry.question}`}>
             <div className="ask-question">{entry.question}</div>
             <div className="ask-response">
-              <span className="ask-response-mark"><TodLogo size={23} /></span>
+              <span className="ask-response-mark">
+                <TodWorkingLogo size={31} working={(!entry.plan && !entry.error) || deciding === index} />
+              </span>
               <div className="ask-response-body">
                 <ActivityTrace
                   events={entry.activity ?? []}
@@ -499,48 +527,99 @@ export function AskConversation({
             capabilities={commandOptions}
             activeIndex={activeCommandIndex}
             onSelect={selectCommand}
+            mode={paletteMode ?? "commands"}
           />
         )}
         <div className="ask-composer">
-          <div className="ask-mode-picker" ref={modeMenuRef}>
+          <button
+            type="button"
+            className={`ask-tool-toggle${composerToolsOpen ? " ask-tool-toggle-open" : ""}`}
+            onClick={() => {
+              setComposerToolsOpen((open) => {
+                if (open) {
+                  setComposerPanel(null)
+                  setModeMenuOpen(false)
+                }
+                return !open
+              })
+              inputRef.current?.focus()
+            }}
+            disabled={busy || deciding !== null}
+            aria-label={composerToolsOpen ? "Hide Tod controls" : "Show Tod controls"}
+            aria-expanded={composerToolsOpen}
+            title={composerToolsOpen ? "Hide controls" : "More controls"}
+          >
+            <Plus size={18} />
+          </button>
+          <div className={`ask-tool-reveal${composerToolsOpen ? " ask-tool-reveal-open" : ""}`} aria-hidden={!composerToolsOpen}>
+            <div className="ask-mode-picker" ref={modeMenuRef}>
+              <button
+                type="button"
+                className={`ask-mode-trigger${approvalMode === "auto" ? " ask-mode-trigger-auto" : ""}`}
+                onClick={() => setModeMenuOpen((open) => !open)}
+                disabled={!composerToolsOpen || busy || deciding !== null}
+                aria-label={`Execution mode: ${approvalMode === "auto" ? "Auto execute" : "Manual approval"}`}
+                aria-haspopup="menu"
+                aria-expanded={modeMenuOpen}
+                title={approvalMode === "auto" ? "Auto execute" : "Manual approval"}
+              >
+                {approvalMode === "auto" ? <Zap size={17} /> : <ShieldCheck size={17} />}
+              </button>
+              {modeMenuOpen && (
+                <div className="ask-mode-menu" role="menu" aria-label="Execution mode">
+                  <button
+                    type="button"
+                    className="ask-mode-option"
+                    role="menuitemradio"
+                    aria-checked={approvalMode === "manual"}
+                    onClick={() => { setApprovalMode("manual"); setModeMenuOpen(false); inputRef.current?.focus() }}
+                  >
+                    <ShieldCheck size={17} />
+                    <span><strong>Manual approval</strong><small>Review every proposed change</small></span>
+                    {approvalMode === "manual" && <Check size={15} />}
+                  </button>
+                  <button
+                    type="button"
+                    className="ask-mode-option"
+                    role="menuitemradio"
+                    aria-checked={approvalMode === "auto"}
+                    onClick={() => { setApprovalMode("auto"); setModeMenuOpen(false); inputRef.current?.focus() }}
+                  >
+                    <Zap size={17} />
+                    <span><strong>Auto execute</strong><small>Apply validated changes immediately</small></span>
+                    {approvalMode === "auto" && <Check size={15} />}
+                  </button>
+                </div>
+              )}
+            </div>
             <button
               type="button"
-              className={`ask-mode-trigger${approvalMode === "auto" ? " ask-mode-trigger-auto" : ""}`}
-              onClick={() => setModeMenuOpen((open) => !open)}
-              disabled={busy || deciding !== null}
-              aria-label={`Execution mode: ${approvalMode === "auto" ? "Auto execute" : "Manual approval"}`}
-              aria-haspopup="menu"
-              aria-expanded={modeMenuOpen}
-              title={approvalMode === "auto" ? "Auto execute" : "Manual approval"}
+              className={`ask-capability-trigger${composerPanel === "capabilities" ? " is-active" : ""}`}
+              onClick={() => {
+                setComposerPanel((panel) => panel === "capabilities" ? null : "capabilities")
+                setCommandMenuDismissed(true)
+              }}
+              disabled={!composerToolsOpen || busy || deciding !== null}
+              aria-label="Browse Tod capabilities"
+              aria-expanded={composerPanel === "capabilities"}
+              title="Capabilities"
             >
-              {approvalMode === "auto" ? <Zap size={17} /> : <ShieldCheck size={17} />}
+              <Wrench size={16} />
             </button>
-            {modeMenuOpen && (
-              <div className="ask-mode-menu" role="menu" aria-label="Execution mode">
-                <button
-                  type="button"
-                  className="ask-mode-option"
-                  role="menuitemradio"
-                  aria-checked={approvalMode === "manual"}
-                  onClick={() => { setApprovalMode("manual"); setModeMenuOpen(false); inputRef.current?.focus() }}
-                >
-                  <ShieldCheck size={17} />
-                  <span><strong>Manual approval</strong><small>Review every proposed change</small></span>
-                  {approvalMode === "manual" && <Check size={15} />}
-                </button>
-                <button
-                  type="button"
-                  className="ask-mode-option"
-                  role="menuitemradio"
-                  aria-checked={approvalMode === "auto"}
-                  onClick={() => { setApprovalMode("auto"); setModeMenuOpen(false); inputRef.current?.focus() }}
-                >
-                  <Zap size={17} />
-                  <span><strong>Auto execute</strong><small>Apply validated changes immediately</small></span>
-                  {approvalMode === "auto" && <Check size={15} />}
-                </button>
-              </div>
-            )}
+            <button
+              type="button"
+              className={`ask-commands-trigger${composerPanel === "commands" ? " is-active" : ""}`}
+              onClick={() => {
+                setComposerPanel((panel) => panel === "commands" ? null : "commands")
+                setCommandMenuDismissed(true)
+              }}
+              disabled={!composerToolsOpen || busy || deciding !== null}
+              aria-label="Browse slash commands"
+              aria-expanded={composerPanel === "commands"}
+              title="Commands"
+            >
+              <Command size={16} />
+            </button>
           </div>
           <textarea
             ref={inputRef}
@@ -548,6 +627,7 @@ export function AskConversation({
             onChange={(event) => {
               setQuestion(event.target.value)
               setCommandMenuDismissed(false)
+              setComposerPanel(null)
             }}
             onKeyDown={(event) => {
               if (commandMenuOpen && event.key === "ArrowDown" && commandOptions.length > 0) {
@@ -563,6 +643,7 @@ export function AskConversation({
               if (commandMenuOpen && event.key === "Escape") {
                 event.preventDefault()
                 setCommandMenuDismissed(true)
+                setComposerPanel(null)
                 return
               }
               if (commandMenuOpen && event.key === "Enter" && !event.shiftKey && commandOptions[activeCommandIndex]) {

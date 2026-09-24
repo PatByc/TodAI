@@ -37,7 +37,9 @@ export function Topbar() {
       }
     }
     const closeActions = (event: MouseEvent) => {
-      if (!actionDockRef.current?.contains(event.target as Node)) setActionsOpen(false)
+      const target = event.target as Element | null
+      if (target?.closest("#ask-drawer")) return
+      if (!actionDockRef.current?.contains(target)) setActionsOpen(false)
     }
     window.addEventListener("keydown", handleShortcut)
     document.addEventListener("mousedown", closeActions)
@@ -71,8 +73,8 @@ export function Topbar() {
           </button>
           <button
             type="button"
-            className="ask-launcher"
-            tabIndex={actionsOpen ? 0 : -1}
+            className={`ask-launcher${askOpen ? " ask-launcher-hidden" : ""}`}
+            tabIndex={actionsOpen && !askOpen ? 0 : -1}
             onClick={toggleAsk}
             aria-label={askOpen ? "Close Ask Tod" : "Open Ask Tod"}
             aria-expanded={askOpen}
