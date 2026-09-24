@@ -43,6 +43,7 @@ export function useCreateIdea() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["ideas"] })
       void queryClient.invalidateQueries({ queryKey: ["counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }
@@ -55,6 +56,7 @@ export function useUpdateIdea() {
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: ["ideas"] })
       void queryClient.invalidateQueries({ queryKey: ["ideas", variables.id] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }
@@ -66,6 +68,7 @@ export function useDeleteIdea() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["ideas"] })
       void queryClient.invalidateQueries({ queryKey: ["counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }
@@ -77,6 +80,7 @@ export function useArchiveIdea() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["ideas"] })
       void queryClient.invalidateQueries({ queryKey: ["counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }
@@ -88,6 +92,7 @@ export function useUnarchiveIdea() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["ideas"] })
       void queryClient.invalidateQueries({ queryKey: ["counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }

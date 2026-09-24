@@ -1,13 +1,30 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Check, ArrowUpRight, FileText, FolderOpen, Inbox } from "lucide-react"
+import { Check, ArrowUpRight, FileText, FolderOpen, Inbox, Leaf } from "lucide-react"
 import { useState } from "react"
 import { fetchTasks, updateTask } from "@/api/tasks"
 import { useCounts } from "@/hooks/useCounts"
 import { playCompletionChime } from "@/lib/completionChime"
+import { isThemeActive } from "@/lib/themes"
 import type { PaginatedResponse, Task, TaskStatus } from "@/types/entities"
 
 export const Route = createFileRoute("/")({ component: TodayPage })
+
+function autumnStage(month: number): "early" | "turning" | "late" {
+  if (month === 8) return "early"
+  if (month === 9) return "turning"
+  return "late"
+}
+
+function AutumnAtmosphere({ stage }: { stage: "early" | "turning" | "late" }) {
+  return (
+    <div className={`home-autumn-visual home-autumn-${stage}`} aria-hidden="true">
+      <div className="home-falling-leaves">
+        {Array.from({ length: 10 }, (_, index) => <i key={index} />)}
+      </div>
+    </div>
+  )
+}
 
 function HomeTaskRow({
   task,
@@ -54,6 +71,8 @@ function TodayPage() {
   const [completingIds, setCompletingIds] = useState<Set<number>>(() => new Set())
   const [completionError, setCompletionError] = useState("")
   const now = new Date()
+  const autumnTheme = isThemeActive("autumn", now)
+  const currentAutumnStage = autumnStage(now.getMonth())
   const dateLabel = new Intl.DateTimeFormat("en", {
     weekday: "long", month: "long", day: "numeric", year: "numeric",
   }).format(now)
@@ -122,10 +141,16 @@ function TodayPage() {
   }
 
   return (
-    <div className="home-page">
+    <div className={`home-page${autumnTheme ? " home-season home-season-autumn" : ""}`}>
+      {autumnTheme && <AutumnAtmosphere stage={currentAutumnStage} />}
       <section className="home-hero" aria-labelledby="home-title">
         <div>
-          <p className="home-date">{dateLabel}</p>
+          <p className="home-date">
+            <span>{dateLabel}</span>
+            {autumnTheme && (
+              <span className="home-season-badge"><Leaf size={11} /> Autumn</span>
+            )}
+          </p>
           <h1 id="home-title">Today.</h1>
           <p>A clear place to decide what comes next.</p>
         </div>

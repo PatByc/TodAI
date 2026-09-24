@@ -126,7 +126,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
               if (event.key === "Enter" && results[selected]) openResult(results[selected])
             }}
             placeholder="Search notes, tasks, ideas, projects and inbox…"
-            className="min-w-0 flex-1 bg-transparent text-base outline-none"
+            className="search-dialog-input min-w-0 flex-1 bg-transparent text-base outline-none"
             aria-label="Search query"
           />
           <button onClick={onClose} aria-label="Close search" className="rounded-md p-1.5 hover:bg-[var(--bg-hover)]">

@@ -137,6 +137,19 @@ export interface PaginatedResponse<T> {
   limit: number
 }
 
+// ── Activity ──────────────────────────────────────────────────────────
+
+export interface StateTransition {
+  id: number
+  entity_type: "task" | "note" | "idea"
+  entity_id: number
+  entity_title: string
+  field: "status" | "state" | "pinned" | "archived"
+  old_value: unknown
+  new_value: unknown
+  created_at: string
+}
+
 // ── Project ───────────────────────────────────────────────────────────
 
 export type ProjectStatus =

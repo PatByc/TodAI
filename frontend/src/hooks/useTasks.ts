@@ -43,6 +43,7 @@ export function useCreateTask() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["tasks"] })
       void queryClient.invalidateQueries({ queryKey: ["counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }
@@ -57,6 +58,7 @@ export function useUpdateTask() {
       void queryClient.invalidateQueries({ queryKey: ["tasks", variables.id] })
       void queryClient.invalidateQueries({ queryKey: ["today", "tasks"] })
       void queryClient.invalidateQueries({ queryKey: ["counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }
@@ -68,6 +70,7 @@ export function useDeleteTask() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["tasks"] })
       void queryClient.invalidateQueries({ queryKey: ["counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }
@@ -79,6 +82,7 @@ export function useArchiveTask() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["tasks"] })
       void queryClient.invalidateQueries({ queryKey: ["counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }
@@ -90,6 +94,7 @@ export function useUnarchiveTask() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["tasks"] })
       void queryClient.invalidateQueries({ queryKey: ["counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }

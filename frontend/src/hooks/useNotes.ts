@@ -43,6 +43,7 @@ export function useCreateNote() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["notes"] })
       void queryClient.invalidateQueries({ queryKey: ["counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }
@@ -55,6 +56,7 @@ export function useUpdateNote() {
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: ["notes"] })
       void queryClient.invalidateQueries({ queryKey: ["notes", variables.id] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }
@@ -66,6 +68,7 @@ export function useDeleteNote() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["notes"] })
       void queryClient.invalidateQueries({ queryKey: ["counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }
@@ -77,6 +80,7 @@ export function useArchiveNote() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["notes"] })
       void queryClient.invalidateQueries({ queryKey: ["counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }
@@ -88,6 +92,7 @@ export function useUnarchiveNote() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["notes"] })
       void queryClient.invalidateQueries({ queryKey: ["counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["activity", "transitions"] })
     },
   })
 }

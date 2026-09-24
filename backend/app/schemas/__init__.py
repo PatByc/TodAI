@@ -1,5 +1,6 @@
 """Pydantic schemas for TodAI API request/response validation."""
 
+from .activity import StateTransitionResponse
 from .common import (
     ErrorResponse,
     IdeaState,
@@ -25,6 +26,7 @@ __all__ = [
     "NoteUpdate",
     "PaginatedResponse",
     "PaginationParams",
+    "StateTransitionResponse",
     "TagCreate",
     "TagResponse",
     "TaskCreate",

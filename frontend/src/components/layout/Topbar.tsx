@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link } from "@tanstack/react-router"
-import { Menu, Search } from "lucide-react"
+import { Ellipsis, Menu, Search, Timer, X } from "lucide-react"
 import { useSidebarStore } from "@/stores/sidebar"
 import { useAskStore } from "@/stores/ask"
 import { SearchDialog } from "@/components/search/SearchDialog"
@@ -13,6 +13,14 @@ export function Topbar() {
   const toggleAsk = useAskStore((state) => state.toggle)
   const askRunning = useAskStore((state) => state.isRunning)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [actionsOpen, setActionsOpen] = useState(() => (
+    typeof window !== "undefined" && window.localStorage.getItem("todai.topbar.actions-open") === "true"
+  ))
+  const actionDockRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    window.localStorage.setItem("todai.topbar.actions-open", String(actionsOpen))
+  }, [actionsOpen])
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -24,10 +32,19 @@ export function Topbar() {
       } else if (event.key === "/" && !isEditing) {
         event.preventDefault()
         setSearchOpen(true)
+      } else if (event.key === "Escape") {
+        setActionsOpen(false)
       }
     }
+    const closeActions = (event: MouseEvent) => {
+      if (!actionDockRef.current?.contains(event.target as Node)) setActionsOpen(false)
+    }
     window.addEventListener("keydown", handleShortcut)
-    return () => window.removeEventListener("keydown", handleShortcut)
+    document.addEventListener("mousedown", closeActions)
+    return () => {
+      window.removeEventListener("keydown", handleShortcut)
+      document.removeEventListener("mousedown", closeActions)
+    }
   }, [])
 
   return (
@@ -37,28 +54,46 @@ export function Topbar() {
           <Menu size={18} />
         </button>
         <Link to="/" className="topbar-brand" aria-label="TodAI home">
-          <AppLogo size={30} />
-          <span className="topbar-brand-name">TodAI</span>
+          <AppLogo size={72} />
         </Link>
       </div>
 
-      <div className="topbar-actions">
-        <button type="button" className="topbar-search" onClick={() => setSearchOpen(true)} aria-label="Search everything">
-          <Search size={15} />
-          <span>Find anything</span>
-          <kbd>Ctrl K</kbd>
-        </button>
+      <div className="topbar-action-dock" ref={actionDockRef}>
+        <div id="topbar-actions" className={`topbar-actions${actionsOpen ? " topbar-actions-open" : ""}`} aria-hidden={!actionsOpen}>
+          <button type="button" className="topbar-search" tabIndex={actionsOpen ? 0 : -1} onClick={() => { setSearchOpen(true); setActionsOpen(false) }} aria-label="Search everything">
+            <Search size={15} />
+            <span>Find anything</span>
+            <kbd>Ctrl K</kbd>
+          </button>
+          <button type="button" className="timer-launcher" tabIndex={actionsOpen ? 0 : -1} aria-label="Start timer">
+            <Timer size={16} strokeWidth={1.8} aria-hidden="true" />
+            <span>Start timer</span>
+          </button>
+          <button
+            type="button"
+            className="ask-launcher"
+            tabIndex={actionsOpen ? 0 : -1}
+            onClick={toggleAsk}
+            aria-label={askOpen ? "Close Ask Tod" : "Open Ask Tod"}
+            aria-expanded={askOpen}
+            aria-controls="ask-drawer"
+            title="Ask Tod"
+          >
+            <TodLogo size={25} />
+            <span className="ask-launcher-label">Ask Tod</span>
+            {askRunning && <span className="ask-running-badge" aria-label="Tod is working" />}
+          </button>
+        </div>
         <button
           type="button"
-          className="ask-launcher"
-          onClick={toggleAsk}
-          aria-label={askOpen ? "Close Ask Tod" : "Open Ask Tod"}
-          aria-expanded={askOpen}
-          aria-controls="ask-drawer"
-          title="Ask Tod"
+          className="topbar-actions-toggle"
+          onClick={() => setActionsOpen((current) => !current)}
+          aria-label={actionsOpen ? "Close quick actions" : "Open quick actions"}
+          aria-expanded={actionsOpen}
+          aria-controls="topbar-actions"
         >
-          <TodLogo size={25} />
-          {askRunning && <span className="ask-running-badge" aria-label="Tod is working" />}
+          {actionsOpen ? <X size={17} aria-hidden="true" /> : <Ellipsis size={19} aria-hidden="true" />}
+          {askRunning && !actionsOpen && <span className="topbar-actions-status" aria-label="Tod is working" />}
         </button>
       </div>
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />

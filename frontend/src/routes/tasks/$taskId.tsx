@@ -5,6 +5,7 @@ import { PrioritySelect } from "@/components/entities/PrioritySelect"
 import { TagInput } from "@/components/tags/TagInput"
 import { ProjectDropdown } from "@/components/entities/ProjectDropdown"
 import { DatePicker } from "@/components/ui/DatePicker"
+import { TaskStateHistory } from "@/components/tasks/TaskStateHistory"
 import { formatRelativeTime } from "@/lib/format"
 import { deriveEntryTitle, shouldAutoName } from "@/lib/entryNaming"
 import { useState, useCallback, useRef, useEffect } from "react"
@@ -302,7 +303,7 @@ function TaskDetailPage() {
         </div>
 
         {/* Metadata footer */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px", paddingTop: "16px", borderTop: "1px solid var(--border-subtle)", paddingBottom: "80px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px", paddingTop: "16px", borderTop: "1px solid var(--border-subtle)" }}>
           <span style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--text-3)", lineHeight: 1.5 }}>
             Created {formatRelativeTime(task.created_at)}
           </span>
@@ -315,6 +316,8 @@ function TaskDetailPage() {
             </span>
           )}
         </div>
+
+        <TaskStateHistory taskId={id} />
       </div>
 
       {/* Delete confirmation dialog */}

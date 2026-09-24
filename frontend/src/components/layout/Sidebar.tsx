@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState } from "react"
 import { Link, useRouterState } from "@tanstack/react-router"
-import { ArrowUpRight, CalendarDays, CheckSquare, FileText, FolderOpen, Home, Inbox, Lightbulb, Settings } from "lucide-react"
+import { CalendarDays, CheckSquare, FileText, FolderOpen, Home, Inbox, Lightbulb, Settings } from "lucide-react"
 import { useSidebarStore } from "@/stores/sidebar"
-import { useAskStore } from "@/stores/ask"
 import { useCounts } from "@/hooks/useCounts"
 import { ExportButton } from "@/components/export/ExportButton"
-import { TodLogo } from "@/components/TodLogo"
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() =>
@@ -49,9 +47,6 @@ export function Sidebar() {
 }
 
 function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
-  const askOpen = useAskStore((state) => state.isOpen)
-  const openAsk = useAskStore((state) => state.open)
-  const askRunning = useAskStore((state) => state.isRunning)
   const { data: counts } = useCounts()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
 
@@ -67,28 +62,6 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
 
   return (
     <div className="sidebar-content">
-      <button
-        type="button"
-        className="sidebar-ask"
-        onClick={() => { openAsk(); onNavClick() }}
-        aria-expanded={askOpen}
-        aria-controls="ask-drawer"
-        aria-describedby="nav-hint-ask"
-      >
-        <TodLogo size={25} />
-        <span>Ask Tod</span>
-        {askRunning && <span className="ask-running-badge" aria-label="Tod is working" />}
-        <ArrowUpRight size={15} aria-hidden="true" />
-        <span id="nav-hint-ask" role="tooltip" className="sidebar-hint">
-          <span className="sidebar-hint-head">
-            <TodLogo size={18} />
-            <strong>Ask Tod</strong>
-          </span>
-          <span className="sidebar-hint-description">Open the AI workspace</span>
-          <span className="sidebar-hint-route">Assistant panel</span>
-        </span>
-      </button>
-
       <nav className="sidebar-nav" aria-label="Workspace">
         {navItems.map(({ to, label, description, icon: Icon, count }) => {
           const active = to === "/" ? pathname === "/" : pathname.startsWith(to)
@@ -104,7 +77,6 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
             >
               <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
               <span>{label}</span>
-              {count !== undefined && <small className="sidebar-count">{count}</small>}
               <span id={hintId} role="tooltip" className="sidebar-hint">
                 <span className="sidebar-hint-head">
                   <Icon size={15} strokeWidth={1.8} aria-hidden="true" />

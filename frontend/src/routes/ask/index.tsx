@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router"
 import { ArrowUp, BookOpenText, Check, ChevronDown, MessageCircleMore, Mic, MicOff, Pin, ShieldCheck, Zap } from "lucide-react"
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { useQueryClient } from "@tanstack/react-query"
@@ -6,6 +6,9 @@ import { approveAgent, getAgentStatus, rejectAgent, startAgentRun, streamAgentRu
 import { useAskStore } from "@/stores/ask"
 import { useLocalDictation } from "@/hooks/useLocalDictation"
 import { TodLogo } from "@/components/TodLogo"
+import { AskCommandPalette } from "@/components/ask/AskCommandPalette"
+import { matchCapabilities, parseCapabilityCommand } from "@/lib/capabilities"
+import type { Capability } from "@/lib/capabilities"
 
 export const Route = createFileRoute("/ask/")({
   component: AskLegacyRoute,
@@ -179,6 +182,8 @@ export function AskConversation({
   onClose: () => void
   onTogglePinned: () => void
 }) {
+  const navigate = useNavigate()
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
   const queryClient = useQueryClient()
   const [status, setStatus] = useState<"loading" | "ready" | "unavailable">("loading")
   const [statusReason, setStatusReason] = useState("")
@@ -187,6 +192,8 @@ export function AskConversation({
   const [busy, setBusy] = useState(false)
   const [deciding, setDeciding] = useState<number | null>(null)
   const [modeMenuOpen, setModeMenuOpen] = useState(false)
+  const [commandMenuDismissed, setCommandMenuDismissed] = useState(false)
+  const [activeCommandIndex, setActiveCommandIndex] = useState(0)
   const setRunning = useAskStore((state) => state.setRunning)
   const approvalMode = useAskStore((state) => state.approvalMode)
   const setApprovalMode = useAskStore((state) => state.setApprovalMode)
@@ -199,6 +206,13 @@ export function AskConversation({
     setQuestion((current) => `${current.trimEnd()}${current.trim() ? " " : ""}${transcript}`)
     inputRef.current?.focus()
   })
+  const commandMatch = question.match(/^\/([^\s]*)$/)
+  const commandOptions = commandMatch && !commandMenuDismissed
+    ? matchCapabilities(commandMatch[1], pathname)
+    : []
+  const commandMenuOpen = commandMatch !== null && !commandMenuDismissed
+
+  useEffect(() => setActiveCommandIndex(0), [question])
 
   useEffect(() => {
     void getAgentStatus().then((result) => {
@@ -295,6 +309,17 @@ export function AskConversation({
     if (!text || busy || deciding !== null || status !== "ready") return
     dictation.stop()
 
+    const invocation = parseCapabilityCommand(text)
+    if (invocation?.capability.route && !invocation.argumentsText) {
+      setQuestion("")
+      void navigate({ to: invocation.capability.route })
+      if (!isPinned) onClose()
+      return
+    }
+    const agentRequest = invocation?.capability.prompt
+      ? invocation.capability.prompt(invocation.argumentsText)
+      : text
+
     const history: AgentTurn[] = conversation.flatMap((entry) => {
       if (!entry.plan) return []
       const assistantContent = `${entry.plan.message}\nProposed: ${JSON.stringify(entry.plan.actions)}\nHuman decision: ${entry.decision?.status ?? "pending"}`
@@ -310,7 +335,7 @@ export function AskConversation({
     const entryIndex = conversation.length
     setConversation((entries) => [...entries, { question: text, activity: [], activityOpen: false }])
     try {
-      const { run_id: runId } = await startAgentRun(text, history, approvalMode)
+      const { run_id: runId } = await startAgentRun(agentRequest, history, approvalMode)
       setConversation((entries) => entries.map((entry, index) =>
         index === entryIndex ? { ...entry, runId } : entry,
       ))
@@ -324,6 +349,18 @@ export function AskConversation({
       setRunning(false)
       inputRef.current?.focus()
     }
+  }
+
+  const selectCommand = (capability: Capability) => {
+    setCommandMenuDismissed(true)
+    if (capability.route) {
+      setQuestion("")
+      void navigate({ to: capability.route })
+      if (!isPinned) onClose()
+      return
+    }
+    setQuestion(`${capability.command} `)
+    window.requestAnimationFrame(() => inputRef.current?.focus())
   }
 
   const decide = async (index: number, id: string, choice: "approve" | "reject") => {
@@ -415,6 +452,9 @@ export function AskConversation({
                 {prompt}
               </button>
             ))}
+            <button onClick={() => { setQuestion("/"); setCommandMenuDismissed(false); inputRef.current?.focus() }}>
+              Browse commands
+            </button>
           </div>
         </div>
       )}
@@ -454,6 +494,13 @@ export function AskConversation({
       </div>
 
       <form className="ask-composer-wrap" onSubmit={(event) => void send(event)}>
+        {commandMenuOpen && (
+          <AskCommandPalette
+            capabilities={commandOptions}
+            activeIndex={activeCommandIndex}
+            onSelect={selectCommand}
+          />
+        )}
         <div className="ask-composer">
           <div className="ask-mode-picker" ref={modeMenuRef}>
             <button
@@ -498,8 +545,31 @@ export function AskConversation({
           <textarea
             ref={inputRef}
             value={question}
-            onChange={(event) => setQuestion(event.target.value)}
+            onChange={(event) => {
+              setQuestion(event.target.value)
+              setCommandMenuDismissed(false)
+            }}
             onKeyDown={(event) => {
+              if (commandMenuOpen && event.key === "ArrowDown" && commandOptions.length > 0) {
+                event.preventDefault()
+                setActiveCommandIndex((index) => (index + 1) % commandOptions.length)
+                return
+              }
+              if (commandMenuOpen && event.key === "ArrowUp" && commandOptions.length > 0) {
+                event.preventDefault()
+                setActiveCommandIndex((index) => (index - 1 + commandOptions.length) % commandOptions.length)
+                return
+              }
+              if (commandMenuOpen && event.key === "Escape") {
+                event.preventDefault()
+                setCommandMenuDismissed(true)
+                return
+              }
+              if (commandMenuOpen && event.key === "Enter" && !event.shiftKey && commandOptions[activeCommandIndex]) {
+                event.preventDefault()
+                selectCommand(commandOptions[activeCommandIndex])
+                return
+              }
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault()
                 void send()
@@ -508,6 +578,8 @@ export function AskConversation({
             disabled={status !== "ready" || busy || deciding !== null}
             placeholder={status === "ready" ? "Ask Tod anything or request a change…" : "Configure an AI provider to ask Tod"}
             aria-label="Question for Tod"
+            aria-expanded={commandMenuOpen}
+            aria-controls={commandMenuOpen ? "ask-command-palette" : undefined}
             rows={2}
           />
           <button

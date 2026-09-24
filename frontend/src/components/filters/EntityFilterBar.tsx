@@ -1,4 +1,4 @@
-import { Archive, Pin, SlidersHorizontal, X } from "lucide-react"
+import { Archive, SlidersHorizontal, X } from "lucide-react"
 import { useState } from "react"
 import type { ReactNode } from "react"
 import { TagFilterBar } from "@/components/tags/TagFilterBar"
@@ -21,9 +21,11 @@ interface EntityFilterBarProps {
   extraControls?: ReactNode
 }
 
-function readPinnedPreference(scope: EntityFilterBarProps["scope"]) {
-  return typeof window !== "undefined"
-    && window.localStorage.getItem(`todai.${scope}.filters-pinned`) === "true"
+function readOpenPreference(scope: EntityFilterBarProps["scope"]) {
+  if (typeof window === "undefined") return false
+  const stored = window.localStorage.getItem(`todai.${scope}.filters-open`)
+  if (stored !== null) return stored === "true"
+  return window.localStorage.getItem(`todai.${scope}.filters-pinned`) === "true"
 }
 
 export function EntityFilterBar({
@@ -44,8 +46,7 @@ export function EntityFilterBar({
     selectedProjectId,
     clearFilters,
   } = useFilterStore()
-  const [isPinned, setIsPinned] = useState(() => readPinnedPreference(scope))
-  const [isOpen, setIsOpen] = useState(() => readPinnedPreference(scope))
+  const [isOpen, setIsOpen] = useState(() => readOpenPreference(scope))
   const activeCount = selectedTagIds.length
     + Number(showProjectFilter && selectedProjectId !== null)
     + Number(includeArchived)
@@ -58,19 +59,18 @@ export function EntityFilterBar({
     onIncludeArchivedChange(false)
   }
 
-  const togglePinned = () => {
-    const next = !isPinned
-    setIsPinned(next)
-    setIsOpen(true)
-    window.localStorage.setItem(`todai.${scope}.filters-pinned`, String(next))
+  const toggleFilters = () => {
+    const next = !isOpen
+    setIsOpen(next)
+    window.localStorage.setItem(`todai.${scope}.filters-open`, String(next))
   }
 
   return (
-    <div className={`tasks-filter${isOpen ? " tasks-filter-open" : ""}${isPinned ? " tasks-filter-pinned" : ""}`}>
+    <div className={`tasks-filter${isOpen ? " tasks-filter-open" : ""}`}>
       <button
         type="button"
-        className="tasks-filter-trigger"
-        onClick={() => setIsOpen((current) => isPinned ? true : !current)}
+        className={`tasks-filter-trigger${isOpen ? " is-active" : ""}`}
+        onClick={toggleFilters}
         aria-expanded={isOpen}
         aria-controls={panelId}
       >
@@ -105,24 +105,14 @@ export function EntityFilterBar({
             </button>
           </div>
 
-          <div className="tasks-filter-actions">
-            {activeCount > 0 && (
+          {activeCount > 0 && (
+            <div className="tasks-filter-actions">
               <button type="button" className="tasks-filter-clear" onClick={clearAllFilters}>
                 <X size={12} aria-hidden="true" />
                 Clear
               </button>
-            )}
-            <button
-              type="button"
-              className={`tasks-filter-pin${isPinned ? " is-active" : ""}`}
-              onClick={togglePinned}
-              aria-pressed={isPinned}
-              title={isPinned ? "Unpin filter bar" : "Keep filter bar open"}
-            >
-              <Pin size={13} strokeWidth={1.8} aria-hidden="true" />
-              <span>{isPinned ? "Pinned" : "Pin"}</span>
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       )}
     </div>
