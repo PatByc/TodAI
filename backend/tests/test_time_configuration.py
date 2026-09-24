@@ -18,6 +18,13 @@ async def test_create_and_configure_time_stream(async_client: AsyncClient, async
     assert stream["is_active"] is True
     assert stream["categories"] == []
 
+    color_response = await async_client.put(
+        f"/api/v1/time/streams/{stream['id']}",
+        json={"color_index": 7},
+    )
+    assert color_response.status_code == 200
+    assert color_response.json()["color_index"] == 7
+
     category_response = await async_client.post(
         "/api/v1/time/categories",
         json={"stream_id": stream["id"], "name": "Development"},
@@ -48,7 +55,7 @@ async def test_create_and_configure_time_stream(async_client: AsyncClient, async
             )
         ).scalars()
     )
-    assert [row.action for row in audit_rows] == ["create", "create", "update"]
+    assert [row.action for row in audit_rows] == ["create", "update", "create", "update"]
 
 
 @pytest.mark.asyncio

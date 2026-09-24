@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Check, Plus, X } from "lucide-react"
+import { ColorPicker } from "@/components/ui/ColorPicker"
 import {
   useCreateTimeCategory,
   useCreateTimeStream,
@@ -8,11 +9,7 @@ import {
   useUpdateTimeStream,
 } from "@/hooks/useTimeConfiguration"
 import type { TimeCategory, TimeStream } from "@/types/entities"
-
-const TIME_COLORS = [
-  "#93a09a", "#6f8f82", "#82a66f", "#a3c75d", "#b8ff62", "#d2b45e",
-  "#c98465", "#9d8bc1", "#748fb7", "#61a2a0", "#a47782", "#889094",
-]
+import { WORKSPACE_COLORS } from "@/lib/colorPalette"
 
 function Toggle({ checked, label, onChange, disabled = false }: {
   checked: boolean
@@ -126,7 +123,7 @@ function CategoryRow({ category, streamActive, onError }: {
   return (
     <div className={`time-category-row${category.is_active && streamActive ? "" : " is-inactive"}`}>
       <span className="time-config-branch" aria-hidden="true" />
-      <span className="time-config-dot" style={{ background: TIME_COLORS[category.color_index % TIME_COLORS.length] }} />
+      <span className="time-config-dot" style={{ background: WORKSPACE_COLORS[category.color_index % WORKSPACE_COLORS.length].value }} />
       <EditableName
         value={category.name}
         label={`Category name: ${category.name}`}
@@ -147,7 +144,7 @@ function StreamGroup({ stream, onError }: { stream: TimeStream; onError: (messag
   const [addingCategory, setAddingCategory] = useState(false)
   const updateStream = useUpdateTimeStream()
   const createCategory = useCreateTimeCategory()
-  const update = (data: { name?: string; is_active?: boolean }) => {
+  const update = (data: { name?: string; color_index?: number; is_active?: boolean }) => {
     onError("")
     updateStream.mutate({ id: stream.id, data }, {
       onError: (error) => onError(error instanceof Error ? error.message : "Could not update stream."),
@@ -157,7 +154,13 @@ function StreamGroup({ stream, onError }: { stream: TimeStream; onError: (messag
   return (
     <section className={`time-stream-group${stream.is_active ? "" : " is-inactive"}`}>
       <div className="time-stream-row">
-        <span className="time-stream-mark" style={{ background: TIME_COLORS[stream.color_index % TIME_COLORS.length] }} />
+        <ColorPicker
+          value={stream.color_index % WORKSPACE_COLORS.length}
+          colors={WORKSPACE_COLORS}
+          ariaLabel={`Color for ${stream.name}`}
+          onChange={(colorIndex) => update({ color_index: colorIndex })}
+          disabled={updateStream.isPending}
+        />
         <EditableName
           value={stream.name}
           label={`Time stream name: ${stream.name}`}
