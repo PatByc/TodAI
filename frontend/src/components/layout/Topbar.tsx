@@ -6,14 +6,7 @@ import { useAskStore } from "@/stores/ask"
 import { SearchDialog } from "@/components/search/SearchDialog"
 import { AppLogo } from "@/components/AppLogo"
 import { TodLogo } from "@/components/TodLogo"
-
-const TIMER_STORAGE_KEY = "todai.timer.started-at"
-
-function readTimerStart(): number | null {
-  if (typeof window === "undefined") return null
-  const stored = Number(window.localStorage.getItem(TIMER_STORAGE_KEY))
-  return Number.isFinite(stored) && stored > 0 && stored <= Date.now() ? stored : null
-}
+import { useActiveTimer, useStartTimer, useStopTimer } from "@/hooks/useTimeConfiguration"
 
 function formatElapsed(milliseconds: number) {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000))
@@ -29,7 +22,9 @@ export function Topbar() {
   const toggleAsk = useAskStore((state) => state.toggle)
   const askRunning = useAskStore((state) => state.isRunning)
   const [searchOpen, setSearchOpen] = useState(false)
-  const [timerStartedAt, setTimerStartedAt] = useState<number | null>(readTimerStart)
+  const activeTimer = useActiveTimer()
+  const startTimer = useStartTimer()
+  const stopTimer = useStopTimer()
   const [timerNow, setTimerNow] = useState(Date.now)
   const [actionsOpen, setActionsOpen] = useState(() => (
     typeof window !== "undefined" && window.localStorage.getItem("todai.topbar.actions-open") === "true"
@@ -40,26 +35,28 @@ export function Topbar() {
   }, [actionsOpen])
 
   useEffect(() => {
-    if (timerStartedAt === null) return
+    if (!activeTimer.data) return
     setTimerNow(Date.now())
     const interval = window.setInterval(() => setTimerNow(Date.now()), 250)
     return () => window.clearInterval(interval)
-  }, [timerStartedAt])
+  }, [activeTimer.data])
 
   const toggleTimer = () => {
-    if (timerStartedAt !== null) {
-      window.localStorage.removeItem(TIMER_STORAGE_KEY)
-      setTimerStartedAt(null)
+    if (startTimer.isPending || stopTimer.isPending) return
+    if (activeTimer.data) {
+      stopTimer.mutate()
       return
     }
-    const startedAt = Date.now()
-    window.localStorage.setItem(TIMER_STORAGE_KEY, String(startedAt))
-    setTimerNow(startedAt)
-    setTimerStartedAt(startedAt)
+    startTimer.mutate({})
   }
 
-  const timerActive = timerStartedAt !== null
-  const elapsed = formatElapsed(timerActive ? timerNow - timerStartedAt : 0)
+  const timerActive = Boolean(activeTimer.data)
+  const timerStartedAt = activeTimer.data
+    ? Date.parse(`${activeTimer.data.started_at}${/[zZ]|[+-]\d\d:\d\d$/.test(activeTimer.data.started_at) ? "" : "Z"}`)
+    : null
+  const elapsed = formatElapsed(timerStartedAt === null ? 0 : timerNow - timerStartedAt)
+  const timerPending = activeTimer.isLoading || startTimer.isPending || stopTimer.isPending
+  const timerError = activeTimer.error ?? startTimer.error ?? stopTimer.error
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -103,9 +100,10 @@ export function Topbar() {
               className="timer-launcher"
               tabIndex={actionsOpen ? 0 : -1}
               onClick={toggleTimer}
+              disabled={timerPending}
               aria-label={timerActive ? `Stop timer, ${elapsed} elapsed` : "Start timer"}
               aria-pressed={timerActive}
-              title={timerActive ? "Stop timer" : "Start timer"}
+              title={timerError instanceof Error ? timerError.message : timerActive ? "Stop timer" : "Start timer"}
             >
               <Timer size={16} strokeWidth={1.8} aria-hidden="true" />
               <span className="timer-copy" aria-hidden="true">

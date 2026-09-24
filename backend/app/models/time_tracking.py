@@ -2,7 +2,17 @@
 
 from __future__ import annotations
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, UniqueConstraint
+from datetime import datetime
+
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin
@@ -43,3 +53,27 @@ class TimeCategory(TimestampMixin, Base):
     stream: Mapped[TimeStream] = relationship(back_populates="categories")
 
     __table_args__ = (UniqueConstraint("stream_id", "name"),)
+
+
+class TimeEntry(TimestampMixin, Base):
+    """A tracked interval; an entry without an end time is the active timer."""
+
+    __tablename__ = "time_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    stream_id: Mapped[int | None] = mapped_column(
+        ForeignKey("time_streams.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    category_id: Mapped[int | None] = mapped_column(
+        ForeignKey("time_categories.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    project_id: Mapped[int | None] = mapped_column(
+        ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    started_at: Mapped[datetime] = mapped_column(DateTime(), index=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(), nullable=True)
+    duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    stream: Mapped[TimeStream | None] = relationship()
+    category: Mapped[TimeCategory | None] = relationship()

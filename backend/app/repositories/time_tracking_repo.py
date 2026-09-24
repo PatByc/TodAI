@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.time_tracking import TimeCategory, TimeStream
+from app.models.time_tracking import TimeCategory, TimeEntry, TimeStream
 
 
 class TimeConfigurationRepository:
@@ -69,3 +69,24 @@ class TimeConfigurationRepository:
         await self.session.flush()
         await self.session.refresh(category)
         return category
+
+    async def get_active_entry(self) -> TimeEntry | None:
+        result = await self.session.execute(
+            select(TimeEntry)
+            .where(TimeEntry.ended_at.is_(None))
+            .order_by(TimeEntry.started_at.desc(), TimeEntry.id.desc())
+        )
+        return result.scalars().first()
+
+    async def list_entries(self) -> list[TimeEntry]:
+        result = await self.session.execute(
+            select(TimeEntry).order_by(TimeEntry.started_at, TimeEntry.id)
+        )
+        return list(result.scalars().all())
+
+    async def create_entry(self, data: dict) -> TimeEntry:
+        entry = TimeEntry(**data)
+        self.session.add(entry)
+        await self.session.flush()
+        await self.session.refresh(entry)
+        return entry

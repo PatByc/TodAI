@@ -83,3 +83,25 @@ class TimeStreamResponse(BaseModel):
     categories: list[TimeCategoryResponse] = []
 
     model_config = {"from_attributes": True}
+
+
+class TimerStart(BaseModel):
+    stream_id: int | None = Field(default=None, gt=0)
+    category_id: int | None = Field(default=None, gt=0)
+    project_id: int | None = Field(default=None, gt=0)
+    notes: str | None = Field(default=None, max_length=5000)
+
+
+class TimeEntryResponse(BaseModel):
+    id: int
+    stream_id: int | None
+    category_id: int | None
+    project_id: int | None
+    started_at: datetime
+    ended_at: datetime | None
+    duration_seconds: int | None
+    notes: str | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

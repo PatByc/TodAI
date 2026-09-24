@@ -5,10 +5,13 @@ from httpx import AsyncClient
 from sqlalchemy import select
 
 from app.models.audit_log import AuditLog
+from app.models.time_tracking import TimeEntry
 
 
 @pytest.mark.asyncio
-async def test_create_and_configure_time_stream(async_client: AsyncClient, async_session):
+async def test_create_and_configure_time_stream(
+    async_client: AsyncClient, async_session
+):
     stream_response = await async_client.post(
         "/api/v1/time/streams", json={"name": "  Client   work  "}
     )
@@ -49,25 +52,26 @@ async def test_create_and_configure_time_stream(async_client: AsyncClient, async
     audit_rows = list(
         (
             await async_session.execute(
-                select(AuditLog).where(
-                    AuditLog.entity_type.in_(["time_stream", "time_category"])
-                ).order_by(AuditLog.id)
+                select(AuditLog)
+                .where(AuditLog.entity_type.in_(["time_stream", "time_category"]))
+                .order_by(AuditLog.id)
             )
         ).scalars()
     )
-    assert [row.action for row in audit_rows] == ["create", "update", "create", "update"]
+    assert [row.action for row in audit_rows] == [
+        "create",
+        "update",
+        "create",
+        "update",
+    ]
 
 
 @pytest.mark.asyncio
 async def test_time_configuration_rejects_duplicate_names(async_client: AsyncClient):
-    created = await async_client.post(
-        "/api/v1/time/streams", json={"name": "Focus"}
-    )
+    created = await async_client.post("/api/v1/time/streams", json={"name": "Focus"})
     assert created.status_code == 201
 
-    duplicate = await async_client.post(
-        "/api/v1/time/streams", json={"name": "focus"}
-    )
+    duplicate = await async_client.post("/api/v1/time/streams", json={"name": "focus"})
     assert duplicate.status_code == 409
     assert "already exists" in duplicate.json()["detail"]
 
@@ -112,3 +116,54 @@ async def test_time_configuration_is_included_in_json_export(
     payload = export_response.json()
     assert payload["time_streams"][0]["name"] == "Exported stream"
     assert payload["time_streams"][0]["categories"][0]["name"] == "Exported category"
+
+
+@pytest.mark.asyncio
+async def test_active_timer_persists_and_stops_as_time_entry(
+    async_client: AsyncClient, async_session
+):
+    empty = await async_client.get("/api/v1/time/timer")
+    assert empty.status_code == 200
+    assert empty.json() is None
+
+    started = await async_client.post("/api/v1/time/timer/start", json={})
+    assert started.status_code == 201
+    active = started.json()
+    assert active["ended_at"] is None
+    assert active["duration_seconds"] is None
+
+    restored = await async_client.get("/api/v1/time/timer")
+    assert restored.status_code == 200
+    assert restored.json()["id"] == active["id"]
+
+    duplicate = await async_client.post("/api/v1/time/timer/start", json={})
+    assert duplicate.status_code == 409
+    assert duplicate.json()["detail"] == "A timer is already running"
+
+    stopped = await async_client.post("/api/v1/time/timer/stop")
+    assert stopped.status_code == 200
+    assert stopped.json()["ended_at"] is not None
+    assert stopped.json()["duration_seconds"] >= 0
+
+    assert (await async_client.get("/api/v1/time/timer")).json() is None
+    entry = await async_session.get(TimeEntry, active["id"])
+    assert entry is not None
+    assert entry.ended_at is not None
+
+    audit_rows = list(
+        (
+            await async_session.execute(
+                select(AuditLog)
+                .where(AuditLog.entity_type == "time_entry")
+                .order_by(AuditLog.id)
+            )
+        ).scalars()
+    )
+    assert [row.action for row in audit_rows] == ["start", "stop"]
+
+
+@pytest.mark.asyncio
+async def test_stopping_without_active_timer_is_rejected(async_client: AsyncClient):
+    response = await async_client.post("/api/v1/time/timer/stop")
+    assert response.status_code == 409
+    assert response.json()["detail"] == "No timer is running"

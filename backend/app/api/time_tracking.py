@@ -8,6 +8,8 @@ from app.schemas.time_tracking import (
     TimeCategoryCreate,
     TimeCategoryResponse,
     TimeCategoryUpdate,
+    TimeEntryResponse,
+    TimerStart,
     TimeStreamCreate,
     TimeStreamResponse,
     TimeStreamUpdate,
@@ -21,6 +23,33 @@ def get_service(
     session: AsyncSession = Depends(get_db),
 ) -> TimeConfigurationService:
     return TimeConfigurationService(session)
+
+
+@router.get("/timer", response_model=TimeEntryResponse | None)
+async def get_active_timer(
+    service: TimeConfigurationService = Depends(get_service),
+) -> TimeEntryResponse | None:
+    entry = await service.get_active_timer()
+    return TimeEntryResponse.model_validate(entry) if entry is not None else None
+
+
+@router.post(
+    "/timer/start",
+    response_model=TimeEntryResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def start_timer(
+    data: TimerStart,
+    service: TimeConfigurationService = Depends(get_service),
+) -> TimeEntryResponse:
+    return TimeEntryResponse.model_validate(await service.start_timer(data))
+
+
+@router.post("/timer/stop", response_model=TimeEntryResponse)
+async def stop_timer(
+    service: TimeConfigurationService = Depends(get_service),
+) -> TimeEntryResponse:
+    return TimeEntryResponse.model_validate(await service.stop_timer())
 
 
 @router.get("/streams", response_model=list[TimeStreamResponse])
@@ -54,7 +83,9 @@ async def update_stream(
     data: TimeStreamUpdate,
     service: TimeConfigurationService = Depends(get_service),
 ) -> TimeStreamResponse:
-    return TimeStreamResponse.model_validate(await service.update_stream(stream_id, data))
+    return TimeStreamResponse.model_validate(
+        await service.update_stream(stream_id, data)
+    )
 
 
 @router.post(

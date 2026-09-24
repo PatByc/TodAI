@@ -2,7 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   createTimeCategory,
   createTimeStream,
+  fetchActiveTimer,
   fetchTimeStreams,
+  startTimer,
+  stopTimer,
   updateTimeCategory,
   updateTimeStream,
 } from "@/api/timeTracking"
@@ -11,9 +14,35 @@ import type {
   TimeCategoryUpdate,
   TimeStreamCreate,
   TimeStreamUpdate,
+  TimerStart,
 } from "@/types/entities"
 
 const queryKey = ["time", "streams"] as const
+const timerQueryKey = ["time", "timer"] as const
+
+export function useActiveTimer() {
+  return useQuery({
+    queryKey: timerQueryKey,
+    queryFn: fetchActiveTimer,
+    refetchInterval: 5000,
+  })
+}
+
+export function useStartTimer() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (data: TimerStart = {}) => startTimer(data),
+    onSuccess: (entry) => client.setQueryData(timerQueryKey, entry),
+  })
+}
+
+export function useStopTimer() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: stopTimer,
+    onSuccess: () => client.setQueryData(timerQueryKey, null),
+  })
+}
 
 export function useTimeStreams() {
   return useQuery({ queryKey, queryFn: () => fetchTimeStreams(true) })

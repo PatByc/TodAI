@@ -267,3 +267,23 @@ export interface TimeCategoryUpdate {
   color_index?: number
   is_active?: boolean
 }
+
+export interface TimeEntry {
+  id: number
+  stream_id: number | null
+  category_id: number | null
+  project_id: number | null
+  started_at: string
+  ended_at: string | null
+  duration_seconds: number | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TimerStart {
+  stream_id?: number
+  category_id?: number
+  project_id?: number
+  notes?: string
+}

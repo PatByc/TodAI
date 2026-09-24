@@ -13,7 +13,7 @@ from .project import Project, ProjectStatus
 from .search_chunk import SearchChunk
 from .tag import EntityTag, Tag
 from .task import Task, TaskStatus
-from .time_tracking import TimeCategory, TimeStream
+from .time_tracking import TimeCategory, TimeEntry, TimeStream
 
 __all__ = [
     "AgentProposal",
@@ -32,6 +32,7 @@ __all__ = [
     "Task",
     "TaskStatus",
     "TimeCategory",
+    "TimeEntry",
     "TimeStream",
     "TimestampMixin",
 ]

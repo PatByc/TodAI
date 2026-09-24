@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.text_utils import extract_plain_text
 from app.repositories.idea_repo import IdeaRepository
 from app.repositories.inbox_repo import InboxRepository
 from app.repositories.note_repo import NoteRepository
@@ -56,6 +55,7 @@ class ExportService:
         )
         inbox_items, _ = await self.inbox_repo.list_all(skip=0, limit=100000)
         time_streams = await self.time_config_repo.list_streams(include_inactive=True)
+        time_entries = await self.time_config_repo.list_entries()
 
         return {
             "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -89,6 +89,21 @@ class ExportService:
                     ],
                 }
                 for stream in time_streams
+            ],
+            "time_entries": [
+                {
+                    "id": entry.id,
+                    "stream_id": entry.stream_id,
+                    "category_id": entry.category_id,
+                    "project_id": entry.project_id,
+                    "started_at": entry.started_at.isoformat(),
+                    "ended_at": entry.ended_at.isoformat() if entry.ended_at else None,
+                    "duration_seconds": entry.duration_seconds,
+                    "notes": entry.notes,
+                    "created_at": entry.created_at.isoformat(),
+                    "updated_at": entry.updated_at.isoformat(),
+                }
+                for entry in time_entries
             ],
         }
 

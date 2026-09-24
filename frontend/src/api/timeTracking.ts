@@ -6,7 +6,21 @@ import type {
   TimeStream,
   TimeStreamCreate,
   TimeStreamUpdate,
+  TimeEntry,
+  TimerStart,
 } from "@/types/entities"
+
+export function fetchActiveTimer(): Promise<TimeEntry | null> {
+  return apiClient.get<TimeEntry | null>("/time/timer")
+}
+
+export function startTimer(data: TimerStart = {}): Promise<TimeEntry> {
+  return apiClient.post<TimeEntry>("/time/timer/start", data)
+}
+
+export function stopTimer(): Promise<TimeEntry> {
+  return apiClient.post<TimeEntry>("/time/timer/stop")
+}
 
 export function fetchTimeStreams(includeInactive = true): Promise<TimeStream[]> {
   const query = buildQueryString({ include_inactive: includeInactive })
