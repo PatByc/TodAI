@@ -51,12 +51,6 @@ function HomeTaskRow({
           <span className="home-task-title">{task.title}</span>
           <span className="home-task-meta">{meta}</span>
         </span>
-        <span className="home-task-progress" aria-label={`${task.progress}% complete`}>
-          <span className="home-task-progress-track" aria-hidden="true">
-            <span style={{ width: `${task.progress}%` }} />
-          </span>
-          <span className="home-task-progress-value">{task.progress}%</span>
-        </span>
       </Link>
       <button
         type="button"

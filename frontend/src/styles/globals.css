@@ -286,10 +286,6 @@ body {
 .home-task-title { position: relative; flex: 1; min-width: 0; font: 14px/1.4 var(--font-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color .22s ease, opacity .22s ease; }
 .home-task-title::after { content: ""; position: absolute; left: 0; right: 0; top: 52%; height: 1px; border-radius: 1px; background: var(--primary); opacity: 0; transform: scaleX(0); transform-origin: left; }
 .home-task-meta { color: var(--text-3); font: 11px var(--font-mono); }
-.home-task-progress { width: 112px; flex: 0 0 112px; display: flex; align-items: center; gap: 8px; }
-.home-task-progress-track { height: 4px; flex: 1; overflow: hidden; border-radius: 999px; background: #353b3d; }
-.home-task-progress-track > span { display: block; height: 100%; min-width: 0; border-radius: inherit; background: var(--primary); transition: width .28s cubic-bezier(.2, .75, .3, 1); }
-.home-task-progress-value { width: 30px; color: var(--muted-foreground); font: 10px/1 var(--font-mono); text-align: right; }
 .home-task-check { width: 24px; height: 24px; flex: 0 0 24px; display: grid; place-items: center; padding: 0; border: 1px solid #59625e; border-radius: 50%; background: transparent; color: var(--primary-foreground); cursor: pointer; transition: border-color .16s ease, background-color .16s ease, transform .16s ease; }
 .home-task-check svg { opacity: 0; transform: scale(.65); transition: opacity .16s ease, transform .16s ease; }
 .home-task-check:hover:not(:disabled) { border-color: var(--primary); transform: scale(1.06); }
@@ -524,7 +520,6 @@ body {
 @media (max-width: 768px) {
   .home-task-link { align-items: flex-start; gap: 10px; }
   .home-task-copy { align-items: flex-start; flex-direction: column; gap: 2px; }
-  .home-task-progress { width: 88px; flex-basis: 88px; margin-top: 7px; }
   .topbar { padding: 0 14px; }
   .topbar-left { gap: 8px; }
   .topbar-search { width: 36px; min-width: 36px; justify-content: center; padding: 0; }
