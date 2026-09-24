@@ -242,7 +242,6 @@ body {
 .home-season .home-task-check[aria-pressed="true"] { background: var(--season-accent); }
 .home-season .home-section-head a:hover, .home-season .home-space:hover { color: var(--season-accent); }
 .home-date { display: flex; align-items: center; gap: 11px; margin: 0 0 15px; color: var(--muted-foreground); font: 500 13px var(--font-body); }
-.home-season-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px; border: 1px solid color-mix(in srgb, var(--season-accent) 34%, var(--border)); border-radius: 999px; background: color-mix(in srgb, var(--season-accent) 7%, transparent); color: var(--season-accent); font-size: 10px; }
 .home-season-autumn .home-hero { overflow: hidden; padding-right: 24px; padding-left: 24px; border: 1px solid color-mix(in srgb, var(--season-accent) 22%, var(--border)); border-radius: 12px 12px 3px 3px; background: linear-gradient(118deg, rgba(80, 43, 27, .18), rgba(29, 30, 30, .2) 48%, rgba(126, 68, 36, .1)); }
 .home-season-autumn .home-hero::before { inset: 0; background: radial-gradient(circle at 82% 8%, rgba(215, 130, 72, .16), transparent 30%), radial-gradient(ellipse at 8% 110%, rgba(125, 67, 38, .13), transparent 50%); }
 .home-season-autumn .home-hero::after { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: 0; width: 3px; background: linear-gradient(180deg, #e2a06c, #9f5736 64%, transparent); opacity: .72; }

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Check, ArrowUpRight, Leaf } from "lucide-react"
+import { Check, ArrowUpRight } from "lucide-react"
 import { useState } from "react"
 import { fetchTasks, updateTask } from "@/api/tasks"
 import { playCompletionChime } from "@/lib/completionChime"
@@ -147,9 +147,6 @@ function TodayPage() {
         <div>
           <p className="home-date">
             <span>{dateLabel}</span>
-            {autumnTheme && (
-              <span className="home-season-badge"><Leaf size={11} /> Autumn</span>
-            )}
           </p>
           <h1 id="home-title">Today.</h1>
           <p>A clear place to decide what comes next.</p>
