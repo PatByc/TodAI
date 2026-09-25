@@ -76,3 +76,4 @@ async def test_openai_completion_adapter_disables_storage():
     provider.client = type("Client", (), {"responses": responses})()
     assert await provider.complete("prompt") == "Grounded answer [1]"
     assert responses.kwargs["store"] is False
+    assert responses.kwargs["max_output_tokens"] == 1_600

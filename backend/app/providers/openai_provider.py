@@ -2,6 +2,12 @@
 
 from openai import AsyncOpenAI
 
+from app.config import settings
+from app.services.efficiency_service import (
+    record_completion_usage,
+    record_embedding_usage,
+)
+
 
 class OpenAIProvider:
     """OpenAI adapter for embeddings now and completions in Ask mode."""
@@ -12,11 +18,13 @@ class OpenAIProvider:
         embedding_model: str = "text-embedding-3-small",
         embedding_dimensions: int = 1536,
         completion_model: str = "gpt-5-mini",
+        completion_max_output_tokens: int = settings.completion_max_output_tokens,
     ) -> None:
         self.client = AsyncOpenAI(api_key=api_key)
         self.embedding_model = embedding_model
         self.embedding_dimensions = embedding_dimensions
         self.completion_model = completion_model
+        self.completion_max_output_tokens = completion_max_output_tokens
 
     @property
     def model_version(self) -> str:
@@ -30,6 +38,7 @@ class OpenAIProvider:
             input=texts,
             dimensions=self.embedding_dimensions,
         )
+        record_embedding_usage(response, self.embedding_model, len(texts))
         return [item.embedding for item in response.data]
 
     async def complete(self, prompt: str) -> str:
@@ -37,5 +46,7 @@ class OpenAIProvider:
             model=self.completion_model,
             input=prompt,
             store=False,
+            max_output_tokens=self.completion_max_output_tokens,
         )
+        record_completion_usage(response, self.completion_model)
         return response.output_text

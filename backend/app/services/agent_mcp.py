@@ -232,10 +232,15 @@ def _record(entity: Any, kind: str) -> dict[str, Any]:
     fields = {
         column.name: _json_value(getattr(entity, column.name))
         for column in entity.__table__.columns
+        if getattr(entity, column.name) is not None
     }
+    # Rich JSON duplicates the indexed plain-text columns and costs far more tokens.
+    fields.pop("content", None)
+    if kind == "project":
+        fields.pop("description", None)
     for key, value in tuple(fields.items()):
         if isinstance(value, str):
-            fields[key] = value[:8_000]
+            fields[key] = value[:6_000]
     return {
         "entity_type": kind,
         "entity_id": entity.id,

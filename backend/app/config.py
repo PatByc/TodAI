@@ -33,6 +33,15 @@ class Settings(BaseSettings):
     embedding_dimensions: int = 1536
     completion_provider: str = "openai"
     completion_model: str = "gpt-5-mini"
+    completion_max_output_tokens: int = 1_600
+    context_compression: str = Field(
+        default="headroom",
+        validation_alias=AliasChoices(
+            "TODAI_CONTEXT_COMPRESSION", "CONTEXT_COMPRESSION"
+        ),
+    )
+    context_compression_min_tokens: int = 800
+    context_history_max_chars: int = 12_000
 
     @model_validator(mode="after")
     def resolve_database_url(self) -> "Settings":

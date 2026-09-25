@@ -43,6 +43,7 @@ from app.schemas.project import ProjectCreate, ProjectUpdate
 from app.schemas.task import TaskCreate, TaskUpdate
 from app.services.agent_mcp import TodMCP, mcp_result_json, tool_call_to_action
 from app.services.audit_service import AuditService
+from app.services.context_compression import prepare_history
 from app.services.conversion_service import ConversionService
 from app.services.idea_service import IdeaService
 from app.services.inbox_service import InboxService
@@ -239,9 +240,7 @@ class AgentService:
                 status_code=503, detail="Configure OPENAI_API_KEY to use Agent mode."
             )
         query = request.question.strip()
-        history = "\n".join(
-            f"{turn.role}: {turn.content}" for turn in request.history[-6:]
-        )
+        history = await prepare_history(request.history, query)
         try:
             planned = await self.planner.propose(query, history)
             if isinstance(planned, tuple):

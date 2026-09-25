@@ -1,5 +1,6 @@
 """Async database engine and session factory."""
 
+import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -63,15 +64,33 @@ def create_database_engine(database_url: str = settings.database_url):
             cursor.execute("PRAGMA busy_timeout=5000")
             cursor.close()
 
+        _configure_query_metrics(database_engine)
         return database_engine
 
-    return create_async_engine(
+    database_engine = create_async_engine(
         database_url,
         echo=False,
         pool_size=5,
         max_overflow=10,
         pool_pre_ping=True,
     )
+    _configure_query_metrics(database_engine)
+    return database_engine
+
+
+def _configure_query_metrics(database_engine) -> None:
+    @event.listens_for(database_engine.sync_engine, "before_cursor_execute")
+    def before_cursor_execute(conn, cursor, statement, parameters, context, many):
+        context._todai_query_started = time.perf_counter()
+
+    @event.listens_for(database_engine.sync_engine, "after_cursor_execute")
+    def after_cursor_execute(conn, cursor, statement, parameters, context, many):
+        started = getattr(context, "_todai_query_started", None)
+        if started is None:
+            return
+        from app.services.efficiency_service import record_db_query
+
+        record_db_query((time.perf_counter() - started) * 1000)
 
 
 engine = create_database_engine()

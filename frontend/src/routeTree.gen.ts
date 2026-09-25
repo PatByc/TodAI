@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AskIndexRouteImport } from './routes/ask/index'
+import { Route as DeveloperIndexRouteImport } from './routes/developer/index'
+import { Route as GoalsIndexRouteImport } from './routes/goals/index'
 import { Route as IdeasIndexRouteImport } from './routes/ideas/index'
 import { Route as IdeasIdeaIdRouteImport } from './routes/ideas/$ideaId'
 import { Route as InboxIndexRouteImport } from './routes/inbox/index'
@@ -19,6 +21,7 @@ import { Route as NotesNoteIdRouteImport } from './routes/notes/$noteId'
 import { Route as PlanIndexRouteImport } from './routes/plan/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
+import { Route as RoutinesIndexRouteImport } from './routes/routines/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as TasksIndexRouteImport } from './routes/tasks/index'
 import { Route as TasksTaskIdRouteImport } from './routes/tasks/$taskId'
@@ -32,6 +35,16 @@ const IndexRoute = IndexRouteImport.update({
 const AskIndexRoute = AskIndexRouteImport.update({
   id: '/ask/',
   path: '/ask/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeveloperIndexRoute = DeveloperIndexRouteImport.update({
+  id: '/developer/',
+  path: '/developer/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoalsIndexRoute = GoalsIndexRouteImport.update({
+  id: '/goals/',
+  path: '/goals/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IdeasIndexRoute = IdeasIndexRouteImport.update({
@@ -74,6 +87,11 @@ const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
   path: '/projects/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RoutinesIndexRoute = RoutinesIndexRouteImport.update({
+  id: '/routines/',
+  path: '/routines/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
@@ -102,11 +120,14 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/ask/': typeof AskIndexRoute
+  '/developer/': typeof DeveloperIndexRoute
+  '/goals/': typeof GoalsIndexRoute
   '/ideas/': typeof IdeasIndexRoute
   '/inbox/': typeof InboxIndexRoute
   '/notes/': typeof NotesIndexRoute
   '/plan/': typeof PlanIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/routines/': typeof RoutinesIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/tasks/': typeof TasksIndexRoute
   '/time/': typeof TimeIndexRoute
@@ -118,11 +139,14 @@ export interface FileRoutesByTo {
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/ask': typeof AskIndexRoute
+  '/developer': typeof DeveloperIndexRoute
+  '/goals': typeof GoalsIndexRoute
   '/ideas': typeof IdeasIndexRoute
   '/inbox': typeof InboxIndexRoute
   '/notes': typeof NotesIndexRoute
   '/plan': typeof PlanIndexRoute
   '/projects': typeof ProjectsIndexRoute
+  '/routines': typeof RoutinesIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/tasks': typeof TasksIndexRoute
   '/time': typeof TimeIndexRoute
@@ -135,11 +159,14 @@ export interface FileRoutesById {
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/tasks/$taskId': typeof TasksTaskIdRoute
   '/ask/': typeof AskIndexRoute
+  '/developer/': typeof DeveloperIndexRoute
+  '/goals/': typeof GoalsIndexRoute
   '/ideas/': typeof IdeasIndexRoute
   '/inbox/': typeof InboxIndexRoute
   '/notes/': typeof NotesIndexRoute
   '/plan/': typeof PlanIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/routines/': typeof RoutinesIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/tasks/': typeof TasksIndexRoute
   '/time/': typeof TimeIndexRoute
@@ -153,11 +180,14 @@ export interface FileRouteTypes {
     | '/projects/$projectId'
     | '/tasks/$taskId'
     | '/ask/'
+    | '/developer/'
+    | '/goals/'
     | '/ideas/'
     | '/inbox/'
     | '/notes/'
     | '/plan/'
     | '/projects/'
+    | '/routines/'
     | '/settings/'
     | '/tasks/'
     | '/time/'
@@ -169,11 +199,14 @@ export interface FileRouteTypes {
     | '/projects/$projectId'
     | '/tasks/$taskId'
     | '/ask'
+    | '/developer'
+    | '/goals'
     | '/ideas'
     | '/inbox'
     | '/notes'
     | '/plan'
     | '/projects'
+    | '/routines'
     | '/settings'
     | '/tasks'
     | '/time'
@@ -185,11 +218,14 @@ export interface FileRouteTypes {
     | '/projects/$projectId'
     | '/tasks/$taskId'
     | '/ask/'
+    | '/developer/'
+    | '/goals/'
     | '/ideas/'
     | '/inbox/'
     | '/notes/'
     | '/plan/'
     | '/projects/'
+    | '/routines/'
     | '/settings/'
     | '/tasks/'
     | '/time/'
@@ -202,11 +238,14 @@ export interface RootRouteChildren {
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
   TasksTaskIdRoute: typeof TasksTaskIdRoute
   AskIndexRoute: typeof AskIndexRoute
+  DeveloperIndexRoute: typeof DeveloperIndexRoute
+  GoalsIndexRoute: typeof GoalsIndexRoute
   IdeasIndexRoute: typeof IdeasIndexRoute
   InboxIndexRoute: typeof InboxIndexRoute
   NotesIndexRoute: typeof NotesIndexRoute
   PlanIndexRoute: typeof PlanIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
+  RoutinesIndexRoute: typeof RoutinesIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
   TasksIndexRoute: typeof TasksIndexRoute
   TimeIndexRoute: typeof TimeIndexRoute
@@ -226,6 +265,20 @@ declare module '@tanstack/react-router' {
       path: '/ask'
       fullPath: '/ask/'
       preLoaderRoute: typeof AskIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/developer/': {
+      id: '/developer/'
+      path: '/developer'
+      fullPath: '/developer/'
+      preLoaderRoute: typeof DeveloperIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/goals/': {
+      id: '/goals/'
+      path: '/goals'
+      fullPath: '/goals/'
+      preLoaderRoute: typeof GoalsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ideas/': {
@@ -284,6 +337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/routines/': {
+      id: '/routines/'
+      path: '/routines'
+      fullPath: '/routines/'
+      preLoaderRoute: typeof RoutinesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/': {
       id: '/settings/'
       path: '/settings'
@@ -322,11 +382,14 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsProjectIdRoute: ProjectsProjectIdRoute,
   TasksTaskIdRoute: TasksTaskIdRoute,
   AskIndexRoute: AskIndexRoute,
+  DeveloperIndexRoute: DeveloperIndexRoute,
+  GoalsIndexRoute: GoalsIndexRoute,
   IdeasIndexRoute: IdeasIndexRoute,
   InboxIndexRoute: InboxIndexRoute,
   NotesIndexRoute: NotesIndexRoute,
   PlanIndexRoute: PlanIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
+  RoutinesIndexRoute: RoutinesIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
   TasksIndexRoute: TasksIndexRoute,
   TimeIndexRoute: TimeIndexRoute,

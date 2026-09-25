@@ -1,5 +1,6 @@
 import {
   Archive,
+  Activity,
   CalendarDays,
   CheckSquare,
   Clock3,
@@ -10,15 +11,17 @@ import {
   Inbox,
   Lightbulb,
   ListFilter,
+  Repeat2,
   Search,
   Settings,
   Sparkles,
   Tags,
+  Target,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 export type CapabilityCategory = "Navigate" | "Create" | "Find" | "Review" | "Organize"
-export type CapabilityRoute = "/" | "/plan" | "/time" | "/inbox" | "/tasks" | "/notes" | "/ideas" | "/projects" | "/settings"
+export type CapabilityRoute = "/" | "/plan" | "/time" | "/routines" | "/goals" | "/inbox" | "/tasks" | "/notes" | "/ideas" | "/projects" | "/settings" | "/developer"
 
 export interface Capability {
   id: string
@@ -39,12 +42,15 @@ export const capabilities: Capability[] = [
   { id: "today", command: "/today", label: "Today", description: "Open today’s workspace", example: "/today", category: "Navigate", icon: Home, route: "/", prompt: (args) => scopedPrompt("Today", args) },
   { id: "plan", command: "/plan", label: "Plan", description: "Open the planning workspace", example: "/plan", category: "Navigate", icon: CalendarDays, route: "/plan", prompt: (args) => scopedPrompt("Plan", args) },
   { id: "time", command: "/time", label: "Time", description: "Review tracked time", example: "/time", category: "Navigate", icon: Clock3, route: "/time", prompt: (args) => scopedPrompt("Time", args) },
+  { id: "routines", command: "/routines", label: "Routines", description: "Open repeating practices", example: "/routines", category: "Navigate", icon: Repeat2, route: "/routines", prompt: (args) => scopedPrompt("Routines", args) },
+  { id: "goals", command: "/goals", label: "Goals", description: "Open time goals", example: "/goals", category: "Navigate", icon: Target, route: "/goals", prompt: (args) => scopedPrompt("Goals", args) },
   { id: "inbox", command: "/inbox", label: "Inbox", description: "Open unclassified captures", example: "/inbox", category: "Navigate", icon: Inbox, route: "/inbox", prompt: (args) => scopedPrompt("Inbox", args) },
   { id: "tasks", command: "/tasks", label: "Tasks", description: "Open or ask about tasks", example: "/tasks overdue this week", category: "Navigate", icon: CheckSquare, route: "/tasks", prompt: (args) => scopedPrompt("Tasks", args) },
   { id: "notes", command: "/notes", label: "Notes", description: "Open or ask about notes", example: "/notes about OptimizeLabs", category: "Navigate", icon: FileText, route: "/notes", prompt: (args) => scopedPrompt("Notes", args) },
   { id: "ideas", command: "/ideas", label: "Ideas", description: "Open or ask about ideas", example: "/ideas worth developing", category: "Navigate", icon: Lightbulb, route: "/ideas", prompt: (args) => scopedPrompt("Ideas", args) },
   { id: "projects", command: "/projects", label: "Projects", description: "Open or ask about projects", example: "/projects active this month", category: "Navigate", icon: FolderOpen, route: "/projects", prompt: (args) => scopedPrompt("Projects", args) },
   { id: "settings", command: "/settings", label: "Settings", description: "Open TodAI settings", example: "/settings", category: "Navigate", icon: Settings, route: "/settings" },
+  { id: "developer", command: "/developer", label: "Developer", description: "Inspect efficiency telemetry", example: "/developer", category: "Navigate", icon: Activity, route: "/developer" },
 
   { id: "new-task", command: "/new-task", label: "New task", description: "Create an actionable task", example: "/new-task Call John tomorrow", category: "Create", icon: CheckSquare, prompt: (args) => args ? `Create a new task: ${args}` : "Help me create a new task." },
   { id: "new-note", command: "/new-note", label: "New note", description: "Capture information as a note", example: "/new-note Meeting notes from today", category: "Create", icon: FilePlus2, prompt: (args) => args ? `Create a new note: ${args}` : "Help me create a new note." },

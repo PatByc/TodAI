@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from app.database import AsyncSessionLocal
 from app.schemas.agent import AgentPlanRequest
+from app.services.efficiency_service import measure_operation
 
 TERMINAL_EVENTS = {"run_completed", "run_failed", "approval_required"}
 
@@ -86,7 +87,8 @@ class AgentRunManager:
             from app.services.agent_service import AgentService
 
             async with AsyncSessionLocal() as session:
-                result = await AgentService(session, emit=run.emit).plan(request)
+                async with measure_operation(session, "agent_plan"):
+                    result = await AgentService(session, emit=run.emit).plan(request)
                 payload = result.model_dump(mode="json")
                 if result.actions:
                     if request.approval_mode == "auto":
@@ -98,9 +100,10 @@ class AgentRunManager:
                                 "message": "Auto mode approved the validated changes",
                             },
                         )
-                        decision = await AgentService(session, emit=run.emit).decide(
-                            result.id, approve=True
-                        )
+                        async with measure_operation(session, "agent_apply"):
+                            decision = await AgentService(
+                                session, emit=run.emit
+                            ).decide(result.id, approve=True)
                         auto_payload = dict(payload)
                         auto_payload["message"] = (
                             f"Auto mode applied {len(result.actions)} validated "
@@ -130,9 +133,10 @@ class AgentRunManager:
             from app.services.agent_service import AgentService
 
             async with AsyncSessionLocal() as session:
-                result = await AgentService(session, emit=run.emit).decide(
-                    proposal_id, approve=True
-                )
+                async with measure_operation(session, "agent_apply"):
+                    result = await AgentService(session, emit=run.emit).decide(
+                        proposal_id, approve=True
+                    )
                 await run.emit("run_completed", result.model_dump(mode="json"))
 
         return self._launch("execution", work)

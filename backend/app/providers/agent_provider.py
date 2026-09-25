@@ -12,7 +12,13 @@ from typing import Any, Protocol
 from mcp import Client
 from openai import AsyncOpenAI
 
+from app.config import settings
 from app.services.agent_mcp import TodMCP, mcp_result_json, mutation_names
+from app.services.context_compression import compress_tool_payload
+from app.services.efficiency_service import (
+    record_completion_usage,
+    record_tool_output,
+)
 
 EventEmitter = Callable[[str, dict[str, Any]], Awaitable[None]]
 
@@ -107,7 +113,9 @@ class OpenAIActionPlanner:
             "make mutation calls in the next response. Do not combine reads and mutations in one response. "
             "Use at most eight mutation calls. Existing records should be searched/read before mutation. "
             "When answering from records, cite supporting records as [1], [2], etc. using source numbers "
-            "returned by tools. Be concise and state uncertainty. "
+            "returned by tools. Use the fewest words that fully answer the request: no preamble, "
+            "no repeated facts, and at most five short sentences unless the user asks for detail. "
+            "State uncertainty briefly. "
             f"Current local date and time: {local_now}. Interpret relative dates in this timezone."
         )
         input_items: list[Any] = [
@@ -143,7 +151,9 @@ class OpenAIActionPlanner:
                     input=input_items,
                     tools=[_openai_tool(catalog[name]) for name in sorted(visible)],
                     store=False,
+                    max_output_tokens=settings.completion_max_output_tokens,
                 )
+                record_completion_usage(response, self.model)
                 calls = [
                     item for item in response.output if item.type == "function_call"
                 ]
@@ -275,11 +285,21 @@ class OpenAIActionPlanner:
                         "tool_completed",
                         {"tool": call.name, "message": label, "outcome": "completed"},
                     )
+                    before = len(
+                        json.dumps(
+                            value,
+                            ensure_ascii=False,
+                            default=str,
+                            separators=(",", ":"),
+                        )
+                    )
+                    serialized = await compress_tool_payload(value, question)
+                    record_tool_output(before, len(serialized))
                     input_items.append(
                         {
                             "type": "function_call_output",
                             "call_id": call.call_id,
-                            "output": json.dumps(value, default=str),
+                            "output": serialized,
                         }
                     )
         raise ValueError("Tod exceeded the MCP tool-round limit")

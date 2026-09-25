@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_db
 from app.schemas.ask import AskRequest, AskResponse, AskStatus
 from app.services.ask_service import AskService, ask_status
+from app.services.efficiency_service import measure_operation
 
 router = APIRouter(prefix="/ask", tags=["ask"])
 
@@ -29,7 +30,8 @@ async def ask(
     request: AskRequest,
     service: Annotated[AskService, Depends(get_ask_service)],
 ) -> AskResponse:
-    return await service.ask(request)
+    async with measure_operation(service.session, "ask"):
+        return await service.ask(request)
 
 
 @router.post("/stream")
@@ -49,12 +51,15 @@ async def ask_stream(
 
         async def run() -> None:
             try:
-                result = await service.ask(request, on_progress=progress)
+                async with measure_operation(service.session, "ask"):
+                    result = await service.ask(request, on_progress=progress)
                 await queue.put(("answer", result.model_dump()))
             except HTTPException as exc:
                 await queue.put(("error", {"detail": str(exc.detail)}))
-            except Exception:
-                await queue.put(("error", {"detail": "Tod could not answer. Try again."}))
+            except Exception:  # noqa: BLE001 - stream failures become safe SSE errors
+                await queue.put(
+                    ("error", {"detail": "Tod could not answer. Try again."})
+                )
 
         task = asyncio.create_task(run())
         try:
@@ -71,4 +76,8 @@ async def ask_stream(
                 except asyncio.CancelledError:
                     pass
 
-    return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

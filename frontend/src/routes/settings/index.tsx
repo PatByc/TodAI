@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useRef, useState } from "react"
-import { Check, ChevronDown, Clock3, Database, Palette, SlidersHorizontal } from "lucide-react"
+import { Bot, Check, ChevronDown, Clock3, Database, Palette, SlidersHorizontal } from "lucide-react"
+import { AISettings } from "@/components/settings/AISettings"
 import { SelectDropdown } from "@/components/ui/SelectDropdown"
 import { TimeSettings } from "@/components/settings/TimeSettings"
 import { ExportButton } from "@/components/export/ExportButton"
@@ -77,7 +78,7 @@ export const Route = createFileRoute("/settings/")({
 })
 
 function SettingsPage() {
-  const [activeSection, setActiveSection] = useState<"overall" | "design" | "time" | "data">("overall")
+  const [activeSection, setActiveSection] = useState<"overall" | "design" | "ai" | "time" | "data">("overall")
   const [language, setLanguage] = useState(() => {
     if (typeof window === "undefined") return "en"
     const stored = window.localStorage.getItem("todai.settings.language")
@@ -101,6 +102,15 @@ function SettingsPage() {
 
       <div className="settings-layout">
         <nav className="settings-menu" aria-label="Settings sections">
+          <button
+            type="button"
+            className={activeSection === "ai" ? "is-active" : ""}
+            aria-current={activeSection === "ai" ? "page" : undefined}
+            onClick={() => setActiveSection("ai")}
+          >
+            <Bot size={15} strokeWidth={1.7} aria-hidden="true" />
+            <span>AI Agent</span>
+          </button>
           <button
             type="button"
             className={activeSection === "overall" ? "is-active" : ""}
@@ -139,7 +149,7 @@ function SettingsPage() {
           </button>
         </nav>
 
-        {activeSection === "time" ? <TimeSettings /> : activeSection === "data" ? (
+        {activeSection === "ai" ? <AISettings /> : activeSection === "time" ? <TimeSettings /> : activeSection === "data" ? (
           <section className="settings-panel" aria-labelledby="settings-data-title">
             <div className="settings-section-heading">
               <h2 id="settings-data-title">Data</h2>

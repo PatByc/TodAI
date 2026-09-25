@@ -1,6 +1,7 @@
 """Rebuildable entity indexing and hybrid retrieval."""
 
 import hashlib
+import heapq
 import json
 import logging
 import math
@@ -23,6 +24,7 @@ from app.models.task import Task
 from app.providers.openai_provider import OpenAIProvider
 from app.providers.protocols import EmbeddingProvider
 from app.schemas.search import SearchResponse, SearchResult
+from app.services.efficiency_service import record_indexing
 
 logger = logging.getLogger(__name__)
 EntityType = Literal["note", "task", "idea", "project", "inbox_item"]
@@ -101,70 +103,199 @@ class SearchIndexService:
         if not pending:
             return
         await self.session.flush()
+        removals: dict[str, list[int]] = {}
+        updates: dict[str, list[int]] = {}
         for (entity_type, entity_id), action in pending.items():
-            if action == "remove":
-                await self.remove(entity_type, entity_id)
-            else:
-                await self.index_entity(entity_type, entity_id)
+            target = removals if action == "remove" else updates
+            target.setdefault(entity_type, []).append(entity_id)
+        for entity_type, entity_ids in removals.items():
+            await self._remove_many(entity_type, entity_ids)
+        for entity_type, entity_ids in updates.items():
+            await self._index_entities(entity_type, entity_ids)
 
     async def remove(self, entity_type: str, entity_id: int) -> None:
+        await self._remove_many(entity_type, [entity_id])
+
+    async def _remove_many(self, entity_type: str, entity_ids: list[int]) -> None:
+        if not entity_ids:
+            return
         await self.session.execute(
             delete(SearchChunk).where(
                 SearchChunk.entity_type == entity_type,
-                SearchChunk.entity_id == entity_id,
+                SearchChunk.entity_id.in_(entity_ids),
             )
         )
 
     async def index_entity(self, entity_type: str, entity_id: int) -> int:
+        return await self._index_entities(entity_type, [entity_id])
+
+    async def _index_entities(
+        self,
+        entity_type: str,
+        entity_ids: list[int],
+        *,
+        entities: list[Any] | None = None,
+        remove_stale: bool = False,
+    ) -> int:
         model = ENTITY_MODELS.get(entity_type)
         if model is None:
             return 0
-        entity = await self.session.get(model, entity_id)
-        await self.remove(entity_type, entity_id)
-        if entity is None or getattr(entity, "archived_at", None) is not None:
-            return 0
-
-        title, body, project_id = self._document(entity_type, entity)
-        tags = await self._tags(entity_type, entity_id)
-        pieces = _chunks(body)
-        inputs = [f"{title}\n{piece}".strip() for piece in pieces]
-        embeddings: list[list[float] | None] = [None] * len(inputs)
-        model_version = None
-        if self.provider and any(inputs):
-            try:
-                embeddings = list(await self.provider.embed(inputs))
-                model_version = self.provider.model_version
-            except Exception:
-                logger.exception("Embedding failed; keyword index remains available")
-                embeddings = [None] * len(inputs)
-
-        for index, piece in enumerate(pieces):
-            content_hash = hashlib.sha256(inputs[index].encode()).hexdigest()
-            self.session.add(
-                SearchChunk(
-                    entity_type=entity_type,
-                    entity_id=entity_id,
-                    chunk_index=index,
-                    section="body",
-                    title=title,
-                    content=piece,
-                    project_id=project_id,
-                    tags=tags,
-                    content_hash=content_hash,
-                    embedding=embeddings[index],
-                    embedding_model=model_version,
+        unique_ids = list(dict.fromkeys(entity_ids))
+        if not unique_ids:
+            if remove_stale:
+                await self.session.execute(
+                    delete(SearchChunk).where(SearchChunk.entity_type == entity_type)
                 )
+            return 0
+        if entities is None:
+            result = await self.session.execute(
+                select(model).where(model.id.in_(unique_ids))
             )
+            entities = list(result.scalars())
+        by_id = {entity.id: entity for entity in entities}
+        tags_by_id = await self._tags_many(entity_type, unique_ids)
+        existing_query = select(SearchChunk).where(
+            SearchChunk.entity_type == entity_type
+        )
+        if not remove_stale:
+            existing_query = existing_query.where(SearchChunk.entity_id.in_(unique_ids))
+        existing_result = await self.session.execute(existing_query)
+        existing_by_id: dict[int, list[SearchChunk]] = {}
+        for chunk in existing_result.scalars():
+            existing_by_id.setdefault(chunk.entity_id, []).append(chunk)
+
+        prepared: dict[int, dict[str, Any]] = {}
+        embed_jobs: list[tuple[int, int, str]] = []
+        delete_ids: set[int] = set()
+        reused_count = 0
+        current_model = self.provider.model_version if self.provider else None
+        for entity_id in unique_ids:
+            entity = by_id.get(entity_id)
+            old_chunks = existing_by_id.get(entity_id, [])
+            if entity is None or getattr(entity, "archived_at", None) is not None:
+                if old_chunks:
+                    delete_ids.add(entity_id)
+                continue
+            title, body, project_id = self._document(entity_type, entity)
+            pieces = _chunks(body)
+            inputs = [f"{title}\n{piece}".strip() for piece in pieces]
+            hashes = [hashlib.sha256(value.encode()).hexdigest() for value in inputs]
+            reusable: dict[str, SearchChunk] = {}
+            for chunk in old_chunks:
+                previous = reusable.get(chunk.content_hash)
+                if previous is None or (
+                    current_model
+                    and chunk.embedding_model == current_model
+                    and previous.embedding_model != current_model
+                ):
+                    reusable[chunk.content_hash] = chunk
+            embeddings: list[list[float] | None] = []
+            embedding_models: list[str | None] = []
+            for index, content_hash in enumerate(hashes):
+                old = reusable.get(content_hash)
+                reusable_embedding = bool(old and old.embedding)
+                embeddings.append(list(old.embedding) if reusable_embedding else None)
+                embedding_models.append(old.embedding_model if old else None)
+                if reusable_embedding and (
+                    self.provider is None or old.embedding_model == current_model
+                ):
+                    reused_count += 1
+                if self.provider and (
+                    old is None
+                    or old.embedding is None
+                    or old.embedding_model != current_model
+                ):
+                    embed_jobs.append((entity_id, index, inputs[index]))
+            prepared[entity_id] = {
+                "title": title,
+                "project_id": project_id,
+                "tags": tags_by_id.get(entity_id, []),
+                "pieces": pieces,
+                "hashes": hashes,
+                "embeddings": embeddings,
+                "embedding_models": embedding_models,
+                "old": sorted(old_chunks, key=lambda chunk: chunk.chunk_index),
+            }
+
+        if self.provider and embed_jobs:
+            for start in range(0, len(embed_jobs), 64):
+                batch = embed_jobs[start : start + 64]
+                try:
+                    vectors = await self.provider.embed([job[2] for job in batch])
+                    if len(vectors) != len(batch):
+                        raise ValueError(
+                            "Embedding provider returned the wrong batch size"
+                        )
+                    for (entity_id, index, _), vector in zip(
+                        batch, vectors, strict=True
+                    ):
+                        prepared[entity_id]["embeddings"][index] = vector
+                        prepared[entity_id]["embedding_models"][index] = current_model
+                except Exception:
+                    logger.exception(
+                        "Embedding batch failed; preserving reusable vectors"
+                    )
+
+        total = 0
+        dirty: dict[int, dict[str, Any]] = {}
+        for entity_id, document in prepared.items():
+            total += len(document["pieces"])
+            if not self._index_is_current(document):
+                delete_ids.add(entity_id)
+                dirty[entity_id] = document
+        if remove_stale:
+            delete_ids.update(set(existing_by_id) - set(by_id))
+        await self._remove_many(entity_type, list(delete_ids))
+
+        for entity_id, document in dirty.items():
+            for index, piece in enumerate(document["pieces"]):
+                self.session.add(
+                    SearchChunk(
+                        entity_type=entity_type,
+                        entity_id=entity_id,
+                        chunk_index=index,
+                        section="body",
+                        title=document["title"],
+                        content=piece,
+                        project_id=document["project_id"],
+                        tags=document["tags"],
+                        content_hash=document["hashes"][index],
+                        embedding=document["embeddings"][index],
+                        embedding_model=document["embedding_models"][index],
+                    )
+                )
         await self.session.flush()
-        return len(pieces)
+        record_indexing(chunks=total, reused=reused_count)
+        return total
+
+    @staticmethod
+    def _index_is_current(document: dict[str, Any]) -> bool:
+        old: list[SearchChunk] = document["old"]
+        if len(old) != len(document["pieces"]):
+            return False
+        return all(
+            chunk.chunk_index == index
+            and chunk.section == "body"
+            and chunk.title == document["title"]
+            and chunk.content == document["pieces"][index]
+            and chunk.project_id == document["project_id"]
+            and list(chunk.tags or []) == document["tags"]
+            and chunk.content_hash == document["hashes"][index]
+            and chunk.embedding_model == document["embedding_models"][index]
+            for index, chunk in enumerate(old)
+        )
 
     async def rebuild(self) -> int:
-        await self.session.execute(delete(SearchChunk))
         count = 0
         for entity_type, model in ENTITY_MODELS.items():
-            result = await self.session.execute(select(model.id))
-            for entity_id in result.scalars():
-                count += await self.index_entity(entity_type, entity_id)
+            result = await self.session.execute(select(model))
+            entities = list(result.scalars())
+            count += await self._index_entities(
+                entity_type,
+                [entity.id for entity in entities],
+                entities=entities,
+                remove_stale=True,
+            )
         return count
 
     async def search(
@@ -196,15 +327,26 @@ class SearchIndexService:
         )
 
     async def _tags(self, entity_type: str, entity_id: int) -> list[str]:
+        return (await self._tags_many(entity_type, [entity_id]))[entity_id]
+
+    async def _tags_many(
+        self, entity_type: str, entity_ids: list[int]
+    ) -> dict[int, list[str]]:
+        tags = {entity_id: [] for entity_id in entity_ids}
+        if not entity_ids:
+            return tags
         result = await self.session.execute(
-            select(Tag.name)
+            select(EntityTag.entity_id, Tag.name)
             .join(EntityTag, EntityTag.tag_id == Tag.id)
             .where(
-                EntityTag.entity_type == entity_type, EntityTag.entity_id == entity_id
+                EntityTag.entity_type == entity_type,
+                EntityTag.entity_id.in_(entity_ids),
             )
-            .order_by(Tag.name)
+            .order_by(EntityTag.entity_id, Tag.name)
         )
-        return list(result.scalars())
+        for entity_id, name in result:
+            tags[entity_id].append(name)
+        return tags
 
     @staticmethod
     def _document(entity_type: str, entity: Any) -> tuple[str, str, int | None]:
@@ -299,15 +441,21 @@ class SearchIndexService:
                     [(row.id, 1.0 - float(row.distance)) for row in rows]
                 )
             if dialect == "postgresql":
-                has_native_index = await self.session.scalar(
-                    text("""
-                    SELECT EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'search_chunks'
-                          AND column_name = 'embedding_vector'
+                cache_key = "search_has_native_vector_index"
+                has_native_index = self.session.info.get(cache_key)
+                if has_native_index is None:
+                    has_native_index = bool(
+                        await self.session.scalar(
+                            text("""
+                            SELECT EXISTS (
+                                SELECT 1 FROM information_schema.columns
+                                WHERE table_name = 'search_chunks'
+                                  AND column_name = 'embedding_vector'
+                            )
+                        """)
+                        )
                     )
-                """)
-                )
+                    self.session.info[cache_key] = has_native_index
                 if not has_native_index:
                     return await self._semantic_fallback(vector, limit)
                 rows = await self.session.execute(
@@ -337,13 +485,20 @@ class SearchIndexService:
         self, vector: list[float], limit: int
     ) -> list[_Candidate]:
         result = await self.session.execute(
-            select(SearchChunk).where(SearchChunk.embedding.is_not(None))
+            select(SearchChunk.id, SearchChunk.embedding).where(
+                SearchChunk.embedding.is_not(None)
+            )
         )
-        candidates = [
-            _Candidate(chunk, self._cosine(vector, list(chunk.embedding)))
-            for chunk in result.scalars()
-        ]
-        return sorted(candidates, key=lambda item: item.score, reverse=True)[:limit]
+        best = heapq.nlargest(
+            limit,
+            (
+                (self._cosine(vector, list(embedding)), chunk_id)
+                for chunk_id, embedding in result
+            ),
+        )
+        return await self._load_candidates(
+            [(chunk_id, score) for score, chunk_id in best]
+        )
 
     async def _load_candidates(
         self, pairs: list[tuple[int, float]]

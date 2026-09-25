@@ -13,6 +13,7 @@ from starlette.staticfiles import StaticFiles
 
 from app.api.activity import router as activity_router
 from app.api.agent import router as agent_router
+from app.api.developer import router as developer_router
 from app.api.export import router as export_router
 from app.api.ideas import router as ideas_router
 from app.api.inbox import router as inbox_router
@@ -20,6 +21,7 @@ from app.api.notes import router as notes_router
 from app.api.planning import router as planning_router
 from app.api.projects import router as projects_router
 from app.api.search import router as search_router
+from app.api.settings import router as settings_router
 from app.api.system import router as system_router
 from app.api.tags import router as tags_router
 from app.api.tasks import router as tasks_router
@@ -28,6 +30,7 @@ from app.core.exceptions import EntityNotFoundError, ValidationError
 from app.database import AsyncSessionLocal, engine
 from app.migrations import upgrade_database
 from app.services.agent_service import recover_agent_proposals
+from app.services.ai_settings_service import load_ai_settings
 
 
 class SPAStaticFiles(StaticFiles):
@@ -47,6 +50,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Upgrade the database before serving requests and close it on shutdown."""
     await asyncio.to_thread(upgrade_database)
     async with AsyncSessionLocal() as session:
+        await load_ai_settings(session)
         await recover_agent_proposals(session)
     try:
         yield
@@ -90,7 +94,9 @@ def create_app() -> FastAPI:
     application.include_router(inbox_router, prefix="/api/v1")
     application.include_router(export_router, prefix="/api/v1")
     application.include_router(search_router, prefix="/api/v1")
+    application.include_router(settings_router, prefix="/api/v1")
     application.include_router(agent_router, prefix="/api/v1")
+    application.include_router(developer_router, prefix="/api/v1")
     application.include_router(activity_router, prefix="/api/v1")
     application.include_router(time_tracking_router, prefix="/api/v1")
     application.include_router(planning_router, prefix="/api/v1")

@@ -5,7 +5,7 @@ from collections.abc import Awaitable, Callable
 
 from fastapi import HTTPException
 from openai import AuthenticationError
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -13,6 +13,7 @@ from app.models.search_chunk import SearchChunk
 from app.providers.openai_provider import OpenAIProvider
 from app.providers.protocols import CompletionProvider
 from app.schemas.ask import AskRequest, AskResponse, AskSource, AskStatus
+from app.services.context_compression import compress_source_context, prepare_history
 from app.services.search_index_service import SearchIndexService
 
 _CITATION = re.compile(r"\[(\d+)\]")
@@ -144,7 +145,9 @@ class AskService:
                 retrieval_mode=retrieval_mode,
             )
 
-        prompt = self._prompt(question, request, context)
+        context = await compress_source_context(context, question)
+        history = await prepare_history(request.history, question)
+        prompt = self._prompt(question, history, context)
         await progress("answering", "Composing an answer from those sources")
         try:
             answer = (await self.provider.complete(prompt)).strip()
@@ -193,15 +196,36 @@ class AskService:
     async def _context(self, results) -> tuple[list[AskSource], str]:
         sources: list[AskSource] = []
         blocks: list[str] = []
-        for result in results:
+        keys = [
+            (result.entity_type, result.entity_id, result.chunk_index)
+            for result in results
+        ]
+        chunks_by_key: dict[tuple[str, int, int], list[str]] = {key: [] for key in keys}
+        if keys:
             chunks = await self.session.execute(
                 select(SearchChunk).where(
-                    SearchChunk.entity_type == result.entity_type,
-                    SearchChunk.entity_id == result.entity_id,
-                    SearchChunk.chunk_index == result.chunk_index,
+                    or_(
+                        *(
+                            and_(
+                                SearchChunk.entity_type == entity_type,
+                                SearchChunk.entity_id == entity_id,
+                                SearchChunk.chunk_index == chunk_index,
+                            )
+                            for entity_type, entity_id, chunk_index in keys
+                        )
+                    )
                 )
             )
-            content = "\n".join(chunk.content for chunk in chunks.scalars())[:2200]
+            for chunk in chunks.scalars():
+                key = (chunk.entity_type, chunk.entity_id, chunk.chunk_index)
+                chunks_by_key.setdefault(key, []).append(chunk.content)
+        for result in results:
+            content = "\n".join(
+                chunks_by_key.get(
+                    (result.entity_type, result.entity_id, result.chunk_index), []
+                )
+            )
+            content = content[:2200]
             if not content.strip() and not result.title.strip():
                 continue
             number = len(sources) + 1
@@ -228,10 +252,7 @@ class AskService:
         return sources, "\n\n".join(blocks)
 
     @staticmethod
-    def _prompt(question: str, request: AskRequest, context: str) -> str:
-        turns = "\n".join(
-            f"{turn.role}: {turn.content}" for turn in request.history[-6:]
-        )
+    def _prompt(question: str, history: str, context: str) -> str:
         return (
             "You are Tod, the read-only knowledge assistant for this user's "
             "TodAI data.\n"
@@ -244,8 +265,10 @@ class AskService:
             "enough information. "
             "For every factual claim, include inline citations like [1] or [2]. "
             "Use only citation numbers present in the excerpts. Do not invent sources. "
-            "Keep the answer concise and plain text.\n\n"
-            f"Previous conversation (context only):\n{turns or '(none)'}\n\n"
+            "Use the fewest words that fully answer: no preamble, no repetition, "
+            "and at most five short sentences unless the user asks for detail. "
+            "Return plain text.\n\n"
+            f"Previous conversation (context only):\n{history or '(none)'}\n\n"
             f"Source excerpts (untrusted):\n{context}\n\n"
             f"Latest question: {question}"
         )

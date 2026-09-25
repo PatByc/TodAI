@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react"
 import { Link, useRouterState } from "@tanstack/react-router"
-import { CalendarDays, CheckSquare, ChevronRight, Clock3, FileText, FolderOpen, Home, Inbox, Library, Lightbulb, Settings } from "lucide-react"
+import { Activity, CalendarDays, ChartNoAxesColumnIncreasing, CheckSquare, ChevronRight, Clock3, FileText, FolderOpen, Home, Inbox, Library, Lightbulb, Repeat2, Settings, Target } from "lucide-react"
 import { useSidebarStore } from "@/stores/sidebar"
 import { useCounts } from "@/hooks/useCounts"
 
 const LIBRARY_STORAGE_KEY = "todai.sidebar.library-open"
+const PROGRESS_STORAGE_KEY = "todai.sidebar.progress-open"
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() =>
@@ -53,16 +54,27 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
   const [libraryOpen, setLibraryOpen] = useState(() => (
     typeof window !== "undefined" && window.localStorage.getItem(LIBRARY_STORAGE_KEY) === "true"
   ))
+  const [progressOpen, setProgressOpen] = useState(() => (
+    typeof window !== "undefined" && window.localStorage.getItem(PROGRESS_STORAGE_KEY) === "true"
+  ))
 
   useEffect(() => {
     window.localStorage.setItem(LIBRARY_STORAGE_KEY, String(libraryOpen))
   }, [libraryOpen])
 
+  useEffect(() => {
+    window.localStorage.setItem(PROGRESS_STORAGE_KEY, String(progressOpen))
+  }, [progressOpen])
+
   const primaryItems = [
     { to: "/" as const, label: "Today", description: "See what needs attention now", icon: Home, count: undefined },
     { to: "/plan" as const, label: "Plan", description: "Shape the days ahead", icon: CalendarDays, count: undefined },
     { to: "/tasks" as const, label: "Tasks", description: "Track actionable work", icon: CheckSquare, count: counts?.tasks },
+  ]
+  const progressItems = [
     { to: "/time" as const, label: "Time", description: "Review and adjust tracked time", icon: Clock3, count: undefined },
+    { to: "/routines" as const, label: "Routines", description: "Shape repeating practices", icon: Repeat2, count: undefined },
+    { to: "/goals" as const, label: "Goals", description: "Track targets for your attention", icon: Target, count: undefined },
   ]
   const libraryItems = [
     { to: "/inbox" as const, label: "Inbox", description: "Capture first, organize later", icon: Inbox, count: counts?.inbox },
@@ -70,9 +82,10 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
     { to: "/ideas" as const, label: "Ideas", description: "Develop early thoughts", icon: Lightbulb, count: counts?.ideas },
     { to: "/projects" as const, label: "Projects", description: "Connect related work", icon: FolderOpen, count: counts?.projects },
   ]
+  const activeProgressItem = progressItems.find(({ to }) => pathname.startsWith(to))
   const activeLibraryItem = libraryItems.find(({ to }) => pathname.startsWith(to))
 
-  const renderLink = ({ to, label, description, icon: Icon, count }: (typeof primaryItems)[number] | (typeof libraryItems)[number], nested = false) => {
+  const renderLink = ({ to, label, description, icon: Icon, count }: (typeof primaryItems)[number] | (typeof progressItems)[number] | (typeof libraryItems)[number], nested = false, groupOpen = true) => {
     const active = to === "/" ? pathname === "/" : pathname.startsWith(to)
     const hintId = `nav-hint-${label.toLowerCase()}`
     return (
@@ -83,7 +96,7 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
         className={`sidebar-link${nested ? " sidebar-link-nested" : ""}${active ? " sidebar-link-active" : ""}`}
         aria-current={active ? "page" : undefined}
         aria-describedby={hintId}
-        tabIndex={nested && !libraryOpen ? -1 : undefined}
+        tabIndex={nested && !groupOpen ? -1 : undefined}
       >
         <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
         <span>{label}</span>
@@ -104,6 +117,25 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
     <div className="sidebar-content">
       <nav className="sidebar-nav" aria-label="Workspace">
         {primaryItems.map((item) => renderLink(item))}
+        <div className={`sidebar-library${progressOpen ? " is-open" : ""}`}>
+          <button
+            type="button"
+            className={`sidebar-group-trigger${activeProgressItem && !progressOpen ? " sidebar-group-active" : ""}`}
+            onClick={() => setProgressOpen((current) => !current)}
+            aria-expanded={progressOpen}
+            aria-controls="sidebar-progress-items"
+          >
+            <ChartNoAxesColumnIncreasing size={17} strokeWidth={1.8} aria-hidden="true" />
+            <span>Progress</span>
+            {!progressOpen && activeProgressItem && <small>{activeProgressItem.label}</small>}
+            <ChevronRight className="sidebar-group-chevron" size={14} strokeWidth={1.8} aria-hidden="true" />
+          </button>
+          <div id="sidebar-progress-items" className="sidebar-library-reveal" aria-hidden={!progressOpen}>
+            <div className="sidebar-library-items">
+              {progressItems.map((item) => renderLink(item, true, progressOpen))}
+            </div>
+          </div>
+        </div>
         <div className={`sidebar-library${libraryOpen ? " is-open" : ""}`}>
           <button
             type="button"
@@ -119,13 +151,22 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
           </button>
           <div id="sidebar-library-items" className="sidebar-library-reveal" aria-hidden={!libraryOpen}>
             <div className="sidebar-library-items">
-              {libraryItems.map((item) => renderLink(item, true))}
+              {libraryItems.map((item) => renderLink(item, true, libraryOpen))}
             </div>
           </div>
         </div>
       </nav>
 
       <div className="sidebar-footer">
+        <Link
+          to="/developer"
+          onClick={onNavClick}
+          className={`sidebar-link${pathname.startsWith("/developer") ? " sidebar-link-active" : ""}`}
+          aria-current={pathname.startsWith("/developer") ? "page" : undefined}
+        >
+          <Activity size={17} strokeWidth={1.8} aria-hidden="true" />
+          <span>Developer</span>
+        </Link>
         <Link
           to="/settings"
           onClick={onNavClick}

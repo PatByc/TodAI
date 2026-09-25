@@ -56,7 +56,11 @@ async def test_create_update_archive_maintains_search_index(
 class FakeEmbeddingProvider:
     model_version = "fake:semantic:v1"
 
+    def __init__(self) -> None:
+        self.calls: list[list[str]] = []
+
     async def embed(self, texts: list[str]) -> list[list[float]]:
+        self.calls.append(texts)
         vectors = []
         for value in texts:
             normalized = value.lower()
@@ -84,6 +88,23 @@ async def test_semantic_search_and_rebuild_are_provider_agnostic(async_session):
     assert response.semantic_available is True
     assert response.results[0].title == "Summer plans"
     assert response.results[0].matched_by == ["semantic"]
+
+
+@pytest.mark.asyncio
+async def test_rebuild_reuses_unchanged_embeddings(async_session):
+    from app.models.note import Note
+
+    note = Note(title="Stable", content={"type": "doc"}, content_text="same text")
+    async_session.add(note)
+    await async_session.flush()
+    provider = FakeEmbeddingProvider()
+    service = SearchIndexService(async_session, provider=provider)
+
+    await service.rebuild()
+    await service.rebuild()
+
+    assert len(provider.calls) == 1
+    assert len(provider.calls[0]) == 1
 
 
 @pytest.mark.asyncio
