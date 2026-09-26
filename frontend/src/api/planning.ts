@@ -1,5 +1,10 @@
 import { apiClient, buildQueryString } from "./client"
 import type {
+  MetricGoal,
+  MetricGoalCreate,
+  MetricGoalUpdate,
+  MetricProgress,
+  MetricProgressCreate,
   PlannedBlock,
   PlannedBlockCreate,
   PlannedBlockUpdate,
@@ -62,4 +67,24 @@ export function updateTimeGoal(id: number, data: TimeGoalUpdate): Promise<TimeGo
 
 export function deleteTimeGoal(id: number): Promise<void> {
   return apiClient.del<void>(`/plan/goals/${id}`)
+}
+
+export function fetchMetricGoals(includeInactive = true, onDate?: string): Promise<MetricGoal[]> {
+  return apiClient.get<MetricGoal[]>(`/plan/metric-goals${buildQueryString({ include_inactive: includeInactive, on_date: onDate })}`)
+}
+
+export function createMetricGoal(data: MetricGoalCreate): Promise<MetricGoal> {
+  return apiClient.post<MetricGoal>("/plan/metric-goals", data)
+}
+
+export function updateMetricGoal(id: number, data: MetricGoalUpdate): Promise<MetricGoal> {
+  return apiClient.put<MetricGoal>(`/plan/metric-goals/${id}`, data)
+}
+
+export function deleteMetricGoal(id: number): Promise<void> {
+  return apiClient.del<void>(`/plan/metric-goals/${id}`)
+}
+
+export function recordMetricProgress(id: number, data: MetricProgressCreate): Promise<MetricProgress> {
+  return apiClient.post<MetricProgress>(`/plan/metric-goals/${id}/progress`, data)
 }

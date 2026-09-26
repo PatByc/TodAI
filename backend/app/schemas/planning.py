@@ -100,6 +100,57 @@ class TimeGoalResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class MetricGoalCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=160)
+    period: Literal["daily", "weekly", "monthly"]
+    target_value: float = Field(gt=0, le=1_000_000_000_000)
+    direction: Literal["at_least", "at_most"] = "at_least"
+
+    @field_validator("title")
+    @classmethod
+    def normalize_title(cls, value: str) -> str:
+        return " ".join(value.split())
+
+
+class MetricGoalUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=160)
+    period: Literal["daily", "weekly", "monthly"] | None = None
+    target_value: float | None = Field(
+        default=None, gt=0, le=1_000_000_000_000
+    )
+    direction: Literal["at_least", "at_most"] | None = None
+    is_active: bool | None = None
+
+
+class MetricGoalResponse(BaseModel):
+    id: int
+    title: str
+    period: Literal["daily", "weekly", "monthly"]
+    target_value: float
+    direction: Literal["at_least", "at_most"]
+    is_active: bool
+    current_value: float = 0
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class MetricProgressCreate(BaseModel):
+    value: float = Field(gt=0, le=1_000_000_000_000)
+    recorded_on: date
+
+
+class MetricProgressResponse(BaseModel):
+    id: int
+    goal_id: int
+    value: float
+    recorded_on: date
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class PlannedBlockCreate(BaseModel):
     title: str = Field(min_length=1, max_length=160)
     description: str | None = Field(default=None, max_length=5000)

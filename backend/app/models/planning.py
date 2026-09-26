@@ -10,6 +10,7 @@ from sqlalchemy import (
     Boolean,
     Date,
     Enum,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -26,6 +27,11 @@ class GoalPeriod(StrEnum):
     DAILY = "daily"
     WEEKLY = "weekly"
     MONTHLY = "monthly"
+
+
+class MetricGoalDirection(StrEnum):
+    AT_LEAST = "at_least"
+    AT_MOST = "at_most"
 
 
 class Routine(TimestampMixin, Base):
@@ -72,6 +78,44 @@ class TimeGoal(TimestampMixin, Base):
         ForeignKey("time_streams.id", ondelete="SET NULL"), nullable=True, index=True
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+
+
+class MetricGoal(TimestampMixin, Base):
+    __tablename__ = "metric_goals"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(160))
+    period: Mapped[GoalPeriod] = mapped_column(
+        Enum(
+            GoalPeriod, values_callable=lambda values: [value.value for value in values]
+        )
+    )
+    target_value: Mapped[float] = mapped_column(Float)
+    direction: Mapped[MetricGoalDirection] = mapped_column(
+        Enum(
+            MetricGoalDirection,
+            values_callable=lambda values: [value.value for value in values],
+        ),
+        default=MetricGoalDirection.AT_LEAST,
+    )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+
+    progress_entries: Mapped[list[MetricGoalProgress]] = relationship(
+        back_populates="goal", cascade="all, delete-orphan"
+    )
+
+
+class MetricGoalProgress(TimestampMixin, Base):
+    __tablename__ = "metric_goal_progress"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    goal_id: Mapped[int] = mapped_column(
+        ForeignKey("metric_goals.id", ondelete="CASCADE"), index=True
+    )
+    recorded_on: Mapped[date] = mapped_column(Date(), index=True)
+    value: Mapped[float] = mapped_column(Float)
+
+    goal: Mapped[MetricGoal] = relationship(back_populates="progress_entries")
 
 
 class PlannedBlock(TimestampMixin, Base):

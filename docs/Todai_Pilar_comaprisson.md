@@ -600,9 +600,9 @@ knowledge, work, planning, and reflection rather than business accounting.
 - Work-category distribution.
 - Project-time summaries.
 
-### Recommended direction
+### Implemented direction
 
-Build TodAI's future Review area on a common event/metric layer:
+TodAI's Review area now uses a common event/metric layer:
 
 - entity state transitions from TodAI audit records;
 - task completion;
@@ -610,8 +610,8 @@ Build TodAI's future Review area on a common event/metric layer:
 - time entries;
 - agent-applied changes.
 
-This would make the desired day/week/month reflection feature substantially
-more useful than either application's current implementation in isolation.
+Day, week, month, and custom-period reviews now combine these records with
+durable human reflections and optional evidence-grounded Tod drafts.
 
 ---
 
@@ -1223,12 +1223,13 @@ product specification.
 5. Add routines and goals to Plan.
 6. Expose typed MCP read/write tools with Manual/Auto approval behavior.
 
-### Phase C — review
+### Phase C — review (implemented)
 
 1. Build unified day/week/month Review views.
 2. Compare planned and actual time.
 3. Summarize tasks, routines, and time allocation.
-4. Let Tod generate grounded reflections from those records.
+4. Let Tod generate grounded reflections from those records, with explicit
+   human acceptance before saving.
 
 ### Phase D — migration and retirement
 

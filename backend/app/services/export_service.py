@@ -1,11 +1,12 @@
 """Export service for generating JSON and Markdown data exports."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.api_usage_cost import APIUsageCost
+from app.models.review_reflection import ReviewReflection
 from app.repositories.idea_repo import IdeaRepository
 from app.repositories.inbox_repo import InboxRepository
 from app.repositories.note_repo import NoteRepository
@@ -62,8 +63,13 @@ class ExportService:
         time_entries = await self.time_config_repo.list_entries(limit=100000)
         routines = await self.planning_repo.list_routines(include_inactive=True)
         time_goals = await self.planning_repo.list_goals(include_inactive=True)
-        export_start = datetime(1970, 1, 1)
-        export_end = datetime(9999, 1, 1)
+        metric_goals = await self.planning_repo.list_metric_goals(include_inactive=True)
+        metric_progress = {
+            goal.id: await self.planning_repo.list_goal_metric_progress(goal.id)
+            for goal in metric_goals
+        }
+        export_start = datetime(1970, 1, 1, tzinfo=UTC).replace(tzinfo=None)
+        export_end = datetime(9999, 1, 1, tzinfo=UTC).replace(tzinfo=None)
         planned_blocks = await self.planning_repo.list_blocks(export_start, export_end)
         api_usage_costs = list(
             (
@@ -72,9 +78,18 @@ class ExportService:
                 )
             ).scalars()
         )
+        review_reflections = list(
+            (
+                await self.session.execute(
+                    select(ReviewReflection).order_by(
+                        ReviewReflection.start_date, ReviewReflection.id
+                    )
+                )
+            ).scalars()
+        )
 
         return {
-            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "exported_at": datetime.now(UTC).isoformat(),
             "notes": [await self._serialize_note(n) for n in notes],
             "tasks": [await self._serialize_task(t) for t in tasks],
             "ideas": [await self._serialize_idea(i) for i in ideas],
@@ -153,6 +168,28 @@ class ExportService:
                 }
                 for goal in time_goals
             ],
+            "metric_goals": [
+                {
+                    "id": goal.id,
+                    "title": goal.title,
+                    "period": goal.period.value,
+                    "target_value": goal.target_value,
+                    "direction": goal.direction.value,
+                    "is_active": goal.is_active,
+                    "created_at": goal.created_at.isoformat(),
+                    "updated_at": goal.updated_at.isoformat(),
+                    "progress_entries": [
+                        {
+                            "id": entry.id,
+                            "value": entry.value,
+                            "recorded_on": entry.recorded_on.isoformat(),
+                            "created_at": entry.created_at.isoformat(),
+                        }
+                        for entry in metric_progress[goal.id]
+                    ],
+                }
+                for goal in metric_goals
+            ],
             "planned_blocks": [
                 {
                     "id": block.id,
@@ -166,6 +203,25 @@ class ExportService:
                     "updated_at": block.updated_at.isoformat(),
                 }
                 for block in planned_blocks
+            ],
+            "review_reflections": [
+                {
+                    "id": reflection.id,
+                    "scope": reflection.scope,
+                    "start_date": reflection.start_date.isoformat(),
+                    "end_date": reflection.end_date.isoformat(),
+                    "timezone": reflection.timezone,
+                    "what_worked": reflection.what_worked,
+                    "friction": reflection.friction,
+                    "adjustment": reflection.adjustment,
+                    "patterns": reflection.patterns,
+                    "accepted_at": reflection.accepted_at.isoformat()
+                    if reflection.accepted_at
+                    else None,
+                    "created_at": reflection.created_at.isoformat(),
+                    "updated_at": reflection.updated_at.isoformat(),
+                }
+                for reflection in review_reflections
             ],
             "api_usage_costs": [
                 {
@@ -219,7 +275,7 @@ class ExportService:
         sections: list[str] = []
         sections.append(
             f"# TodAI Export\n\nExported: "
-            f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}\n"
+            f"{datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}\n"
         )
 
         # Projects
@@ -304,6 +360,61 @@ class ExportService:
                     f"{item.content_text or ''}\n\n"
                     f"Tags: {tag_str}\n"
                     f"Created: {item.created_at.strftime('%Y-%m-%d')}\n\n---\n"
+                )
+
+        time_goals = await self.planning_repo.list_goals(include_inactive=True)
+        metric_goals = await self.planning_repo.list_metric_goals(include_inactive=True)
+        if time_goals or metric_goals:
+            sections.append("# Goals\n")
+            for goal in time_goals:
+                sections.append(
+                    f"## {goal.title}\n\n"
+                    f"Type: time\n"
+                    f"Period: {goal.period.value}\n"
+                    f"Target seconds: {goal.target_seconds}\n"
+                    f"Active: {'yes' if goal.is_active else 'no'}\n\n---\n"
+                )
+            for goal in metric_goals:
+                entries = await self.planning_repo.list_goal_metric_progress(goal.id)
+                history = "\n".join(
+                    f"- {entry.recorded_on.isoformat()}: {entry.value:g}"
+                    for entry in entries
+                ) or "none"
+                sections.append(
+                    f"## {goal.title}\n\n"
+                    f"Type: number\n"
+                    f"Period: {goal.period.value}\n"
+                    f"Direction: {goal.direction.value.replace('_', ' ')}\n"
+                    f"Target: {goal.target_value:g}\n"
+                    f"Active: {'yes' if goal.is_active else 'no'}\n"
+                    f"Progress:\n{history}\n\n---\n"
+                )
+
+        reflections = list(
+            (
+                await self.session.execute(
+                    select(ReviewReflection).order_by(
+                        ReviewReflection.start_date, ReviewReflection.id
+                    )
+                )
+            ).scalars()
+        )
+        if reflections:
+            sections.append("# Review Reflections\n")
+            for reflection in reflections:
+                period = reflection.start_date.isoformat()
+                if reflection.end_date != reflection.start_date:
+                    period = f"{period} to {reflection.end_date.isoformat()}"
+                patterns = "\n".join(
+                    f"- {pattern.get('text', '')} — {pattern.get('evidence', '')}"
+                    for pattern in reflection.patterns
+                ) or "none"
+                sections.append(
+                    f"## {reflection.scope.title()}: {period}\n\n"
+                    f"What worked: {reflection.what_worked or 'none'}\n\n"
+                    f"Friction: {reflection.friction or 'none'}\n\n"
+                    f"Adjustment: {reflection.adjustment or 'none'}\n\n"
+                    f"Patterns:\n{patterns}\n\n---\n"
                 )
 
         return "\n".join(sections)

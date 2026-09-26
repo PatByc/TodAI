@@ -143,6 +143,8 @@ function WeekCalendar({ dates, blocks, routines, tasks, streams, onCreate, onEdi
   onEditRoutine: (routine: Routine) => void
   onOpenTask: (task: Task) => void
 }) {
+  const calendarShell = useRef<HTMLDivElement>(null)
+  const centeredOnArrival = useRef(false)
   const [taskDrop, setTaskDrop] = useState<{ dayIndex: number; top: number; time: string } | null>(null)
   const [resizing, setResizing] = useState<{ blockId: number; endsAt: Date } | null>(null)
   const [tooltip, setTooltip] = useState<VisiblePlanTooltip | null>(null)
@@ -196,6 +198,24 @@ function WeekCalendar({ dates, blocks, routines, tasks, streams, onCreate, onEdi
       if (tooltipTimer.current !== null) window.clearTimeout(tooltipTimer.current)
     }
   }, [])
+
+  useEffect(() => {
+    if (centeredOnArrival.current) return
+    const frame = window.requestAnimationFrame(() => {
+      const shell = calendarShell.current
+      const calendarBody = shell?.querySelector<HTMLElement>(".plan-calendar-body")
+      if (!shell || !calendarBody || shell.clientHeight === 0) return
+
+      const currentHour = now.getHours() + now.getMinutes() / 60
+      const currentPosition = Math.max(0, currentHour - CALENDAR_START) * HOUR_HEIGHT
+      shell.scrollTo({
+        top: Math.max(0, calendarBody.offsetTop + currentPosition - shell.clientHeight / 2),
+        behavior: "auto",
+      })
+      centeredOnArrival.current = true
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [now])
 
   const beginResize = (event: ReactPointerEvent<HTMLSpanElement>, block: PlannedBlock) => {
     hideTooltip()
@@ -252,15 +272,9 @@ function WeekCalendar({ dates, blocks, routines, tasks, streams, onCreate, onEdi
     if (endsAt.getTime() !== currentEnd.getTime()) onResize(block, endsAt)
   }
 
-  return <div className="plan-calendar-shell">
+  return <div className="plan-calendar-shell" ref={calendarShell}>
     <div className="plan-calendar" style={{ "--calendar-hour-height": `${HOUR_HEIGHT}px`, "--calendar-height": `${calendarHeight}px` } as CSSProperties}>
       <div className="plan-calendar-head"><span />{dates.map((date, index) => <div key={localDateValue(date)} className={localDateValue(date) === today ? "is-today" : ""}><span>{DAYS[index]}</span><strong>{date.getDate()}</strong></div>)}</div>
-      <div className="plan-calendar-allday"><span>All day</span>{dates.map((date, dayIndex) => {
-        const dateValue = localDateValue(date)
-        const allDayTasks = tasks.filter((task) => task.deadline && localDateValue(parseServerTime(task.deadline)) === dateValue && parseServerTime(task.deadline).getHours() < CALENDAR_START)
-        const anytimeRoutines = routines.filter((routine) => routine.weekdays.includes(dayIndex) && !routine.scheduled_time)
-        return <div key={dateValue}>{allDayTasks.map((task) => <button type="button" draggable key={`all-task-${task.id}`} className={task.description?.trim() ? "has-description" : undefined} {...tooltipProps({ type: "All-day task", title: task.title, description: task.description, meta: "All day · drag to schedule", color: "#92815e", delay: 160 })} onDragStart={(event) => { hideTooltip(); event.dataTransfer.setData("text/task-id", String(task.id)); event.dataTransfer.effectAllowed = "move" }} onClick={() => onOpenTask(task)}><i />{task.title}</button>)}{anytimeRoutines.map((routine) => <button type="button" key={`all-routine-${routine.id}`} className="is-routine" {...tooltipProps({ type: "Routine", title: routine.title, description: routine.description, meta: "Anytime", color: "#67726d" })} onClick={() => onEditRoutine(routine)}><i />{routine.title}</button>)}</div>
-      })}</div>
       <div className="plan-calendar-body">
         <div className="plan-calendar-hours">{Array.from({ length: CALENDAR_END - CALENDAR_START + 1 }, (_, index) => <span key={index} style={{ top: index * HOUR_HEIGHT }}>{String(CALENDAR_START + index).padStart(2, "0")}:00</span>)}</div>
         {dates.map((date, dayIndex) => {
@@ -322,6 +336,12 @@ function WeekCalendar({ dates, blocks, routines, tasks, streams, onCreate, onEdi
           </div>
         })}
       </div>
+      <div className="plan-calendar-allday" aria-label="All-day plans"><span>All day</span>{dates.map((date, dayIndex) => {
+        const dateValue = localDateValue(date)
+        const allDayTasks = tasks.filter((task) => task.deadline && localDateValue(parseServerTime(task.deadline)) === dateValue && parseServerTime(task.deadline).getHours() < CALENDAR_START)
+        const anytimeRoutines = routines.filter((routine) => routine.weekdays.includes(dayIndex) && !routine.scheduled_time)
+        return <div key={dateValue}>{allDayTasks.map((task) => <button type="button" draggable key={`all-task-${task.id}`} className={task.description?.trim() ? "has-description" : undefined} {...tooltipProps({ type: "All-day task", title: task.title, description: task.description, meta: "All day · drag to schedule", color: "#92815e", delay: 160 })} onDragStart={(event) => { hideTooltip(); event.dataTransfer.setData("text/task-id", String(task.id)); event.dataTransfer.effectAllowed = "move" }} onClick={() => onOpenTask(task)}><i />{task.title}</button>)}{anytimeRoutines.map((routine) => <button type="button" key={`all-routine-${routine.id}`} className="is-routine" {...tooltipProps({ type: "Routine", title: routine.title, description: routine.description, meta: "Anytime", color: "#67726d" })} onClick={() => onEditRoutine(routine)}><i />{routine.title}</button>)}</div>
+      })}</div>
     </div>
     <PlanEntryTooltip tooltip={tooltip} />
     <p className="plan-calendar-hint">Drag a task to schedule it. Double-click empty time to add a plan.</p>
@@ -352,12 +372,14 @@ function PlanPage() {
   const weekLabel = `${new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(weekStart)} – ${new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(weekEnd.getTime() - 1))}`
   const moveWeek = (offset: number) => setWeekAnchor(new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + offset * 7))
 
-  return <div className="plan-page">
-    <header className="plan-page-head"><div><h1>Plan</h1><p>Give the week a shape before it begins.</p></div><div className="plan-head-actions"><button type="button" onClick={() => setEditor({ seed: new Date() })}><Plus size={14} /> Plan time</button></div></header>
+  return <div className="plan-page calendar-plan-page">
     {editor && <BlockForm block={editor.value} seed={editor.seed} onClose={() => setEditor(null)} />}
 
     <section className="plan-week" aria-labelledby="week-title">
-      <div className="plan-calendar-toolbar"><div><h2 id="week-title">Week</h2><span>{weekLabel}</span></div><div><button type="button" onClick={() => moveWeek(-1)} aria-label="Previous week"><ChevronLeft size={15} /></button><button type="button" onClick={() => setWeekAnchor(new Date())}>Today</button><button type="button" onClick={() => moveWeek(1)} aria-label="Next week"><ChevronRight size={15} /></button></div></div>
+      <div className="plan-calendar-toolbar">
+        <div className="plan-calendar-identity"><h1 id="week-title">Plan</h1><span>{weekLabel}</span><small>Give the week a shape before it begins.</small></div>
+        <div className="plan-calendar-controls"><button type="button" onClick={() => moveWeek(-1)} aria-label="Previous week"><ChevronLeft size={15} /></button><button type="button" onClick={() => setWeekAnchor(new Date())}>Today</button><button type="button" onClick={() => moveWeek(1)} aria-label="Next week"><ChevronRight size={15} /></button><i /><button type="button" className="plan-time-action" onClick={() => setEditor({ seed: new Date() })}><Plus size={14} /> Plan time</button></div>
+      </div>
       {unscheduledTasks.length > 0 && <div className="plan-task-tray"><div><strong>Unscheduled</strong><span>{unscheduledTasks.length}</span></div><div>{unscheduledTasks.map((task) => <button type="button" draggable key={task.id} title="Drag into the calendar" onDragStart={(event) => { event.dataTransfer.setData("text/task-id", String(task.id)); event.dataTransfer.effectAllowed = "move" }} onClick={() => void navigate({ to: "/tasks/$taskId", params: { taskId: String(task.id) } })}><GripVertical size={12} /><span>{task.title}</span></button>)}</div></div>}
       <WeekCalendar dates={weekDates} blocks={blocks} routines={activeRoutines} tasks={activeTasks} streams={streams} onCreate={(seed) => setEditor({ seed })} onEdit={(value) => setEditor({ value })} onMove={(block, startsAt, endsAt) => moveBlock.mutate({ id: block.id, data: { starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString() } })} onResize={(block, endsAt) => moveBlock.mutate({ id: block.id, data: { ends_at: endsAt.toISOString() } })} onMoveTask={(task, deadline) => moveTask.mutate({ id: task.id, data: { deadline: deadline.toISOString() } })} onEditRoutine={() => void navigate({ to: "/routines" })} onOpenTask={(task) => void navigate({ to: "/tasks/$taskId", params: { taskId: String(task.id) } })} />
     </section>

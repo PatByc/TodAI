@@ -19,13 +19,13 @@ Last reviewed against the codebase: 2026-09-26.
 | Plan | Seven-day calendar, all-day and timed entries, drag/resizing, week navigation, day/week date selection, and a slide-in planning editor. |
 | Time | Active timer, manual entries, work streams, categories, project association, notes, daily timeline, and history. |
 | Routines | Weekly schedules, selected weekdays and times, active/inactive state, and daily completion. |
-| Goals | Daily, weekly, and monthly time goals, optionally scoped to a time stream, with actual progress derived from tracked time. |
-| Review | Day, week, month, and custom-period summaries covering planned versus actual time, tasks, routines, goals, and comparisons. |
+| Goals | Daily, weekly, and monthly time goals derived from tracked time plus unit-free number goals with `at least`/`at most` targets and dated manual progress. |
+| Review | Day, week, month, and custom-period summaries covering planned versus actual time, tasks, routines, goals, comparisons, durable reflections, and optional Tod-generated drafts. |
 | Search | Cross-type global keyword search over titles, content, and shared tags, with optional semantic retrieval and source links. |
 | Tod | One agentic chat mode, MCP-style workspace tools, visible live activity, manual or automatic approval, proposals, slash commands, capabilities, and pinned/temporary layouts. |
 | Settings | Language selection, date-aware themes, time streams and colors, tag creation/deletion/recoloring, AI configuration, and data controls. |
 | Developer | Runtime and efficiency diagnostics plus durable cloud-LLM API usage and estimated cost reporting. |
-| Data | Embedded SQLite by default, verified manual and scheduled SQLite backups with configurable retention, validated restore from stored or uploaded snapshots, pre-restore safety copy and automatic rollback, optional PostgreSQL server deployment, migrations, audit records, JSON/Markdown export, and rebuildable search indexes. |
+| Data | Embedded SQLite by default, verified manual and scheduled SQLite backups with configurable retention, storage and per-snapshot verification reporting, validated restore from stored or uploaded snapshots, pre-restore safety copy and automatic rollback, dry-run and validated database migration, optional PostgreSQL server deployment, migrations, audit records, JSON/Markdown export, and rebuildable search indexes. |
 
 ## Shared interaction rules
 
@@ -49,11 +49,8 @@ Last reviewed against the codebase: 2026-09-26.
 
 ## Planned or deferred
 
-- Durable written review reflections and optional Tod-generated drafts.
 - User-facing semantic-search activation, index status, backfilling, rebuild
   progress, provider controls, and optional local embeddings.
-- Detailed backup storage reporting, dry-run imports, stable migration
-  references, and migration validation reports.
 - Image and attachment storage for entries, followed later by optional content
   extraction and indexing.
 - Additional date-bound themes such as New Year.

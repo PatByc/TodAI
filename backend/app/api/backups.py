@@ -15,6 +15,7 @@ from app.schemas.backup import (
     BackupHistoryItem,
     BackupSettingsResponse,
     BackupSettingsUpdate,
+    BackupStorageReport,
     RestoreConfirm,
     RestorePreview,
     RestoreStatusResponse,
@@ -33,6 +34,7 @@ from app.services.restore_service import (
     RestoreConflictError,
     RestoreUnavailableError,
     RestoreValidationError,
+    build_backup_storage_report,
     cancel_restore,
     confirm_restore,
     create_restore_upload_path,
@@ -73,6 +75,16 @@ async def write_backup_settings(
 async def backup_history() -> list[BackupHistoryItem]:
     try:
         return await asyncio.to_thread(list_backup_history, settings.database_url)
+    except RestoreUnavailableError as exc:
+        raise _restore_http_error(exc) from exc
+
+
+@router.get("/report", response_model=BackupStorageReport)
+async def backup_storage_report() -> BackupStorageReport:
+    try:
+        return await asyncio.to_thread(
+            build_backup_storage_report, settings.database_url
+        )
     except RestoreUnavailableError as exc:
         raise _restore_http_error(exc) from exc
 

@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Database,
   FileUp,
+  HardDrive,
   Loader2,
   RotateCcw,
   ShieldCheck,
@@ -13,7 +14,7 @@ import {
 import {
   cancelRestore,
   confirmRestore,
-  fetchBackupHistory,
+  fetchBackupStorageReport,
   fetchRestoreStatus,
   stageStoredBackup,
   uploadRestoreBackup,
@@ -56,8 +57,8 @@ export function RestorePanel() {
     refetchInterval: 5_000,
   })
   const historyQuery = useQuery({
-    queryKey: ["backup-history"],
-    queryFn: fetchBackupHistory,
+    queryKey: ["backup-storage-report"],
+    queryFn: fetchBackupStorageReport,
   })
   const setStaged = (preview: RestorePreview) => {
     queryClient.setQueryData<RestoreStatus>(["restore-status"], {
@@ -161,14 +162,21 @@ export function RestorePanel() {
                 </div>
               )}
               <div className="restore-source-head"><strong>Choose a backup</strong><span>It will be checked before anything changes.</span></div>
+              {historyQuery.data && (
+                <div className={`backup-storage-summary${historyQuery.data.failed_count ? " has-failures" : ""}`}>
+                  <HardDrive size={14} />
+                  <div><strong>{sizeLabel(historyQuery.data.total_size_bytes)}</strong><span>{historyQuery.data.items.length} stored · {sizeLabel(historyQuery.data.automatic_size_bytes)} automatic · {sizeLabel(historyQuery.data.safety_size_bytes)} safety</span></div>
+                  <span>{historyQuery.data.failed_count ? `${historyQuery.data.failed_count} failed` : `${historyQuery.data.verified_count} verified`}</span>
+                </div>
+              )}
               <div className="restore-history">
-                {historyQuery.isLoading ? <span className="restore-empty">Loading stored backups…</span> : historyQuery.data?.length ? historyQuery.data.map((item) => (
-                  <div key={item.id} className="restore-history-row">
+                {historyQuery.isLoading ? <span className="restore-empty">Verifying stored backups…</span> : historyQuery.data?.items.length ? historyQuery.data.items.map((item) => (
+                  <div key={item.id} className={`restore-history-row is-${item.integrity}`}>
                     <span className={`restore-kind is-${item.kind}`}>{item.kind === "safety" ? "Safety" : "Auto"}</span>
-                    <div><strong>{dateLabel(item.created_at)}</strong><span>{sizeLabel(item.size_bytes)}</span></div>
-                    <button type="button" onClick={() => storedStage.mutate(item.id)} disabled={pending}>Inspect</button>
+                    <div><strong>{dateLabel(item.created_at)}</strong><span title={item.verification_error ?? undefined}>{sizeLabel(item.size_bytes)} · {item.integrity === "ok" ? `verified · schema ${item.schema_revision}` : "verification failed"}</span></div>
+                    <button type="button" onClick={() => storedStage.mutate(item.id)} disabled={pending || item.integrity === "failed"}>{item.integrity === "failed" ? "Invalid" : "Inspect"}</button>
                   </div>
-                )) : <span className="restore-empty">No stored backups yet.</span>}
+                )) : historyQuery.isError ? <span className="restore-empty is-error">Could not inspect stored backups.</span> : <span className="restore-empty">No stored backups yet.</span>}
               </div>
               <input ref={inputRef} hidden type="file" accept=".db,.sqlite,.sqlite3" onChange={(event) => void chooseFile(event.target.files?.[0])} />
               <button type="button" className="restore-upload" onClick={() => inputRef.current?.click()} disabled={pending}>

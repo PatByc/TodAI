@@ -136,9 +136,10 @@ completion. Completing a recurring task creates at most one next occurrence.
 **Status:** Accepted
 
 Review supports day, week, month, and custom-period analysis. It compares plans
-with tracked time and summarizes tasks, routines, goals, and allocation.
-Durable written reflections are deferred but should eventually attach to the
-same period model.
+with tracked time and summarizes tasks, routines, goals, and allocation. Each
+period may also hold one durable, editable reflection. Tod-generated reflection
+text stays separate until the user accepts it, and recurring-pattern language
+requires evidence from at least three comparable periods.
 
 ## D-016 — Navigation stays compact through grouping and persistence
 
@@ -180,7 +181,21 @@ cross-type tag-name retrieval.
 **Status:** Accepted
 
 TodAI provides JSON and Markdown export plus verified SQLite backup, scheduled
-retention, and guarded restore. Restore validates before confirmation, applies
-on restart, retains a pre-restore safety copy, and rolls back after failure.
-Broader import and migration validation remain future work. Local ownership is
+retention, stored-file disk-use and verification reporting, and guarded
+restore. Restore validates before confirmation, applies on restart, retains a
+pre-restore safety copy, and rolls back after failure. Broader import and
+provider-specific server backup guidance remain future work. Cross-database
+migration provides a non-mutating dry run, credential-free source reference,
+and per-table row-count and primary-key validation report. Local ownership is
 a product requirement, not an implementation detail.
+
+## D-021 — Goal progress keeps its source explicit
+
+**Status:** Accepted
+
+Time goals derive progress automatically from tracked time. Number goals store
+dated manual increments and use the goal title for context rather than a
+separate unit field. Both support daily, weekly, and monthly targets, but they
+remain separate models so manual values cannot be confused with timer-derived
+measurements. A number goal may target `at least` or `at most`; exceeding an
+upper limit is presented as a warning.

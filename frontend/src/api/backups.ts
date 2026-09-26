@@ -19,6 +19,21 @@ export interface BackupHistoryItem {
   filename: string
   created_at: string
   size_bytes: number
+  integrity: "unchecked" | "ok" | "failed"
+  verified_at: string | null
+  schema_revision: string | null
+  needs_upgrade: boolean | null
+  verification_error: string | null
+}
+
+export interface BackupStorageReport {
+  generated_at: string
+  total_size_bytes: number
+  automatic_size_bytes: number
+  safety_size_bytes: number
+  verified_count: number
+  failed_count: number
+  items: BackupHistoryItem[]
 }
 
 export interface RestoreCounts {
@@ -66,6 +81,10 @@ export function updateBackupSettings(
 
 export function fetchBackupHistory(): Promise<BackupHistoryItem[]> {
   return apiClient.get("/backups/history")
+}
+
+export function fetchBackupStorageReport(): Promise<BackupStorageReport> {
+  return apiClient.get("/backups/report")
 }
 
 export function fetchRestoreStatus(): Promise<RestoreStatus> {

@@ -1,4 +1,4 @@
-"""Integration coverage for routines and time goals."""
+"""Integration coverage for routines and measurable goals."""
 
 import pytest
 from httpx import AsyncClient
@@ -84,6 +84,83 @@ async def test_time_goal_crud_and_stream_validation(async_client: AsyncClient):
 
     deleted = await async_client.delete(f"/api/v1/plan/goals/{goal['id']}")
     assert deleted.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_metric_goal_crud_and_period_progress(async_client: AsyncClient):
+    created = await async_client.post(
+        "/api/v1/plan/metric-goals",
+        json={
+            "title": "  Daily push-ups  ",
+            "period": "daily",
+            "target_value": 50,
+            "direction": "at_least",
+        },
+    )
+    assert created.status_code == 201
+    goal = created.json()
+    assert goal["title"] == "Daily push-ups"
+    assert goal["current_value"] == 0
+
+    first = await async_client.post(
+        f"/api/v1/plan/metric-goals/{goal['id']}/progress",
+        json={"value": 20, "recorded_on": "2026-09-24"},
+    )
+    second = await async_client.post(
+        f"/api/v1/plan/metric-goals/{goal['id']}/progress",
+        json={"value": 15.5, "recorded_on": "2026-09-24"},
+    )
+    await async_client.post(
+        f"/api/v1/plan/metric-goals/{goal['id']}/progress",
+        json={"value": 5, "recorded_on": "2026-09-23"},
+    )
+    assert first.status_code == 201
+    assert second.status_code == 201
+
+    daily = await async_client.get(
+        "/api/v1/plan/metric-goals",
+        params={"on_date": "2026-09-24", "include_inactive": False},
+    )
+    assert daily.status_code == 200
+    assert daily.json()[0]["current_value"] == 35.5
+
+    updated = await async_client.put(
+        f"/api/v1/plan/metric-goals/{goal['id']}",
+        json={"period": "weekly", "direction": "at_most", "target_value": 100},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["direction"] == "at_most"
+
+    weekly = await async_client.get(
+        "/api/v1/plan/metric-goals", params={"on_date": "2026-09-24"}
+    )
+    assert weekly.json()[0]["current_value"] == 40.5
+
+    history = await async_client.get(
+        f"/api/v1/plan/metric-goals/{goal['id']}/progress"
+    )
+    assert history.status_code == 200
+    assert len(history.json()) == 3
+
+    removed = await async_client.delete(
+        f"/api/v1/plan/metric-goals/{goal['id']}/progress/{second.json()['id']}"
+    )
+    assert removed.status_code == 204
+
+    invalid = await async_client.post(
+        f"/api/v1/plan/metric-goals/{goal['id']}/progress",
+        json={"value": 0, "recorded_on": "2026-09-24"},
+    )
+    assert invalid.status_code == 422
+
+    exported = (await async_client.get("/api/v1/export/?format=json")).json()
+    exported_goal = exported["metric_goals"][0]
+    assert exported_goal["id"] == goal["id"]
+    assert len(exported_goal["progress_entries"]) == 2
+
+    markdown = await async_client.get("/api/v1/export/?format=markdown")
+    assert "## Daily push-ups" in markdown.text
+    assert "Type: number" in markdown.text
 
 
 @pytest.mark.asyncio

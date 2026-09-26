@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from collections.abc import Awaitable, Callable
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Literal
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.tools import Tool
@@ -23,6 +23,7 @@ from app.models.note import Note
 from app.models.project import Project
 from app.models.tag import Tag
 from app.models.task import Task, TaskRecurrence
+from app.services.review_service import ReviewService
 from app.services.search_index_service import SearchIndexService
 
 ToolProgress = Callable[[float, float | None, str | None], Awaitable[None]]
@@ -51,6 +52,13 @@ class GetInput(ToolInput):
 
 class DiscoverInput(ToolInput):
     intent: str = Field(min_length=1, max_length=500)
+
+
+class ReviewInput(ToolInput):
+    scope: Literal["day", "week", "month", "period"]
+    date: date
+    end_date: date | None = None
+    timezone: str = Field(default="UTC", min_length=1, max_length=100)
 
 
 class CreateNoteInput(ToolInput):
@@ -332,6 +340,24 @@ class TodMCP:
                     for tag in rows
                 ]
             }
+        if name == "get_review":
+            review_service = ReviewService(self.session)
+            scope = arguments["scope"]
+            selected = date.fromisoformat(arguments["date"])
+            if scope == "day":
+                review = await review_service.get_day(selected, arguments["timezone"])
+            elif scope == "week":
+                review = await review_service.get_week(selected, arguments["timezone"])
+            elif scope == "month":
+                review = await review_service.get_month(selected, arguments["timezone"])
+            else:
+                end_value = arguments.get("end_date")
+                if not end_value:
+                    return {"error": "A custom period requires end_date."}
+                review = await review_service.get_period(
+                    selected, date.fromisoformat(end_value), arguments["timezone"]
+                )
+            return {"scope": scope, "review": review.model_dump(mode="json")}
         if name == "discover_tools":
             intent = arguments["intent"].lower().replace("-", "_")
             words = {word.strip(".,:;!?'") for word in intent.split() if len(word) >= 4}
@@ -394,6 +420,12 @@ class TodMCP:
                 "discover_tools",
                 "Find up to eight mutation tools relevant to an intended action. Read-only.",
                 DiscoverInput,
+                self._handle,
+            ),
+            _make_tool(
+                "get_review",
+                "Read structured planned time, tracked time, tasks, routines, and comparisons for a day, week, month, or custom period.",
+                ReviewInput,
                 self._handle,
             ),
         ]

@@ -385,6 +385,48 @@ export interface TimeGoalUpdate {
   is_active?: boolean
 }
 
+export type MetricGoalDirection = "at_least" | "at_most"
+
+export interface MetricGoal {
+  id: number
+  title: string
+  period: GoalPeriod
+  target_value: number
+  direction: MetricGoalDirection
+  is_active: boolean
+  current_value: number
+  created_at: string
+  updated_at: string
+}
+
+export interface MetricGoalCreate {
+  title: string
+  period: GoalPeriod
+  target_value: number
+  direction: MetricGoalDirection
+}
+
+export interface MetricGoalUpdate {
+  title?: string
+  period?: GoalPeriod
+  target_value?: number
+  direction?: MetricGoalDirection
+  is_active?: boolean
+}
+
+export interface MetricProgress {
+  id: number
+  goal_id: number
+  value: number
+  recorded_on: string
+  created_at: string
+}
+
+export interface MetricProgressCreate {
+  value: number
+  recorded_on: string
+}
+
 export interface PlannedBlock {
   id: number
   title: string
@@ -529,4 +571,32 @@ export interface PeriodReview {
     completed_tasks_delta: number
     routine_completion_rate_delta: number
   }
+}
+
+export type ReviewScope = "day" | "week" | "month" | "period"
+
+export interface ReviewReflectionLocator {
+  scope: ReviewScope
+  start_date: string
+  end_date: string
+  timezone: string
+}
+
+export interface ReviewPattern {
+  text: string
+  evidence: string
+}
+
+export interface ReviewReflectionDraft {
+  what_worked: string
+  friction: string
+  adjustment: string
+  patterns: ReviewPattern[]
+}
+
+export interface ReviewReflection extends ReviewReflectionLocator, ReviewReflectionDraft {
+  id: number
+  accepted_at: string
+  created_at: string
+  updated_at: string
 }

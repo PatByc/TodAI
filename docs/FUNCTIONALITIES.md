@@ -16,7 +16,7 @@ The application currently combines these functional areas:
 - A seven-day planning calendar.
 - Active and manual time tracking.
 - Weekly routines and daily routine completion.
-- Daily, weekly, and monthly time goals.
+- Daily, weekly, and monthly time and number goals.
 - Day, week, month, and custom-period reviews.
 - Global keyword and optional semantic search.
 - The Tod AI agent with visible tool activity and controlled write access.
@@ -109,8 +109,9 @@ The **Plan today** section combines:
 - Planned time blocks scheduled for today.
 - Active routines scheduled for the current weekday.
 - Active time goals whose period includes today.
+- Active daily number goals with their manually recorded progress.
 
-Routine occurrences can be completed or reopened from Today. Goal progress is calculated from actual time entries, including stream-specific goals.
+Routine occurrences can be completed or reopened from Today. Time-goal progress is calculated from actual time entries, including stream-specific goals. Daily number goals show the progress recorded for the current local date.
 
 ### 3.3 Date-aware themes
 
@@ -528,9 +529,13 @@ Users can create, edit, pause, reactivate, and delete routines. Active routines 
 
 Today stores one completion record per routine per date. A completed occurrence can be reopened. Deleting a routine also removes its associated completion records.
 
-## 13. Time goals
+## 13. Goals
 
 Route: `/goals`
+
+Goals support two deliberately separate progress sources.
+
+### 13.1 Time goals
 
 Time goals compare actual tracked time with a target.
 
@@ -543,6 +548,27 @@ A goal supports:
 - Active or paused state.
 
 The Goals page calculates live progress for the current period and displays completed versus target duration. Goals can be created, edited, paused, reactivated, and deleted. Relevant active goals also appear on Today.
+
+### 13.2 Number goals
+
+Number goals track a target without requiring a separate unit field. The goal
+name provides its context, such as `Daily push-ups`, `Kilometres ran`, or
+`Money earned`.
+
+A number goal supports:
+
+- Title.
+- Daily, weekly, or monthly period.
+- Positive numeric target, including decimals.
+- `At least` or `At most` direction.
+- Active or paused state.
+
+Progress is recorded as positive increments against a local calendar date. The
+current value is the sum of entries in the selected goal period. Entries are
+stored independently for history and auditability, and removing a goal also
+removes its progress entries. The Goals page records today's progress inline;
+active daily number goals also appear on Today. Exceeding an `At most` target
+uses the warning color rather than presenting the limit as a success.
 
 ## 14. Review
 
@@ -592,6 +618,24 @@ Each review compares its results with the immediately preceding equivalent perio
 - Custom period versus the preceding period of the same length.
 
 Comparison deltas cover planned time, tracked time, completed tasks, and routine completion rate.
+
+### 14.4 Reflections and Tod drafts
+
+Every day, week, month, and custom-period Review ends with a compact Reflection
+strip. It expands into three editable prompts: what worked, what caused
+friction, and what to adjust next time. Answers save automatically and reopen
+with the same reviewed period.
+
+**Draft with Tod** sends the selected Review plus two earlier equivalent
+periods to the configured completion model. Tod drafts the three answers and up
+to three evidence-linked observations. A tendency is described as a recurring
+pattern only when all three periods support it; weaker evidence is labelled as
+a possible signal. Generated text remains a proposal until the user explicitly
+accepts it. Once accepted, it becomes normal editable reflection text.
+
+Tod also has a read-only `get_review` MCP tool, so chat requests for day, week,
+month, and custom-period summaries use the same structured data as the Review
+screen rather than reconstructing it from generic record search.
 
 ## 15. Global search
 
@@ -796,6 +840,10 @@ The preference is currently persisted, but complete interface translation is not
 - Shows the number stored plus the last and next automatic backup times.
 - Lists stored automatic snapshots and the latest protected pre-restore safety
   copy.
+- Reports total, automatic, and safety-copy disk use from the stored files.
+- Revalidates every stored snapshot when backup history is opened, showing its
+  integrity result and schema revision. Invalid snapshots remain visible with
+  their failure reason and cannot be selected for restore.
 - Stages a restore from stored history or an uploaded SQLite database, verifies
   its integrity and TodAI schema, and previews its entity counts before any
   active data changes.
@@ -828,6 +876,12 @@ only TodAI-managed automatic backups. A newly enabled schedule creates its
 first snapshot while the server is running, and the startup scheduler catches
 up if a backup became due while the application was closed. Manual downloads
 remain separate and do not consume automatic-retention slots.
+
+The stored-backup report calculates current disk use for automatic snapshots
+and the protected safety copy. It reruns integrity, application-identity, and
+schema-revision checks for each file rather than trusting its filename or its
+original creation result. A failed snapshot remains listed for diagnosis but
+is disabled as a restore source.
 
 ### 18.2 SQLite database restore
 
@@ -864,8 +918,9 @@ The JSON export includes:
 - Time streams and categories, including inactive configuration.
 - Time entries, including an active timer if present.
 - Routines and their completion dates.
-- Time goals.
+- Time goals, number goals, and dated number-progress entries.
 - Planned blocks.
+- Review reflections, including accepted Tod observations.
 - Cloud API usage and cost records, including their historical rate snapshots.
 - Record IDs and timestamps.
 - Export timestamp.
@@ -970,13 +1025,20 @@ This mode exists for remote, multi-client, or hosted deployments.
 
 The command-line migration utility:
 
+- Provides a non-mutating dry run that does not create or upgrade the
+  destination database.
+- Assigns a deterministic, credential-free source reference, or accepts an
+  explicit stable reference with `--source-reference`.
 - Upgrades the destination schema first.
 - Reads the source without application-level writes.
 - Requires a new or otherwise empty destination.
 - Copies all authoritative tables.
 - Preserves IDs and timestamps.
 - Refuses unsafe merges into a populated destination.
-- Reports copied row counts by table.
+- Validates source and destination row counts and primary-key identities for
+  every copied table.
+- Prints the validation result and can write the complete timestamped report
+  as JSON with `--report`.
 
 ## 22. API surface
 
@@ -986,8 +1048,10 @@ The FastAPI backend exposes versioned endpoints for:
 - Tags and entity-tag relationships.
 - Activity/state transitions.
 - Time entries, active timer, streams, and categories.
-- Routines, routine completion, goals, and planned blocks.
+- Routines, routine completion, time and number goals, number-progress entries,
+  and planned blocks.
 - Day, week, month, and custom-period review aggregation.
+- Saved Review reflections and human-approved Tod drafts.
 - Global search and search-index rebuild.
 - Ask/agent readiness, runs, streamed events, approval, and rejection.
 - AI settings.
@@ -1049,7 +1113,7 @@ These boundaries distinguish the implemented product from future plans and preve
 | `/projects/:projectId` | Project workspace and linked records |
 | `/time` | Today timeline, manual entries, and history |
 | `/routines` | Weekly routine management |
-| `/goals` | Time-goal management and progress |
+| `/goals` | Time and number goal management and progress |
 | `/review` | Day, week, month, and period retrospectives |
 | `/developer` | Efficiency and index telemetry |
 | `/settings` | AI, overall, design, time, and data settings |

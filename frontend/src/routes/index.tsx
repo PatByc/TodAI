@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Check, ArrowUpRight } from "lucide-react"
 import { useState } from "react"
 import { fetchTasks, updateTask } from "@/api/tasks"
-import { usePlannedBlocks, useRoutines, useSetRoutineCompletion, useTimeGoals } from "@/hooks/usePlanning"
+import { useMetricGoals, usePlannedBlocks, useRoutines, useSetRoutineCompletion, useTimeGoals } from "@/hooks/usePlanning"
 import { useTimeEntries } from "@/hooks/useTimeConfiguration"
 import { playCompletionChime } from "@/lib/completionChime"
 import { durationLabel, parseServerTime } from "@/lib/time"
@@ -87,6 +87,7 @@ function TodayPage() {
   })
   const { data: routines = [] } = useRoutines(false)
   const { data: goals = [] } = useTimeGoals(false)
+  const { data: metricGoals = [] } = useMetricGoals(false, today)
   const setRoutineCompletion = useSetRoutineCompletion()
   const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
@@ -119,6 +120,7 @@ function TodayPage() {
     .sort((first, second) => (second.completed_at ?? second.updated_at).localeCompare(first.completed_at ?? first.updated_at))
   const weekday = (now.getDay() + 6) % 7
   const todayRoutines = routines.filter((routine) => routine.weekdays.includes(weekday))
+  const todayMetricGoals = metricGoals.filter((goal) => goal.period === "daily")
   const goalProgress = (period: GoalPeriod, streamId: number | null) => {
     let start: Date
     let end: Date
@@ -214,7 +216,7 @@ function TodayPage() {
         {completionError && <p className="home-task-error" role="alert">{completionError}</p>}
       </section>
 
-      {(plannedBlocks.length > 0 || todayRoutines.length > 0 || goals.length > 0) && <section className="home-section home-plan" aria-labelledby="home-plan-title">
+      {(plannedBlocks.length > 0 || todayRoutines.length > 0 || goals.length > 0 || todayMetricGoals.length > 0) && <section className="home-section home-plan" aria-labelledby="home-plan-title">
         <div className="home-section-head"><h2 id="home-plan-title">Plan today</h2><Link to="/plan">Open plan <ArrowUpRight size={14} /></Link></div>
         {plannedBlocks.length > 0 && <div className="home-planned-list">{plannedBlocks.map((block) => {
           const start = parseServerTime(block.starts_at)
@@ -225,9 +227,12 @@ function TodayPage() {
           const done = routine.completed_dates.includes(today)
           return <button type="button" key={routine.id} className={done ? "is-complete" : ""} onClick={() => setRoutineCompletion.mutate({ id: routine.id, data: { completed_on: today, completed: !done } })}><span className="home-routine-check">{done && <Check size={11} />}</span><strong>{routine.title}</strong><time>{routine.scheduled_time?.slice(0, 5) ?? "Anytime"}</time></button>
         })}</div>}
-        {goals.length > 0 && <div className="home-goal-strip">{goals.map((goal) => {
+        {(goals.length > 0 || todayMetricGoals.length > 0) && <div className="home-goal-strip">{goals.map((goal) => {
           const progress = goalProgress(goal.period, goal.stream_id)
           return <div key={goal.id}><span><strong>{goal.title}</strong><small>{durationLabel(progress)} / {durationLabel(goal.target_seconds)}</small></span><i><b style={{ width: `${Math.min(100, progress / goal.target_seconds * 100)}%` }} /></i></div>
+        })}{todayMetricGoals.map((goal) => {
+          const overLimit = goal.direction === "at_most" && goal.current_value > goal.target_value
+          return <div key={`metric-${goal.id}`} className={overLimit ? "is-over-limit" : ""}><span><strong>{goal.title}</strong><small>{new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(goal.current_value)} / {new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(goal.target_value)}</small></span><i><b style={{ width: `${Math.min(100, goal.current_value / goal.target_value * 100)}%` }} /></i></div>
         })}</div>}
       </section>}
 

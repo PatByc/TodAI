@@ -1,8 +1,44 @@
 """API contracts for daily progress reviews."""
 
 from datetime import date, datetime, time
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+ReviewScope = Literal["day", "week", "month", "period"]
+
+
+class ReviewReflectionLocator(BaseModel):
+    scope: ReviewScope
+    start_date: date
+    end_date: date
+    timezone: str = Field(min_length=1, max_length=100)
+
+
+class ReviewPattern(BaseModel):
+    text: str = Field(min_length=1, max_length=500)
+    evidence: str = Field(min_length=1, max_length=500)
+
+
+class ReviewReflectionUpdate(ReviewReflectionLocator):
+    what_worked: str = Field(default="", max_length=10_000)
+    friction: str = Field(default="", max_length=10_000)
+    adjustment: str = Field(default="", max_length=10_000)
+    patterns: list[ReviewPattern] = Field(default_factory=list, max_length=3)
+
+
+class ReviewReflectionResponse(ReviewReflectionUpdate):
+    id: int
+    accepted_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+
+class ReviewReflectionDraft(BaseModel):
+    what_worked: str = Field(max_length=10_000)
+    friction: str = Field(max_length=10_000)
+    adjustment: str = Field(max_length=10_000)
+    patterns: list[ReviewPattern] = Field(default_factory=list, max_length=3)
 
 
 class ReviewTimeSummary(BaseModel):

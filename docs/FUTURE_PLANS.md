@@ -12,12 +12,25 @@ restart, preserves one pre-restore safety copy, and rolls back automatically if
 replacement or migration fails. The remaining work expands this safe recovery
 foundation into a broader migration system.
 
-- Add detailed storage-use and historical verification reporting to backup
-  history.
-- Add dry-run imports, stable source references, and migration validation
-  reports.
-- Provide equivalent provider-appropriate backup guidance for TodAI Server
-  without presenting PostgreSQL exports as SQLite snapshots.
+### TodAI Server backup and recovery
+
+Treat server backup and recovery as a separate infrastructure feature rather
+than extending the Desktop SQLite controls. The implementation needs to account
+for self-hosted PostgreSQL and managed providers without presenting PostgreSQL
+exports as interchangeable SQLite snapshots.
+
+- Define supported PostgreSQL backup methods for self-hosted and managed
+  deployments.
+- Add provider-aware configuration and capability detection.
+- Support scheduled logical or physical backups without exposing database
+  credentials in the TodAI interface or logs.
+- Define encrypted off-machine storage, retention, and deletion policies.
+- Add backup health, age, size, and verification reporting.
+- Provide a guarded restore runbook with maintenance mode, validation, rollback,
+  and recovery-point expectations.
+- Test restores against an isolated database before marking a backup usable.
+- Document operator responsibility boundaries for TodAI Server, cloud database
+  providers, and the TodAI application.
 
 ## Complete semantic search
 
@@ -57,33 +70,6 @@ setup and maintenance workflow.
   semantic retrieval by default.
 - Add optional local embedding providers later for offline and privacy-sensitive
   use.
-
-## Review reflections
-
-Add durable written reflections to day, week, and custom-period Review pages.
-Each reflection remains connected to the reviewed period and can be revisited
-later.
-
-### Reflection prompts
-
-- What worked?
-- What caused friction?
-- What will I adjust next time?
-
-### Intended behavior
-
-- Save reflection answers automatically.
-- Restore the saved answers when the same period is opened again.
-- Keep reflections editable rather than treating them as finalized reports.
-- Allow Tod to prepare an optional draft grounded in the period's tasks,
-  routines, planned time, tracked time, and time allocation.
-- Require the user to edit or accept Tod's draft before it becomes the saved
-  reflection.
-- Support browsing earlier reflections so users can see whether previous
-  adjustments helped.
-
-This work is deferred for now and is not required to complete the current
-Review implementation.
 
 ## Images and file attachments
 

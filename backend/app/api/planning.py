@@ -1,13 +1,18 @@
 """Plan endpoints for routines and time goals."""
 
-from datetime import datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
-from app.models.planning import Routine
+from app.models.planning import MetricGoal, Routine
 from app.schemas.planning import (
+    MetricGoalCreate,
+    MetricGoalResponse,
+    MetricGoalUpdate,
+    MetricProgressCreate,
+    MetricProgressResponse,
     PlannedBlockCreate,
     PlannedBlockResponse,
     PlannedBlockUpdate,
@@ -39,6 +44,20 @@ def routine_response(routine: Routine) -> RoutineResponse:
         completed_dates=sorted(item.completed_on for item in routine.completions),
         created_at=routine.created_at,
         updated_at=routine.updated_at,
+    )
+
+
+def metric_goal_response(goal: MetricGoal, current_value: float = 0) -> MetricGoalResponse:
+    return MetricGoalResponse(
+        id=goal.id,
+        title=goal.title,
+        period=goal.period.value,
+        target_value=goal.target_value,
+        direction=goal.direction.value,
+        is_active=goal.is_active,
+        current_value=current_value,
+        created_at=goal.created_at,
+        updated_at=goal.updated_at,
     )
 
 
@@ -118,6 +137,92 @@ async def delete_goal(
     goal_id: int, service: PlanningService = Depends(get_service)
 ) -> None:
     await service.delete_goal(goal_id)
+
+
+@router.get("/metric-goals", response_model=list[MetricGoalResponse])
+async def list_metric_goals(
+    include_inactive: bool = Query(True),
+    on_date: date | None = Query(None),
+    service: PlanningService = Depends(get_service),
+) -> list[MetricGoalResponse]:
+    return [
+        metric_goal_response(goal, current)
+        for goal, current in await service.list_metric_goals(
+            include_inactive, on_date or datetime.now(UTC).date()
+        )
+    ]
+
+
+@router.post(
+    "/metric-goals",
+    response_model=MetricGoalResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_metric_goal(
+    data: MetricGoalCreate, service: PlanningService = Depends(get_service)
+) -> MetricGoalResponse:
+    return metric_goal_response(await service.create_metric_goal(data))
+
+
+@router.put("/metric-goals/{goal_id}", response_model=MetricGoalResponse)
+async def update_metric_goal(
+    goal_id: int,
+    data: MetricGoalUpdate,
+    service: PlanningService = Depends(get_service),
+) -> MetricGoalResponse:
+    return metric_goal_response(await service.update_metric_goal(goal_id, data))
+
+
+@router.delete(
+    "/metric-goals/{goal_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_metric_goal(
+    goal_id: int, service: PlanningService = Depends(get_service)
+) -> None:
+    await service.delete_metric_goal(goal_id)
+
+
+@router.get(
+    "/metric-goals/{goal_id}/progress",
+    response_model=list[MetricProgressResponse],
+)
+async def list_metric_progress(
+    goal_id: int,
+    from_date: date | None = Query(None),
+    to_date: date | None = Query(None),
+    service: PlanningService = Depends(get_service),
+) -> list[MetricProgressResponse]:
+    return [
+        MetricProgressResponse.model_validate(item)
+        for item in await service.list_metric_progress(goal_id, from_date, to_date)
+    ]
+
+
+@router.post(
+    "/metric-goals/{goal_id}/progress",
+    response_model=MetricProgressResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def record_metric_progress(
+    goal_id: int,
+    data: MetricProgressCreate,
+    service: PlanningService = Depends(get_service),
+) -> MetricProgressResponse:
+    return MetricProgressResponse.model_validate(
+        await service.record_metric_progress(goal_id, data)
+    )
+
+
+@router.delete(
+    "/metric-goals/{goal_id}/progress/{entry_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_metric_progress(
+    goal_id: int,
+    entry_id: int,
+    service: PlanningService = Depends(get_service),
+) -> None:
+    await service.delete_metric_progress(goal_id, entry_id)
 
 
 @router.get("/blocks", response_model=list[PlannedBlockResponse])

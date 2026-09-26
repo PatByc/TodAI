@@ -8,7 +8,12 @@ from sqlalchemy import func, insert, inspect, select, text
 
 from app.config import Settings, sqlite_url
 from app.database import create_database_engine
-from app.database_migration import DestinationNotEmptyError, migrate_database
+from app.database_migration import (
+    DestinationNotEmptyError,
+    inspect_database_migration,
+    migrate_database,
+    run_database_migration,
+)
 from app.migrations import upgrade_database
 from app.models.audit_log import AuditLog
 from app.models.note import Note
@@ -84,9 +89,12 @@ async def test_alembic_history_builds_fresh_sqlite_database(tmp_path):
             "entity_tags",
             "ideas",
             "inbox_items",
+            "metric_goal_progress",
+            "metric_goals",
             "notes",
             "planned_blocks",
-            "projects",
+                "projects",
+                "review_reflections",
             "routine_completions",
             "routines",
             "search_chunks",
@@ -97,7 +105,7 @@ async def test_alembic_history_builds_fresh_sqlite_database(tmp_path):
             "time_goals",
             "time_streams",
         }.issubset(tables)
-        assert revision == "c9e2d4f6a810"
+        assert revision == "e1a4b6c8d023"
         assert any(key["referred_table"] == "projects" for key in foreign_keys)
         assert created_at is not None
 
@@ -229,3 +237,75 @@ async def test_database_migration_copies_all_data_and_guards_destination(tmp_pat
         assert source_notes == 1
     finally:
         await source_engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_database_migration_dry_run_is_non_mutating_and_report_is_validated(
+    tmp_path,
+):
+    source_path = tmp_path / "source.db"
+    destination_path = tmp_path / "destination.db"
+    source_url = sqlite_url(source_path)
+    destination_url = sqlite_url(destination_path)
+    await asyncio.to_thread(upgrade_database, source_url)
+    source_engine = create_database_engine(source_url)
+    try:
+        async with source_engine.begin() as connection:
+            await connection.execute(
+                insert(Note).values(
+                    id=77,
+                    title="Dry-run note",
+                    content={"type": "doc", "content": []},
+                    content_text="",
+                    pinned=False,
+                )
+            )
+    finally:
+        await source_engine.dispose()
+
+    dry_run = await run_database_migration(
+        source_url,
+        destination_url,
+        source_reference="legacy-server-2026",
+        dry_run=True,
+    )
+
+    assert dry_run.mode == "dry-run"
+    assert dry_run.valid is True
+    assert dry_run.destination_state == "new"
+    assert dry_run.source_reference == "legacy-server-2026"
+    assert dry_run.tables["notes"].source_rows == 1
+    assert dry_run.tables["notes"].status == "planned"
+    assert not destination_path.exists()
+
+    completed = await run_database_migration(
+        source_url,
+        destination_url,
+        source_reference="legacy-server-2026",
+    )
+
+    assert completed.mode == "migration"
+    assert completed.valid is True
+    assert completed.source_reference == dry_run.source_reference
+    assert completed.tables["notes"].destination_rows == 1
+    assert completed.tables["notes"].identity_match is True
+    assert all(table.status == "verified" for table in completed.tables.values())
+
+
+@pytest.mark.asyncio
+async def test_database_migration_default_source_reference_is_stable_and_secret_free(
+    tmp_path,
+):
+    source_url = sqlite_url(tmp_path / "stable-source.db")
+    await asyncio.to_thread(upgrade_database, source_url)
+
+    first = await inspect_database_migration(
+        source_url, sqlite_url(tmp_path / "first-destination.db")
+    )
+    second = await inspect_database_migration(
+        source_url, sqlite_url(tmp_path / "second-destination.db")
+    )
+
+    assert first.source_reference == second.source_reference
+    assert first.source_reference.startswith("sqlite:stable-source:")
+    assert str(tmp_path) not in first.source_reference

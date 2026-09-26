@@ -6,7 +6,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.planning import PlannedBlock, Routine, RoutineCompletion, TimeGoal
+from app.models.planning import (
+    MetricGoal,
+    MetricGoalProgress,
+    PlannedBlock,
+    Routine,
+    RoutineCompletion,
+    TimeGoal,
+)
 
 
 class PlanningRepository:
@@ -62,6 +69,64 @@ class PlanningRepository:
         self.session.add(goal)
         await self.session.flush()
         return goal
+
+    async def list_metric_goals(
+        self, include_inactive: bool = True
+    ) -> list[MetricGoal]:
+        query = select(MetricGoal)
+        if not include_inactive:
+            query = query.where(MetricGoal.is_active.is_(True))
+        result = await self.session.execute(query.order_by(MetricGoal.id))
+        return list(result.scalars().all())
+
+    async def get_metric_goal(self, goal_id: int) -> MetricGoal | None:
+        return await self.session.get(MetricGoal, goal_id)
+
+    async def create_metric_goal(self, values: dict) -> MetricGoal:
+        goal = MetricGoal(**values)
+        self.session.add(goal)
+        await self.session.flush()
+        return goal
+
+    async def list_metric_progress(
+        self, from_date: date, to_date: date
+    ) -> list[MetricGoalProgress]:
+        result = await self.session.execute(
+            select(MetricGoalProgress).where(
+                MetricGoalProgress.recorded_on >= from_date,
+                MetricGoalProgress.recorded_on < to_date,
+            )
+        )
+        return list(result.scalars().all())
+
+    async def create_metric_progress(self, values: dict) -> MetricGoalProgress:
+        entry = MetricGoalProgress(**values)
+        self.session.add(entry)
+        await self.session.flush()
+        return entry
+
+    async def get_metric_progress(
+        self, entry_id: int
+    ) -> MetricGoalProgress | None:
+        return await self.session.get(MetricGoalProgress, entry_id)
+
+    async def list_goal_metric_progress(
+        self, goal_id: int, from_date: date | None = None, to_date: date | None = None
+    ) -> list[MetricGoalProgress]:
+        query = select(MetricGoalProgress).where(
+            MetricGoalProgress.goal_id == goal_id
+        )
+        if from_date is not None:
+            query = query.where(MetricGoalProgress.recorded_on >= from_date)
+        if to_date is not None:
+            query = query.where(MetricGoalProgress.recorded_on < to_date)
+        result = await self.session.execute(
+            query.order_by(
+                MetricGoalProgress.recorded_on.desc(),
+                MetricGoalProgress.created_at.desc(),
+            )
+        )
+        return list(result.scalars().all())
 
     async def list_blocks(
         self, from_at: datetime, to_at: datetime

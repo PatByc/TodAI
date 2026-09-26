@@ -20,6 +20,7 @@ from sqlalchemy.engine import make_url
 from app.migrations import BACKEND_ROOT, upgrade_database
 from app.schemas.backup import (
     BackupHistoryItem,
+    BackupStorageReport,
     RestoreCounts,
     RestorePreview,
     RestoreStatusResponse,
@@ -176,6 +177,53 @@ def list_backup_history(database_url: str) -> list[BackupHistoryItem]:
             )
         )
     return sorted(items, key=lambda item: item.created_at, reverse=True)
+
+
+def build_backup_storage_report(database_url: str) -> BackupStorageReport:
+    """Verify stored snapshots and report their current on-disk footprint."""
+    verified_at = datetime.now(UTC)
+    items = list_backup_history(database_url)
+    reported_items: list[BackupHistoryItem] = []
+    backup_dir = _backup_directory(database_url)
+    for item in items:
+        try:
+            validation = validate_restore_candidate(backup_dir / item.filename)
+            reported_items.append(
+                item.model_copy(
+                    update={
+                        "integrity": "ok",
+                        "verified_at": verified_at,
+                        "schema_revision": validation["schema_revision"],
+                        "needs_upgrade": validation["needs_upgrade"],
+                    }
+                )
+            )
+        except RestoreValidationError as exc:
+            reported_items.append(
+                item.model_copy(
+                    update={
+                        "integrity": "failed",
+                        "verified_at": verified_at,
+                        "verification_error": str(exc),
+                    }
+                )
+            )
+
+    automatic_size = sum(
+        item.size_bytes for item in reported_items if item.kind == "automatic"
+    )
+    safety_size = sum(
+        item.size_bytes for item in reported_items if item.kind == "safety"
+    )
+    return BackupStorageReport(
+        generated_at=verified_at,
+        total_size_bytes=automatic_size + safety_size,
+        automatic_size_bytes=automatic_size,
+        safety_size_bytes=safety_size,
+        verified_count=sum(item.integrity == "ok" for item in reported_items),
+        failed_count=sum(item.integrity == "failed" for item in reported_items),
+        items=reported_items,
+    )
 
 
 def _resolve_history_item(database_url: str, backup_id: str) -> BackupHistoryItem:

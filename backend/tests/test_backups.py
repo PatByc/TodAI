@@ -15,6 +15,7 @@ from app.services.backup_scheduler import BackupScheduler, update_backup_setting
 from app.services.restore_service import (
     RestoreValidationError,
     apply_pending_restore,
+    build_backup_storage_report,
     confirm_restore,
     list_backup_history,
     restore_status,
@@ -207,6 +208,30 @@ def test_backup_history_uses_opaque_ids_and_includes_safety_copy(tmp_path):
 
     assert {item.kind for item in history} == {"automatic", "safety"}
     assert all("/" not in item.id and item.id != item.filename for item in history)
+
+
+def test_backup_storage_report_verifies_history_and_totals_sizes(tmp_path):
+    active = tmp_path / "todai.db"
+    _create_todai_database(active)
+    backup_dir = tmp_path / "backups"
+    backup_dir.mkdir()
+    valid = backup_dir / "todai-auto-backup-20260926T120000Z.db"
+    invalid = backup_dir / "todai-auto-backup-20260926T130000Z.db"
+    safety = backup_dir / "todai-pre-restore.db"
+    valid.write_bytes(active.read_bytes())
+    safety.write_bytes(active.read_bytes())
+    invalid.write_text("not a database")
+
+    report = build_backup_storage_report(sqlite_url(active))
+
+    assert report.total_size_bytes == sum(path.stat().st_size for path in (valid, invalid, safety))
+    assert report.automatic_size_bytes == valid.stat().st_size + invalid.stat().st_size
+    assert report.safety_size_bytes == safety.stat().st_size
+    assert report.verified_count == 2
+    assert report.failed_count == 1
+    assert {item.integrity for item in report.items} == {"ok", "failed"}
+    assert all(item.verified_at is not None for item in report.items)
+    assert next(item for item in report.items if item.integrity == "failed").verification_error
 
 
 @pytest.mark.asyncio

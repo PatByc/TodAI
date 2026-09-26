@@ -3,6 +3,7 @@ import { Check, ChevronLeft, ChevronRight, Circle, Clock3 } from "lucide-react"
 import { useState } from "react"
 import type { CSSProperties } from "react"
 import { DatePicker } from "@/components/ui/DatePicker"
+import { ReviewReflection } from "@/components/review/ReviewReflection"
 import { useDailyReview, useMonthlyReview, usePeriodReview, useWeeklyReview } from "@/hooks/useReview"
 import { WORKSPACE_COLORS } from "@/lib/colorPalette"
 import { durationLabel, localDateValue, parseServerTime } from "@/lib/time"
@@ -268,6 +269,10 @@ function ReviewPage() {
             <strong>{signedNumber(review.comparison.routine_completion_rate_delta, "%")} routines</strong>
           </div>
         </footer>
+        <ReviewReflection
+          key={`day-${review.date}-${review.timezone}`}
+          locator={{ scope: "day", start_date: review.date, end_date: review.date, timezone: review.timezone }}
+        />
       </div>}
       {aggregateReview && <div className="review-view" key={aggregateReview.kind}>
         <div className="review-dayline">
@@ -367,6 +372,15 @@ function ReviewPage() {
             <strong>{signedNumber(aggregateReview.comparison.routine_completion_rate_delta, "%")} routines</strong>
           </div>
         </footer>
+        <ReviewReflection
+          key={`${aggregateReview.kind}-${aggregateReview.range_start}-${aggregateReview.range_end}-${aggregateReview.timezone}`}
+          locator={{
+            scope: aggregateReview.kind,
+            start_date: aggregateReview.range_start,
+            end_date: aggregateReview.range_end,
+            timezone: aggregateReview.timezone,
+          }}
+        />
       </div>}
     </div>
   )

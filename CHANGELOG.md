@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Added unit-free daily, weekly, and monthly number goals with `at least` or
+  `at most` targets, inline dated progress, Today visibility, audit history,
+  and portable export.
+- Added backup storage-use and per-snapshot integrity reporting in Data
+  settings, including visible invalid snapshots that cannot be restored.
+- Added non-mutating database-migration dry runs, stable credential-free source
+  references, and JSON-capable per-table validation reports.
+- Added durable Review reflections with autosave, human-approved Tod drafts,
+  three-period pattern evidence, and a structured read-only Review MCP tool.
+
 ## 1.0.1 — 2026-09-26
 
 - Added persistent time tracking with a daily timeline, manual entries, and

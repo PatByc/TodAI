@@ -54,12 +54,13 @@ async def test_mcp_catalog_is_private_granular_and_callable(async_session):
 
     assert {
         "search_records",
+        "get_review",
         "get_task",
         "create_task",
         "update_task",
         "convert_idea_to_task",
     } <= names
-    assert len(names) == 44
+    assert len(names) == 45
     assert result.is_error is False
 
 

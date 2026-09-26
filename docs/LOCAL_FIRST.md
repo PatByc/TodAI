@@ -38,16 +38,27 @@ upgrades the destination schema, reads every authoritative source table, and
 copies projects, entities, tags, tag links, Inbox items, and audit history while
 preserving IDs and timestamps. It never writes to the source database.
 
+Run the same command with `--dry-run` first. The dry run reads table counts and
+checks destination safety without creating or upgrading the destination. A
+credential-free source reference is derived automatically; use
+`--source-reference` to assign a durable operational name. `--report` writes a
+timestamped JSON result containing every table's source/destination count and
+primary-key identity check.
+
 ```bash
 cd backend
 uv run python -m app.database_migration \
   --source "postgresql+asyncpg://user:password@host/todai" \
-  --destination "sqlite+aiosqlite:///C:/Users/you/AppData/Local/TodAI/TodAI/todai.db"
+  --destination "sqlite+aiosqlite:///C:/Users/you/AppData/Local/TodAI/TodAI/todai.db" \
+  --dry-run \
+  --source-reference "production-server-2026" \
+  --report "migration-dry-run.json"
 ```
 
-The command refuses to merge into a destination containing application rows.
-Take a source backup before any production migration and verify entity counts
-before changing the Desktop configuration.
+Remove `--dry-run` only after reviewing the report. The completed migration
+reruns validation against the destination and refuses to merge into a database
+containing application rows. Take a source backup before any production
+migration and keep the final report before changing the Desktop configuration.
 
 ## Windows executable boundary
 

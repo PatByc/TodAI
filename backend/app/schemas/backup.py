@@ -26,6 +26,21 @@ class BackupHistoryItem(BaseModel):
     filename: str
     created_at: datetime
     size_bytes: int
+    integrity: Literal["unchecked", "ok", "failed"] = "unchecked"
+    verified_at: datetime | None = None
+    schema_revision: str | None = None
+    needs_upgrade: bool | None = None
+    verification_error: str | None = None
+
+
+class BackupStorageReport(BaseModel):
+    generated_at: datetime
+    total_size_bytes: int
+    automatic_size_bytes: int
+    safety_size_bytes: int
+    verified_count: int
+    failed_count: int
+    items: list[BackupHistoryItem]
 
 
 class RestoreCounts(BaseModel):

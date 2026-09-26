@@ -55,6 +55,8 @@ def _tool_label(name: str, arguments: dict[str, Any]) -> str:
     data = arguments.get("input", arguments)
     if name == "search_records":
         return f"Searching for “{data.get('query', '')}”"
+    if name == "get_review":
+        return f"Reading the {data.get('scope', 'period')} review"
     if name.startswith("get_"):
         return (
             f"Reading {name.removeprefix('get_').replace('_', ' ')} #{data.get('id')}"
@@ -112,6 +114,8 @@ class OpenAIActionPlanner:
             "For greetings, thanks, small talk, and requests that do not need workspace data, respond "
             "directly without calling any tool. A greeting alone refers only to the latest message; do "
             "not revive an earlier request unless the user explicitly refers to it. "
+            "For day, week, month, or custom-period summaries, use get_review so the answer is grounded "
+            "in the same structured data shown on the Review page. "
             "For a mutation, first call discover_tools "
             "with a concise intent, then call only the mutation tools it makes available. Never claim "
             "a proposed mutation already happened. If the request is unambiguous, call the mutation "
@@ -142,6 +146,7 @@ class OpenAIActionPlanner:
             catalog = {tool.name: tool for tool in listed.tools}
             base_names = {
                 "search_records",
+                "get_review",
                 "get_note",
                 "get_task",
                 "get_idea",

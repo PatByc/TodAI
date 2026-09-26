@@ -8,7 +8,9 @@ from sqlalchemy import select
 
 from app.models.audit_log import AuditLog
 from app.models.time_tracking import TimeEntry
+from app.schemas.review import ReviewReflectionLocator
 from app.services import review_service
+from app.services.review_reflection_service import ReviewReflectionService
 
 
 @pytest.mark.asyncio
@@ -97,6 +99,108 @@ async def test_daily_review_combines_time_tasks_and_routines(
     assert review["routines"]["scheduled_count"] == 1
     assert review["routines"]["completed_count"] == 1
     assert review["routines"]["completion_rate"] == 100.0
+
+
+@pytest.mark.asyncio
+async def test_reflection_is_saved_once_per_review_period(async_client: AsyncClient):
+    params = {
+        "scope": "day",
+        "start_date": "2026-09-24",
+        "end_date": "2026-09-24",
+        "timezone": "Europe/Warsaw",
+    }
+    empty = await async_client.get("/api/v1/review/reflection", params=params)
+    assert empty.status_code == 200
+    assert empty.json() is None
+
+    created = await async_client.put(
+        "/api/v1/review/reflection",
+        json={
+            **params,
+            "what_worked": "I protected a focus block.",
+            "friction": "Two tasks remained open.",
+            "adjustment": "I will plan fewer parallel tasks.",
+            "patterns": [
+                {
+                    "text": "Possible signal: planning is ahead of tracking.",
+                    "evidence": "Tracked time was below planned time.",
+                }
+            ],
+        },
+    )
+    assert created.status_code == 200
+    reflection_id = created.json()["id"]
+
+    updated = await async_client.put(
+        "/api/v1/review/reflection",
+        json={
+            **params,
+            "what_worked": "I protected two focus blocks.",
+            "friction": "",
+            "adjustment": "Start with one priority.",
+            "patterns": [],
+        },
+    )
+    assert updated.status_code == 200
+    assert updated.json()["id"] == reflection_id
+    assert updated.json()["what_worked"] == "I protected two focus blocks."
+
+    loaded = await async_client.get("/api/v1/review/reflection", params=params)
+    assert loaded.json()["id"] == reflection_id
+    assert loaded.json()["adjustment"] == "Start with one priority."
+
+    exported = (await async_client.get("/api/v1/export/?format=json")).json()
+    assert exported["review_reflections"][0]["id"] == reflection_id
+
+
+@pytest.mark.asyncio
+async def test_reflection_rejects_non_calendar_week(async_client: AsyncClient):
+    response = await async_client.put(
+        "/api/v1/review/reflection",
+        json={
+            "scope": "week",
+            "start_date": "2026-09-22",
+            "end_date": "2026-09-28",
+            "timezone": "UTC",
+        },
+    )
+    assert response.status_code == 409
+    assert "Monday through Sunday" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_tod_reflection_draft_uses_three_review_periods(async_session):
+    class DraftProvider:
+        def __init__(self):
+            self.prompt = ""
+
+        async def complete(self, prompt: str) -> str:
+            self.prompt = prompt
+            return """{
+                "what_worked": "I completed the work I closed.",
+                "friction": "Tracked time was limited.",
+                "adjustment": "I will protect one focused block.",
+                "patterns": [{
+                    "text": "Possible signal: tracking is inconsistent.",
+                    "evidence": "The three snapshots contain little tracked time."
+                }]
+            }"""
+
+    provider = DraftProvider()
+    service = ReviewReflectionService(async_session, provider=provider)
+    draft = await service.draft(
+        ReviewReflectionLocator(
+            scope="day",
+            start_date="2026-09-24",
+            end_date="2026-09-24",
+            timezone="UTC",
+        )
+    )
+
+    assert draft.adjustment == "I will protect one focused block."
+    assert len(draft.patterns) == 1
+    assert provider.prompt.count('"start_date"') == 3
+    assert "only when the same tendency is supported across all three" in provider.prompt
 
 
 @pytest.mark.asyncio

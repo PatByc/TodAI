@@ -13,8 +13,18 @@ from .efficiency_metric import EfficiencyMetric
 from .idea import Idea, IdeaState
 from .inbox_item import InboxItem
 from .note import Note
-from .planning import GoalPeriod, PlannedBlock, Routine, RoutineCompletion, TimeGoal
+from .planning import (
+    GoalPeriod,
+    MetricGoal,
+    MetricGoalDirection,
+    MetricGoalProgress,
+    PlannedBlock,
+    Routine,
+    RoutineCompletion,
+    TimeGoal,
+)
 from .project import Project, ProjectStatus
+from .review_reflection import ReviewReflection
 from .search_chunk import SearchChunk
 from .tag import EntityTag, Tag
 from .task import Task, TaskRecurrence, TaskStatus
@@ -25,18 +35,22 @@ __all__ = [
     "APIUsageCost",
     "AgentProposal",
     "AuditLog",
-    "Base",
     "BackupSetting",
+    "Base",
     "EfficiencyMetric",
     "EntityTag",
     "GoalPeriod",
     "Idea",
     "IdeaState",
     "InboxItem",
+    "MetricGoal",
+    "MetricGoalDirection",
+    "MetricGoalProgress",
     "Note",
     "PlannedBlock",
     "Project",
     "ProjectStatus",
+    "ReviewReflection",
     "Routine",
     "RoutineCompletion",
     "SearchChunk",
