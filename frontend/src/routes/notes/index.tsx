@@ -9,12 +9,16 @@ import { EmptyState } from "@/components/entities/EmptyState"
 import { EntityFilterBar } from "@/components/filters/EntityFilterBar"
 import { DEFAULT_NOTE_DISPLAY_FIELDS, NoteDisplayOptions } from "@/components/notes/NoteDisplayOptions"
 import type { NoteDisplayField } from "@/components/notes/NoteDisplayOptions"
+import { useStoredFilterValue } from "@/hooks/useStoredFilterValue"
 
 export const Route = createFileRoute("/notes/")({
   component: NotesPage,
 })
 
 const DISPLAY_STORAGE_KEY = "todai.notes.display-fields"
+type NoteView = "all" | "pinned"
+const isNoteView = (value: unknown): value is NoteView => value === "all" || value === "pinned"
+const isBoolean = (value: unknown): value is boolean => typeof value === "boolean"
 
 function readDisplayFields(): NoteDisplayField[] {
   if (typeof window === "undefined") return DEFAULT_NOTE_DISPLAY_FIELDS
@@ -32,16 +36,17 @@ function readDisplayFields(): NoteDisplayField[] {
 
 function NotesPage() {
   const navigate = useNavigate()
-  const [noteView, setNoteView] = useState<"all" | "pinned">("all")
-  const [includeArchived, setIncludeArchived] = useState(false)
+  const [noteView, setNoteView] = useStoredFilterValue<NoteView>("todai.notes.filter-view", "all", isNoteView)
+  const [includeArchived, setIncludeArchived] = useStoredFilterValue("todai.notes.filter-archived", false, isBoolean)
   const [displayFields, setDisplayFields] = useState<NoteDisplayField[]>(readDisplayFields)
-  const { selectedTagIds, tagLogic } = useFilterStore()
+  const { selectedTagIds, tagLogic, selectedProjectId } = useFilterStore((state) => state.byScope.notes)
   const { data: allTags = [] } = useFetchAllTags()
 
   const { data, isLoading } = useNotes({
     include_archived: includeArchived || undefined,
     tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,
     tag_logic: selectedTagIds.length > 0 ? tagLogic : undefined,
+    project_id: selectedProjectId ?? undefined,
   })
 
   const createNote = useCreateNote()
@@ -126,7 +131,7 @@ function NotesPage() {
           { value: "pinned", label: "Pinned" },
         ]}
         viewLabel="Note view"
-        onViewChange={(view) => setNoteView(view as "all" | "pinned")}
+        onViewChange={(view) => setNoteView(view as NoteView)}
         includeArchived={includeArchived}
         onIncludeArchivedChange={setIncludeArchived}
         extraControls={<NoteDisplayOptions fields={displayFields} onChange={updateDisplayFields} />}

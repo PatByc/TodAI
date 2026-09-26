@@ -884,14 +884,14 @@ analysis.
 - English/Polish selection stored locally.
 - Date-gated theme selection stored locally.
 - Autumn theme active only from September 1 through November 30 when enabled.
-- UI footer displays version `v1.0.0`.
+- UI footer displays version `v1.0.1`.
 
 Limitations:
 
 - The language selector does not yet translate the interface.
 - Settings live mainly in browser storage rather than the application database.
 - Only the Autumn theme exists.
-- Backend, frontend package, API, and UI versions are aligned at `1.0.0`.
+- Backend, frontend package, API, and UI versions are aligned at `1.0.1`.
 
 ### Pilar
 

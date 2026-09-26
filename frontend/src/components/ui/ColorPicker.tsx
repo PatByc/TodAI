@@ -28,7 +28,20 @@ export function ColorPicker({
   const selected = colors[selectedIndex]
   const wheelColors = colors
     .map((color, index) => ({ color, index }))
-    .sort((left, right) => (left.color.wheelOrder ?? left.index) - (right.color.wheelOrder ?? right.index))
+    .sort((left, right) => (
+      (left.color.wheelRing ?? 0) - (right.color.wheelRing ?? 0)
+      || (left.color.wheelOrder ?? left.index) - (right.color.wheelOrder ?? right.index)
+    ))
+    .map((entry, _, entries) => {
+      const ring = entry.color.wheelRing ?? 0
+      const ringEntries = entries.filter((candidate) => (candidate.color.wheelRing ?? 0) === ring)
+      return {
+        ...entry,
+        ring,
+        ringPosition: ringEntries.findIndex((candidate) => candidate.index === entry.index),
+        ringCount: ringEntries.length,
+      }
+    })
 
   useEffect(() => {
     if (!isOpen) return
@@ -85,16 +98,18 @@ export function ColorPicker({
               <span style={{ backgroundColor: selected.value, "--selected-color": selected.value } as CSSProperties} />
               <small>{selected.label}</small>
             </div>
-            {wheelColors.map(({ color, index }, position) => (
+            {wheelColors.map(({ color, index, ring, ringPosition, ringCount }) => (
               <button
                 key={color.value}
                 type="button"
                 className="ui-color-option"
                 style={{
                   "--option-color": color.value,
-                  "--option-angle": `${position / wheelColors.length * 360}deg`,
-                  "--option-angle-inverse": `${position / wheelColors.length * -360}deg`,
+                  "--option-angle": `${ringPosition / ringCount * 360}deg`,
+                  "--option-angle-inverse": `${ringPosition / ringCount * -360}deg`,
+                  "--option-radius": ring === 0 ? "105px" : "74px",
                 } as CSSProperties}
+                data-ring={ring}
                 onClick={() => choose(index)}
                 role="option"
                 aria-label={color.label}

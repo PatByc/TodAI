@@ -6,22 +6,22 @@ import { useProjects } from "@/hooks/useProjects"
 import { getTagColor } from "@/lib/colors"
 import { SelectDropdown } from "@/components/ui/SelectDropdown"
 import type { TagResponse } from "@/types/entities"
+import type { FilterScope } from "@/stores/filters"
 
 interface TagFilterBarProps {
+  scope: FilterScope
   allTags?: TagResponse[]
   showProjectFilter?: boolean
 }
 
-export function TagFilterBar({ allTags = [], showProjectFilter = true }: TagFilterBarProps) {
-  const {
-    selectedTagIds,
-    tagLogic,
-    toggleTag,
-    clearTags,
-    setTagLogic,
-    selectedProjectId,
-    setSelectedProjectId,
-  } = useFilterStore()
+export function TagFilterBar({ scope, allTags = [], showProjectFilter = true }: TagFilterBarProps) {
+  const selectedTagIds = useFilterStore((state) => state.byScope[scope].selectedTagIds)
+  const tagLogic = useFilterStore((state) => state.byScope[scope].tagLogic)
+  const selectedProjectId = useFilterStore((state) => state.byScope[scope].selectedProjectId)
+  const toggleTag = useFilterStore((state) => state.toggleTag)
+  const clearTags = useFilterStore((state) => state.clearTags)
+  const setTagLogic = useFilterStore((state) => state.setTagLogic)
+  const setSelectedProjectId = useFilterStore((state) => state.setSelectedProjectId)
   const { data: projectsData } = useProjects({ include_archived: false })
   const projects = projectsData?.items ?? []
   const [isOpen, setIsOpen] = useState(false)
@@ -66,7 +66,7 @@ export function TagFilterBar({ allTags = [], showProjectFilter = true }: TagFilt
             { value: "", label: "All projects" },
             ...projects.map((project) => ({ value: String(project.id), label: project.name })),
           ]}
-          onChange={(nextValue) => setSelectedProjectId(nextValue ? Number(nextValue) : null)}
+          onChange={(nextValue) => setSelectedProjectId(scope, nextValue ? Number(nextValue) : null)}
           ariaLabel="Filter by project"
           size="compact"
           muted={selectedProjectId === null}
@@ -108,7 +108,7 @@ export function TagFilterBar({ allTags = [], showProjectFilter = true }: TagFilt
                 <button
                   type="button"
                   className="ui-select-option"
-                  onClick={clearTags}
+                  onClick={() => clearTags(scope)}
                   role="option"
                   aria-selected={selectedTags.length === 0}
                 >
@@ -126,7 +126,7 @@ export function TagFilterBar({ allTags = [], showProjectFilter = true }: TagFilt
                     type="button"
                     key={tag.id}
                     className="ui-select-option"
-                    onClick={() => toggleTag(tag.id)}
+                    onClick={() => toggleTag(scope, tag.id)}
                     role="option"
                     aria-selected={selected}
                   >
@@ -143,7 +143,7 @@ export function TagFilterBar({ allTags = [], showProjectFilter = true }: TagFilt
             {selectedTags.length > 1 && (
               <div className="tag-filter-logic">
                 <span>Match</span>
-                <button type="button" onClick={() => setTagLogic(tagLogic === "and" ? "or" : "and")}>
+                <button type="button" onClick={() => setTagLogic(scope, tagLogic === "and" ? "or" : "and")}>
                   {tagLogic === "and" ? "all selected tags" : "any selected tag"}
                 </button>
               </div>

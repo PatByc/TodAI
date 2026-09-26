@@ -10,6 +10,7 @@ import { TaskFilterBar, type TaskView } from "@/components/tasks/TaskFilterBar"
 import { DEFAULT_TASK_DISPLAY_FIELDS } from "@/components/tasks/TaskDisplayOptions"
 import type { TaskDisplayField } from "@/components/tasks/TaskDisplayOptions"
 import { playCompletionChime } from "@/lib/completionChime"
+import { useStoredFilterValue } from "@/hooks/useStoredFilterValue"
 
 export const Route = createFileRoute("/tasks/")({
   component: TasksPage,
@@ -17,6 +18,11 @@ export const Route = createFileRoute("/tasks/")({
 
 const DISPLAY_STORAGE_KEY = "todai.tasks.display-fields.v2"
 const LEGACY_DISPLAY_STORAGE_KEY = "todai.tasks.display-fields"
+
+const isTaskView = (value: unknown): value is TaskView => (
+  value === "all" || value === "today" || value === "active" || value === "completed"
+)
+const isBoolean = (value: unknown): value is boolean => typeof value === "boolean"
 
 function readDisplayFields(): TaskDisplayField[] {
   if (typeof window === "undefined") return DEFAULT_TASK_DISPLAY_FIELDS
@@ -37,18 +43,19 @@ function readDisplayFields(): TaskDisplayField[] {
 
 function TasksPage() {
   const navigate = useNavigate()
-  const [taskView, setTaskView] = useState<TaskView>("all")
-  const [includeArchived, setIncludeArchived] = useState(false)
+  const [taskView, setTaskView] = useStoredFilterValue<TaskView>("todai.tasks.filter-view", "all", isTaskView)
+  const [includeArchived, setIncludeArchived] = useStoredFilterValue("todai.tasks.filter-archived", false, isBoolean)
   const [displayFields, setDisplayFields] = useState<TaskDisplayField[]>(readDisplayFields)
   const [completingIds, setCompletingIds] = useState<Set<number>>(() => new Set())
   const [completionError, setCompletionError] = useState("")
-  const { selectedTagIds, tagLogic } = useFilterStore()
+  const { selectedTagIds, tagLogic, selectedProjectId } = useFilterStore((state) => state.byScope.tasks)
   const { data: allTags = [] } = useFetchAllTags()
 
   const { data, isLoading } = useTasks({
     include_archived: includeArchived || undefined,
     tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,
     tag_logic: selectedTagIds.length > 0 ? tagLogic : undefined,
+    project_id: selectedProjectId ?? undefined,
   })
 
   const createTask = useCreateTask()

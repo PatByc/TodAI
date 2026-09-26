@@ -25,7 +25,7 @@ Last reviewed against the codebase: 2026-09-26.
 | Tod | One agentic chat mode, MCP-style workspace tools, visible live activity, manual or automatic approval, proposals, slash commands, capabilities, and pinned/temporary layouts. |
 | Settings | Language selection, date-aware themes, time streams and colors, tag creation/deletion/recoloring, AI configuration, and data controls. |
 | Developer | Runtime and efficiency diagnostics plus durable cloud-LLM API usage and estimated cost reporting. |
-| Data | Embedded SQLite by default, optional PostgreSQL server deployment, migrations, audit records, JSON/Markdown export, and rebuildable search indexes. |
+| Data | Embedded SQLite by default, verified manual and scheduled SQLite backups with configurable retention, validated restore from stored or uploaded snapshots, pre-restore safety copy and automatic rollback, optional PostgreSQL server deployment, migrations, audit records, JSON/Markdown export, and rebuildable search indexes. |
 
 ## Shared interaction rules
 
@@ -42,19 +42,24 @@ Last reviewed against the codebase: 2026-09-26.
   audit, recurrence, and indexing behavior as changes made in the interface.
 - Interface controls use shared dropdown, date-picker, toggle, slider, and
   color-picker styling.
+- Main list filters persist independently per page, including their selected
+  view, project, tags, tag logic, archived state, and open/closed state.
+- Tags and time streams share a 48-color two-ring palette while retaining the
+  original saved color assignments.
 
 ## Planned or deferred
 
 - Durable written review reflections and optional Tod-generated drafts.
-- Online SQLite backup, guided restore, scheduled backups, retention controls,
-  dry-run imports, stable migration references, and validation reports.
+- User-facing semantic-search activation, index status, backfilling, rebuild
+  progress, provider controls, and optional local embeddings.
+- Detailed backup storage reporting, dry-run imports, stable migration
+  references, and migration validation reports.
 - Image and attachment storage for entries, followed later by optional content
   extraction and indexing.
 - Additional date-bound themes such as New Year.
 - Broader provider support and optional local AI models.
 
-See [`FUTURE_PLANS.md`](FUTURE_PLANS.md) and
-[`FUTURE_IDEAS.md`](FUTURE_IDEAS.md) for the detailed deferred backlog.
+See [`FUTURE_PLANS.md`](FUTURE_PLANS.md) for the detailed deferred backlog.
 
 ## Explicit product boundaries
 

@@ -14,17 +14,11 @@ import {
 } from "@/api/tasks"
 import type { FetchTasksParams } from "@/api/tasks"
 import type { TaskCreate, TaskUpdate } from "@/types/entities"
-import { useFilterStore } from "@/stores/filters"
 
 export function useTasks(params?: FetchTasksParams) {
-  const selectedProjectId = useFilterStore((s) => s.selectedProjectId)
-  const mergedParams = {
-    ...params,
-    project_id: params?.project_id ?? selectedProjectId ?? undefined,
-  }
   return useQuery({
-    queryKey: ["tasks", mergedParams],
-    queryFn: () => fetchTasks(mergedParams),
+    queryKey: ["tasks", params],
+    queryFn: () => fetchTasks(params),
   })
 }
 

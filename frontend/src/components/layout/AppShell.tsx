@@ -3,6 +3,7 @@ import { useEffect } from "react"
 import { Topbar } from "./Topbar"
 import { Sidebar } from "./Sidebar"
 import { AskDrawer } from "@/components/ask/AskDrawer"
+import { RestoreBanner } from "@/components/layout/RestoreBanner"
 
 export function AppShell() {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
@@ -60,6 +61,7 @@ export function AppShell() {
   return (
     <div className="app-shell">
       <Topbar />
+      <RestoreBanner />
 
       <div className="workspace">
         <Sidebar />

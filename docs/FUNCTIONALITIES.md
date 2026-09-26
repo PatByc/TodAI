@@ -1,8 +1,8 @@
 # TodAI Functionalities
 
-This document is the current, code-backed inventory of functionality provided by TodAI. It describes the application as implemented in the repository, not the roadmap in `FUTURE_IDEAS.md` or `FUTURE_PLANS.md`.
+This document is the current, code-backed inventory of functionality provided by TodAI. It describes the application as implemented in the repository, not the roadmap in `FUTURE_PLANS.md`.
 
-Last reviewed against the codebase: 2026-09-25.
+Last reviewed against the codebase: 2026-09-26.
 
 ## 1. Product overview
 
@@ -20,7 +20,7 @@ The application currently combines these functional areas:
 - Day, week, month, and custom-period reviews.
 - Global keyword and optional semantic search.
 - The Tod AI agent with visible tool activity and controlled write access.
-- JSON and Markdown export.
+- Verified live SQLite backup and guarded restore plus JSON and Markdown export.
 - Embedded SQLite storage by default and optional PostgreSQL server storage.
 - Audit history, search indexing, and efficiency telemetry.
 
@@ -346,7 +346,12 @@ Tasks, notes, ideas, and projects use a common compact filter surface. Depending
 - Include-archived toggle.
 - Clear action when filters are active.
 
-The filter surface is hidden initially unless the user left it open. Open/closed state is stored separately for each entity page. The active trigger turns green, combining visibility and persistence without a separate pin control.
+The filter surface is hidden initially unless the user left it open. Open/closed
+state and every selected filter are stored separately for each entity page.
+Refreshing or navigating away preserves the page's view, project, tags, tag
+matching logic, and archived setting without allowing choices to leak into
+another page. The active trigger turns green, combining visibility and
+persistence without a separate pin control.
 
 ### 9.3 Configurable card information
 
@@ -771,20 +776,85 @@ The preference is currently persisted, but complete interface translation is not
 - Creates shared tags directly from Settings.
 - Searches tags by name.
 - Shows how many entries currently use each tag.
-- Assigns and changes tag colors using the same reusable 24-color circular workspace palette as Time streams.
+- Assigns and changes tag colors using the same reusable 48-color, two-ring
+  workspace palette as Time streams. The original indices remain stable so
+  expanding the palette does not recolor existing records.
 - Permanently deletes a tag after inline confirmation.
 - Removing a tag globally also removes all of its task, note, idea, project, and Inbox associations.
 
 ### 17.6 Data
 
+- Creates and downloads a consistent SQLite database snapshot while TodAI is
+  running.
+- Verifies the generated database with SQLite's integrity check before download.
+- Shows the latest backup's creation time and file size in the current Settings
+  session.
+- Schedules verified SQLite snapshots daily or weekly while TodAI Server is
+  running, catching up when the application starts after a missed interval.
+- Retains a configurable number of automatic snapshots and deletes the oldest
+  after a successful backup or retention-setting change.
+- Shows the number stored plus the last and next automatic backup times.
+- Lists stored automatic snapshots and the latest protected pre-restore safety
+  copy.
+- Stages a restore from stored history or an uploaded SQLite database, verifies
+  its integrity and TodAI schema, and previews its entity counts before any
+  active data changes.
+- Requires the exact confirmation text `RESTORE`, then temporarily makes the
+  application read-only until the pending restore is cancelled or applied on
+  restart.
+- Creates and verifies a protected copy of the current database immediately
+  before replacement, runs schema migrations on the restored database, and
+  automatically rolls back if replacement or migration fails.
 - Downloads the complete workspace as JSON.
 - Downloads a readable Markdown export.
 
-The Settings footer displays the application version, currently `v1.0.0`.
+The Settings footer displays the application version, currently `v1.0.1`.
 
 ## 18. Export and portability
 
-### 18.1 JSON export
+### 18.1 SQLite database backup
+
+In Desktop mode, Settings can create a point-in-time `.db` backup using
+SQLite's online backup API. This includes committed WAL data without requiring
+TodAI to stop. The backend runs an integrity check before sending the file and
+returns its exact creation timestamp and size. PostgreSQL Server mode rejects
+this SQLite-specific operation rather than producing a misleading export.
+
+Automatic backups use the same online backup and integrity-verification path.
+They are stored in a `backups` directory beside the active SQLite database.
+The schedule is disabled by default and can be set to daily or weekly in
+Settings. Retention is configurable from 1 to 30 snapshots; pruning affects
+only TodAI-managed automatic backups. A newly enabled schedule creates its
+first snapshot while the server is running, and the startup scheduler catches
+up if a backup became due while the application was closed. Manual downloads
+remain separate and do not consume automatic-retention slots.
+
+### 18.2 SQLite database restore
+
+In Desktop mode, Settings provides a compact restore workflow for TodAI SQLite
+databases. A source can be selected from TodAI-managed automatic backups, the
+latest protected pre-restore copy, or an uploaded `.db`, `.sqlite`, or
+`.sqlite3` file. Uploads are limited to 5 GB.
+
+Staging does not modify the active workspace. TodAI first checks SQLite
+integrity, required application tables, and that the recorded Alembic revision
+belongs to this application. The preview identifies whether migration is
+needed and shows counts for tasks, notes, ideas, projects, Inbox items, and time
+entries.
+
+Confirmation requires typing `RESTORE` exactly. Confirmed restore state is
+stored outside the active database, normal write requests are locked, scheduled
+backups pause, and a global banner asks for an application restart. On startup,
+TodAI creates the single protected `todai-pre-restore.db` safety copy, atomically
+replaces the active database, runs pending migrations, revalidates the result,
+and preserves the configured backup frequency and retention count. A failure
+automatically restores the safety copy and records the error for the interface.
+The user can cancel a staged or confirmed restore before restarting.
+
+Restore is intentionally unavailable in PostgreSQL server mode because its
+backup and recovery procedure is provider-specific.
+
+### 18.3 JSON export
 
 The JSON export includes:
 
@@ -800,11 +870,11 @@ The JSON export includes:
 - Record IDs and timestamps.
 - Export timestamp.
 
-### 18.2 Markdown export
+### 18.4 Markdown export
 
 The Markdown export produces a human-readable document grouped by entity type. It includes the primary text, relevant state, tags, and creation dates for projects, notes, tasks, ideas, and Inbox items.
 
-Exports are downloads; a guided in-app restore workflow is not currently provided.
+Exports are downloads and are separate from the SQLite restore workflow.
 
 ## 19. Developer tools
 
@@ -921,6 +991,7 @@ The FastAPI backend exposes versioned endpoints for:
 - Global search and search-index rebuild.
 - Ask/agent readiness, runs, streamed events, approval, and rejection.
 - AI settings.
+- Verified SQLite database download, history, and guarded restore.
 - JSON/Markdown export.
 - Navigation counts.
 - Developer efficiency metrics and cloud API cost reporting.
@@ -936,6 +1007,8 @@ TodAI currently remembers these interface choices locally in the browser:
 - Sidebar Library group open/closed state.
 - Top-bar quick-actions open/closed state.
 - Filter-bar open/closed state per entity page.
+- View, project, tags, tag-matching logic, and archived filters independently
+  for Tasks, Notes, Ideas, and Projects.
 - Task, note, and idea card display fields.
 - Tod Manual approval/Auto execute mode.
 - Interface language preference.
@@ -948,13 +1021,14 @@ Ask conversation history is intentionally scoped to session storage rather than 
 The following are deliberately not described as current functionality:
 
 - Images or file attachments in notes.
-- Scheduled automatic backups, retention policies, and an in-app restore wizard.
+- Detailed backup storage-use and historical verification reporting.
 - Full Polish interface localization.
 - Project costs, expenses, revenue, margins, or acquisition dashboards.
 - Google Tasks synchronization.
 - Project delivery/economics tooling.
 - A packaged Windows installer; the local-first runtime boundary is prepared, but packaging remains separate work.
-- A user-facing search-index rebuild control; the rebuild endpoint exists, but Settings currently exposes export only.
+- A user-facing search-index rebuild control; the rebuild endpoint exists, but
+  Settings does not yet expose semantic-index management.
 
 These boundaries distinguish the implemented product from future plans and prevent this inventory from becoming a roadmap document.
 

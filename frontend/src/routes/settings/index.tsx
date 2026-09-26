@@ -5,6 +5,9 @@ import { AISettings } from "@/components/settings/AISettings"
 import { SelectDropdown } from "@/components/ui/SelectDropdown"
 import { TimeSettings } from "@/components/settings/TimeSettings"
 import { TagSettings } from "@/components/settings/TagSettings"
+import { BackupButton } from "@/components/settings/BackupButton"
+import { BackupSettings } from "@/components/settings/BackupSettings"
+import { RestorePanel } from "@/components/settings/RestorePanel"
 import { ExportButton } from "@/components/export/ExportButton"
 import { readEnabledThemes, saveEnabledThemes, THEMES } from "@/lib/themes"
 import type { ThemeId } from "@/lib/themes"
@@ -167,7 +170,28 @@ function SettingsPage() {
             </div>
             <div className="settings-row">
               <div>
-                <strong>Export data</strong>
+                <strong>Database backup</strong>
+                <span>Download a verified SQLite snapshot while TodAI is running.</span>
+              </div>
+              <BackupButton />
+            </div>
+            <div className="settings-row">
+              <div>
+                <strong>Automatic backups</strong>
+                <span>Keep verified snapshots on this device and remove the oldest automatically.</span>
+              </div>
+              <BackupSettings />
+            </div>
+            <div className="settings-row settings-restore-row">
+              <div>
+                <strong>Restore</strong>
+                <span>Validate a stored or uploaded backup before replacing this workspace.</span>
+              </div>
+              <RestorePanel />
+            </div>
+            <div className="settings-row">
+              <div>
+                <strong>Portable export</strong>
                 <span>Download a portable JSON backup or readable Markdown copy.</span>
               </div>
               <ExportButton />
@@ -212,7 +236,7 @@ function SettingsPage() {
 
       <footer className="settings-version" aria-label="Application version">
         <span>TodAi</span>
-        <span>v1.0.0</span>
+        <span>v1.0.1</span>
       </footer>
     </div>
   )

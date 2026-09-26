@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
-import { useState } from "react"
 import { useProjects, useCreateProject } from "@/hooks/useProjects"
 import { useFetchAllTags } from "@/hooks/useTags"
 import { useFilterStore } from "@/stores/filters"
@@ -8,16 +7,23 @@ import { ProjectCard } from "@/components/entities/ProjectCard"
 import { EmptyState } from "@/components/entities/EmptyState"
 import { EntityFilterBar } from "@/components/filters/EntityFilterBar"
 import type { ProjectStatus } from "@/types/entities"
+import { useStoredFilterValue } from "@/hooks/useStoredFilterValue"
 
 export const Route = createFileRoute("/projects/")({
   component: ProjectsPage,
 })
 
+type ProjectView = "all" | ProjectStatus
+const isProjectView = (value: unknown): value is ProjectView => (
+  value === "all" || value === "active" || value === "on_hold" || value === "completed"
+)
+const isBoolean = (value: unknown): value is boolean => typeof value === "boolean"
+
 function ProjectsPage() {
   const navigate = useNavigate()
-  const [projectView, setProjectView] = useState<"all" | ProjectStatus>("all")
-  const [includeArchived, setIncludeArchived] = useState(false)
-  const { selectedTagIds, tagLogic } = useFilterStore()
+  const [projectView, setProjectView] = useStoredFilterValue<ProjectView>("todai.projects.filter-view", "all", isProjectView)
+  const [includeArchived, setIncludeArchived] = useStoredFilterValue("todai.projects.filter-archived", false, isBoolean)
+  const { selectedTagIds, tagLogic } = useFilterStore((state) => state.byScope.projects)
   const { data: allTags = [] } = useFetchAllTags()
 
   const { data, isLoading } = useProjects({
@@ -104,7 +110,7 @@ function ProjectsPage() {
           { value: "completed", label: "Completed" },
         ]}
         viewLabel="Project status"
-        onViewChange={(view) => setProjectView(view as "all" | ProjectStatus)}
+        onViewChange={(view) => setProjectView(view as ProjectView)}
         includeArchived={includeArchived}
         onIncludeArchivedChange={setIncludeArchived}
         showProjectFilter={false}

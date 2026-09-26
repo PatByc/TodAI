@@ -255,36 +255,6 @@ export function TiptapEditor({
           margin: 0.2em 0;
         }
 
-        /* Task list */
-        .todai-editor .tiptap ul[data-type="taskList"] {
-          list-style: none;
-          padding-left: 0;
-        }
-
-        .todai-editor .tiptap ul[data-type="taskList"] li {
-          display: flex;
-          align-items: flex-start;
-          gap: 8px;
-        }
-
-        .todai-editor .tiptap ul[data-type="taskList"] li label {
-          display: flex;
-          align-items: center;
-          margin-top: 3px;
-        }
-
-        .todai-editor .tiptap ul[data-type="taskList"] li label input[type="checkbox"] {
-          width: 16px;
-          height: 16px;
-          accent-color: #4EBE5E;
-          cursor: pointer;
-        }
-
-        .todai-editor .tiptap ul[data-type="taskList"] li[data-checked="true"] > div > p {
-          text-decoration: line-through;
-          color: var(--text-3);
-        }
-
         /* Table */
         .todai-editor .tiptap table {
           border-collapse: collapse;

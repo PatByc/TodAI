@@ -62,6 +62,8 @@ cd ../frontend && npm run build && npm run lint
 ## Releases
 
 - `v0.1.0`: preserved legacy Next.js/Prisma/MySQL prototype.
-- `v1.0.0`: current local-first React/FastAPI rebuild.
+- `v1.0.0`: local-first React/FastAPI rebuild.
+- `v1.0.1`: planning, progress, recurrence, persistent filters, and guarded
+  SQLite backup and restore.
 
 See [`CHANGELOG.md`](CHANGELOG.md) for release notes.

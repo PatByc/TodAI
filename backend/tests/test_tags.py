@@ -36,13 +36,13 @@ async def test_create_and_recolor_tag_from_shared_palette(async_client: AsyncCli
     assert created.json()["color_index"] == 4
 
     updated = await async_client.patch(
-        f"/api/v1/tags/{created.json()['id']}", json={"color_index": 9}
+        f"/api/v1/tags/{created.json()['id']}", json={"color_index": 47}
     )
     assert updated.status_code == 200
-    assert updated.json()["color_index"] == 9
+    assert updated.json()["color_index"] == 47
 
     invalid = await async_client.patch(
-        f"/api/v1/tags/{created.json()['id']}", json={"color_index": 24}
+        f"/api/v1/tags/{created.json()['id']}", json={"color_index": 48}
     )
     assert invalid.status_code == 422
 

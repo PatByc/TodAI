@@ -179,6 +179,8 @@ cross-type tag-name retrieval.
 
 **Status:** Accepted
 
-TodAI provides JSON and Markdown export and must evolve toward guided backup,
-restore, and migration validation. Local ownership is a product requirement,
-not an implementation detail.
+TodAI provides JSON and Markdown export plus verified SQLite backup, scheduled
+retention, and guarded restore. Restore validates before confirmation, applies
+on restart, retains a pre-restore safety copy, and rolls back after failure.
+Broader import and migration validation remain future work. Local ownership is
+a product requirement, not an implementation detail.

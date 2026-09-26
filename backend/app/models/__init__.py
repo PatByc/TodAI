@@ -7,6 +7,7 @@ from .agent_proposal import AgentProposal
 from .ai_setting import AISetting
 from .api_usage_cost import APIUsageCost
 from .audit_log import AuditLog
+from .backup_setting import BackupSetting
 from .base import Base, SoftDeleteMixin, TimestampMixin
 from .efficiency_metric import EfficiencyMetric
 from .idea import Idea, IdeaState
@@ -25,6 +26,7 @@ __all__ = [
     "AgentProposal",
     "AuditLog",
     "Base",
+    "BackupSetting",
     "EfficiencyMetric",
     "EntityTag",
     "GoalPeriod",

@@ -6,9 +6,10 @@ import { SelectDropdown } from "@/components/ui/SelectDropdown"
 import { useFilterStore } from "@/stores/filters"
 import type { SelectOption } from "@/components/ui/SelectDropdown"
 import type { TagResponse } from "@/types/entities"
+import type { FilterScope } from "@/stores/filters"
 
 interface EntityFilterBarProps {
-  scope: "tasks" | "notes" | "ideas" | "projects"
+  scope: FilterScope
   allTags: TagResponse[]
   view: string
   defaultView: string
@@ -41,11 +42,9 @@ export function EntityFilterBar({
   showProjectFilter = true,
   extraControls,
 }: EntityFilterBarProps) {
-  const {
-    selectedTagIds,
-    selectedProjectId,
-    clearFilters,
-  } = useFilterStore()
+  const selectedTagIds = useFilterStore((state) => state.byScope[scope].selectedTagIds)
+  const selectedProjectId = useFilterStore((state) => state.byScope[scope].selectedProjectId)
+  const clearFilters = useFilterStore((state) => state.clearFilters)
   const [isOpen, setIsOpen] = useState(() => readOpenPreference(scope))
   const activeCount = selectedTagIds.length
     + Number(showProjectFilter && selectedProjectId !== null)
@@ -54,7 +53,7 @@ export function EntityFilterBar({
   const panelId = `${scope}-filter-panel`
 
   const clearAllFilters = () => {
-    clearFilters()
+    clearFilters(scope)
     onViewChange(defaultView)
     onIncludeArchivedChange(false)
   }
@@ -92,7 +91,7 @@ export function EntityFilterBar({
                 size="compact"
               />
             </label>
-            <TagFilterBar allTags={allTags} showProjectFilter={showProjectFilter} />
+            <TagFilterBar scope={scope} allTags={allTags} showProjectFilter={showProjectFilter} />
             {extraControls}
             <button
               type="button"
@@ -105,14 +104,18 @@ export function EntityFilterBar({
             </button>
           </div>
 
-          {activeCount > 0 && (
-            <div className="tasks-filter-actions">
-              <button type="button" className="tasks-filter-clear" onClick={clearAllFilters}>
-                <X size={12} aria-hidden="true" />
-                Clear
-              </button>
-            </div>
-          )}
+          <div className="tasks-filter-actions">
+            <button
+              type="button"
+              className="tasks-filter-clear"
+              onClick={clearAllFilters}
+              disabled={activeCount === 0}
+              aria-label={activeCount === 0 ? "No filters to clear" : "Clear filters"}
+            >
+              <X size={12} aria-hidden="true" />
+              Clear
+            </button>
+          </div>
         </div>
       )}
     </div>

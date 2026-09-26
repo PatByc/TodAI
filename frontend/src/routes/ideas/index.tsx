@@ -10,12 +10,18 @@ import { EntityFilterBar } from "@/components/filters/EntityFilterBar"
 import { DEFAULT_IDEA_DISPLAY_FIELDS, IdeaDisplayOptions } from "@/components/ideas/IdeaDisplayOptions"
 import type { IdeaDisplayField } from "@/components/ideas/IdeaDisplayOptions"
 import type { IdeaState } from "@/types/entities"
+import { useStoredFilterValue } from "@/hooks/useStoredFilterValue"
 
 export const Route = createFileRoute("/ideas/")({
   component: IdeasPage,
 })
 
 const DISPLAY_STORAGE_KEY = "todai.ideas.display-fields"
+type IdeaView = "all" | IdeaState
+const isIdeaView = (value: unknown): value is IdeaView => (
+  value === "all" || value === "raw" || value === "developing" || value === "converted"
+)
+const isBoolean = (value: unknown): value is boolean => typeof value === "boolean"
 
 function readDisplayFields(): IdeaDisplayField[] {
   if (typeof window === "undefined") return DEFAULT_IDEA_DISPLAY_FIELDS
@@ -33,16 +39,17 @@ function readDisplayFields(): IdeaDisplayField[] {
 
 function IdeasPage() {
   const navigate = useNavigate()
-  const [ideaView, setIdeaView] = useState<"all" | IdeaState>("all")
-  const [includeArchived, setIncludeArchived] = useState(false)
+  const [ideaView, setIdeaView] = useStoredFilterValue<IdeaView>("todai.ideas.filter-view", "all", isIdeaView)
+  const [includeArchived, setIncludeArchived] = useStoredFilterValue("todai.ideas.filter-archived", false, isBoolean)
   const [displayFields, setDisplayFields] = useState<IdeaDisplayField[]>(readDisplayFields)
-  const { selectedTagIds, tagLogic } = useFilterStore()
+  const { selectedTagIds, tagLogic, selectedProjectId } = useFilterStore((state) => state.byScope.ideas)
   const { data: allTags = [] } = useFetchAllTags()
 
   const { data, isLoading } = useIdeas({
     include_archived: includeArchived || undefined,
     tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,
     tag_logic: selectedTagIds.length > 0 ? tagLogic : undefined,
+    project_id: selectedProjectId ?? undefined,
     state: ideaView === "all" ? undefined : ideaView,
   })
 
@@ -125,7 +132,7 @@ function IdeasPage() {
           { value: "converted", label: "Converted" },
         ]}
         viewLabel="Idea state"
-        onViewChange={(view) => setIdeaView(view as "all" | IdeaState)}
+        onViewChange={(view) => setIdeaView(view as IdeaView)}
         includeArchived={includeArchived}
         onIncludeArchivedChange={setIncludeArchived}
         extraControls={<IdeaDisplayOptions fields={displayFields} onChange={updateDisplayFields} />}

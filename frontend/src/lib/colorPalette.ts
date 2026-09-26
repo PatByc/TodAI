@@ -2,6 +2,7 @@ export interface ColorOption {
   value: string
   label: string
   wheelOrder?: number
+  wheelRing?: number
 }
 
 export const WORKSPACE_COLORS: ColorOption[] = [
@@ -29,4 +30,28 @@ export const WORKSPACE_COLORS: ColorOption[] = [
   { value: "#6579d6", label: "Cobalt", wheelOrder: 18 },
   { value: "#aa68d2", label: "Violet", wheelOrder: 20 },
   { value: "#d65daf", label: "Magenta", wheelOrder: 21 },
+  { value: "#f24662", label: "Scarlet", wheelOrder: 0, wheelRing: 1 },
+  { value: "#f06472", label: "Watermelon", wheelOrder: 1, wheelRing: 1 },
+  { value: "#f07e69", label: "Salmon", wheelOrder: 2, wheelRing: 1 },
+  { value: "#e99564", label: "Apricot", wheelOrder: 3, wheelRing: 1 },
+  { value: "#f0ad4e", label: "Marigold", wheelOrder: 4, wheelRing: 1 },
+  { value: "#e8c84f", label: "Gold", wheelOrder: 5, wheelRing: 1 },
+  { value: "#d8df55", label: "Citron", wheelOrder: 6, wheelRing: 1 },
+  { value: "#b4d84d", label: "Chartreuse", wheelOrder: 7, wheelRing: 1 },
+  { value: "#8dca58", label: "Leaf", wheelOrder: 8, wheelRing: 1 },
+  { value: "#61bb69", label: "Fern", wheelOrder: 9, wheelRing: 1 },
+  { value: "#3db881", label: "Jade", wheelOrder: 10, wheelRing: 1 },
+  { value: "#45c59b", label: "Mint", wheelOrder: 11, wheelRing: 1 },
+  { value: "#43bea9", label: "Seafoam", wheelOrder: 12, wheelRing: 1 },
+  { value: "#45b9c1", label: "Turquoise", wheelOrder: 13, wheelRing: 1 },
+  { value: "#50afd2", label: "Sky", wheelOrder: 14, wheelRing: 1 },
+  { value: "#4f91d8", label: "Cerulean", wheelOrder: 15, wheelRing: 1 },
+  { value: "#5f72df", label: "Royal", wheelOrder: 16, wheelRing: 1 },
+  { value: "#765ed4", label: "Indigo", wheelOrder: 17, wheelRing: 1 },
+  { value: "#925fce", label: "Amethyst", wheelOrder: 18, wheelRing: 1 },
+  { value: "#b75fc8", label: "Orchid", wheelOrder: 19, wheelRing: 1 },
+  { value: "#d553b8", label: "Fuchsia", wheelOrder: 20, wheelRing: 1 },
+  { value: "#df4c91", label: "Raspberry", wheelOrder: 21, wheelRing: 1 },
+  { value: "#b78368", label: "Cocoa", wheelOrder: 22, wheelRing: 1 },
+  { value: "#b6bcb9", label: "Silver", wheelOrder: 23, wheelRing: 1 },
 ]
