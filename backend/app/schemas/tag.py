@@ -4,11 +4,20 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.core.colors import WORKSPACE_COLOR_MAX_INDEX
+
 
 class TagCreate(BaseModel):
     """Schema for creating a new tag."""
 
-    name: str = Field(max_length=100, description="Tag name")
+    name: str = Field(min_length=1, max_length=100, description="Tag name")
+    color_index: int | None = Field(default=None, ge=0, le=WORKSPACE_COLOR_MAX_INDEX)
+
+
+class TagUpdate(BaseModel):
+    """Editable shared-tag properties."""
+
+    color_index: int = Field(ge=0, le=WORKSPACE_COLOR_MAX_INDEX)
 
 
 class TagResponse(BaseModel):
@@ -20,6 +29,12 @@ class TagResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class TagSummaryResponse(TagResponse):
+    """Tag response with its current number of entity associations."""
+
+    usage_count: int
 
 
 class EntityTagCreate(BaseModel):

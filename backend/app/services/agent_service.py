@@ -85,6 +85,10 @@ _CREATE_FIELDS = {
         "status",
         "deadline",
         "project_id",
+        "recurrence_unit",
+        "recurrence_interval",
+        "recurrence_end_date",
+        "recurrence_limit",
     },
     "idea": {"title", "content", "state", "project_id"},
     "project": {"name", "description", "goals", "current_focus"},
@@ -101,6 +105,10 @@ _UPDATE_FIELDS = {
         "status",
         "deadline",
         "project_id",
+        "recurrence_unit",
+        "recurrence_interval",
+        "recurrence_end_date",
+        "recurrence_limit",
     },
     "idea": {"title", "content", "state", "project_id"},
     "project": {"name", "description", "goals", "current_focus", "status"},
@@ -177,7 +185,11 @@ class AgentService:
         self.mcp = TodMCP(session)
         self.planner = planner or (
             OpenAIActionPlanner(
-                settings.openai_api_key, settings.completion_model, self.mcp, emit
+                settings.openai_api_key,
+                settings.completion_model,
+                self.mcp,
+                emit,
+                usage_session=session,
             )
             if settings.completion_provider == "openai" and settings.openai_api_key
             else None

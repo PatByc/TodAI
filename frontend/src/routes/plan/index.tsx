@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Check, ChevronLeft, ChevronRight, GripVertical, Plus, Trash2, X } from "lucide-react"
-import { useMemo, useRef, useState } from "react"
-import type { CSSProperties, FormEvent, PointerEvent as ReactPointerEvent } from "react"
+import { createPortal } from "react-dom"
+import { useEffect, useMemo, useRef, useState } from "react"
+import type { CSSProperties, FormEvent, FocusEvent as ReactFocusEvent, PointerEvent as ReactPointerEvent } from "react"
 import { DatePicker } from "@/components/ui/DatePicker"
 import { SelectDropdown } from "@/components/ui/SelectDropdown"
 import { useCreatePlannedBlock, useDeletePlannedBlock, usePlannedBlocks, useRoutines, useUpdatePlannedBlock } from "@/hooks/usePlanning"
@@ -18,6 +19,53 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 const CALENDAR_START = 6
 const CALENDAR_END = 24
 const HOUR_HEIGHT = 52
+const TOOLTIP_DESCRIPTION_LIMIT = 180
+
+interface PlanTooltipContent {
+  type: "Planned time" | "Task" | "All-day task" | "Routine"
+  title: string
+  description: string | null
+  meta: string
+  color: string
+  delay?: number
+}
+
+interface VisiblePlanTooltip extends PlanTooltipContent {
+  left: number
+  top: number
+  anchor: number
+  placement: "above" | "below"
+}
+
+function previewDescription(value: string) {
+  const normalized = value.replace(/\s+/g, " ").trim()
+  if (normalized.length <= TOOLTIP_DESCRIPTION_LIMIT) return normalized
+  const draft = normalized.slice(0, TOOLTIP_DESCRIPTION_LIMIT + 1)
+  const boundary = draft.lastIndexOf(" ")
+  return `${draft.slice(0, boundary > 120 ? boundary : TOOLTIP_DESCRIPTION_LIMIT).trimEnd()}…`
+}
+
+function PlanEntryTooltip({ tooltip }: { tooltip: VisiblePlanTooltip | null }) {
+  if (!tooltip) return null
+  return createPortal(
+    <aside
+      id="plan-entry-tooltip"
+      role="tooltip"
+      className={`plan-entry-tooltip is-${tooltip.placement}`}
+      style={{
+        left: tooltip.left,
+        top: tooltip.top,
+        "--tooltip-anchor": `${tooltip.anchor}px`,
+        "--tooltip-color": tooltip.color,
+      } as CSSProperties}
+    >
+      <div className="plan-entry-tooltip-meta"><span>{tooltip.type}</span><time>{tooltip.meta}</time></div>
+      <strong>{tooltip.title}</strong>
+      <p>{previewDescription(tooltip.description ?? "")}</p>
+    </aside>,
+    document.body,
+  )
+}
 
 function BlockForm({ block, seed, onClose }: { block?: PlannedBlock; seed?: Date; onClose: () => void }) {
   const { data: streams = [] } = useTimeStreams()
@@ -97,13 +145,60 @@ function WeekCalendar({ dates, blocks, routines, tasks, streams, onCreate, onEdi
 }) {
   const [taskDrop, setTaskDrop] = useState<{ dayIndex: number; top: number; time: string } | null>(null)
   const [resizing, setResizing] = useState<{ blockId: number; endsAt: Date } | null>(null)
+  const [tooltip, setTooltip] = useState<VisiblePlanTooltip | null>(null)
+  const tooltipTimer = useRef<number | null>(null)
   const suppressBlockClick = useRef<number | null>(null)
   const today = localDateValue()
   const now = new Date()
   const streamById = new Map(streams.map((stream) => [stream.id, stream]))
   const topFor = (date: Date) => Math.max(0, (date.getHours() + date.getMinutes() / 60 - CALENDAR_START) * HOUR_HEIGHT)
   const calendarHeight = (CALENDAR_END - CALENDAR_START) * HOUR_HEIGHT
+  const hideTooltip = () => {
+    if (tooltipTimer.current !== null) window.clearTimeout(tooltipTimer.current)
+    tooltipTimer.current = null
+    setTooltip(null)
+  }
+  const showTooltip = (target: HTMLElement, content: PlanTooltipContent) => {
+    if (!content.description?.trim()) return
+    if (tooltipTimer.current !== null) window.clearTimeout(tooltipTimer.current)
+    const rect = target.getBoundingClientRect()
+    const width = Math.min(292, window.innerWidth - 24)
+    const center = rect.left + rect.width / 2
+    const left = Math.max(12, Math.min(center - width / 2, window.innerWidth - width - 12))
+    const placement = rect.bottom + 150 < window.innerHeight ? "below" : "above"
+    const top = placement === "below" ? rect.bottom + 9 : rect.top - 9
+    tooltipTimer.current = window.setTimeout(() => {
+      setTooltip({
+        ...content,
+        left,
+        top,
+        anchor: Math.max(18, Math.min(center - left, width - 18)),
+        placement,
+      })
+      tooltipTimer.current = null
+    }, content.delay ?? 320)
+  }
+  const tooltipProps = (content: PlanTooltipContent) => content.description?.trim() ? {
+    "aria-describedby": "plan-entry-tooltip",
+    onPointerEnter: (event: ReactPointerEvent<HTMLElement>) => showTooltip(event.currentTarget, content),
+    onPointerLeave: hideTooltip,
+    onFocus: (event: ReactFocusEvent<HTMLElement>) => showTooltip(event.currentTarget, content),
+    onBlur: hideTooltip,
+  } : {}
+
+  useEffect(() => {
+    const dismiss = () => hideTooltip()
+    window.addEventListener("resize", dismiss)
+    window.addEventListener("scroll", dismiss, true)
+    return () => {
+      window.removeEventListener("resize", dismiss)
+      window.removeEventListener("scroll", dismiss, true)
+      if (tooltipTimer.current !== null) window.clearTimeout(tooltipTimer.current)
+    }
+  }, [])
+
   const beginResize = (event: ReactPointerEvent<HTMLSpanElement>, block: PlannedBlock) => {
+    hideTooltip()
     event.preventDefault()
     event.stopPropagation()
     const originY = event.clientY
@@ -164,7 +259,7 @@ function WeekCalendar({ dates, blocks, routines, tasks, streams, onCreate, onEdi
         const dateValue = localDateValue(date)
         const allDayTasks = tasks.filter((task) => task.deadline && localDateValue(parseServerTime(task.deadline)) === dateValue && parseServerTime(task.deadline).getHours() < CALENDAR_START)
         const anytimeRoutines = routines.filter((routine) => routine.weekdays.includes(dayIndex) && !routine.scheduled_time)
-        return <div key={dateValue}>{allDayTasks.map((task) => <button type="button" draggable key={`all-task-${task.id}`} title={`${task.title} — drag into a time slot`} onDragStart={(event) => { event.dataTransfer.setData("text/task-id", String(task.id)); event.dataTransfer.effectAllowed = "move" }} onClick={() => onOpenTask(task)}><i />{task.title}</button>)}{anytimeRoutines.map((routine) => <button type="button" key={`all-routine-${routine.id}`} className="is-routine" onClick={() => onEditRoutine(routine)}><i />{routine.title}</button>)}</div>
+        return <div key={dateValue}>{allDayTasks.map((task) => <button type="button" draggable key={`all-task-${task.id}`} className={task.description?.trim() ? "has-description" : undefined} {...tooltipProps({ type: "All-day task", title: task.title, description: task.description, meta: "All day · drag to schedule", color: "#92815e", delay: 160 })} onDragStart={(event) => { hideTooltip(); event.dataTransfer.setData("text/task-id", String(task.id)); event.dataTransfer.effectAllowed = "move" }} onClick={() => onOpenTask(task)}><i />{task.title}</button>)}{anytimeRoutines.map((routine) => <button type="button" key={`all-routine-${routine.id}`} className="is-routine" {...tooltipProps({ type: "Routine", title: routine.title, description: routine.description, meta: "Anytime", color: "#67726d" })} onClick={() => onEditRoutine(routine)}><i />{routine.title}</button>)}</div>
       })}</div>
       <div className="plan-calendar-body">
         <div className="plan-calendar-hours">{Array.from({ length: CALENDAR_END - CALENDAR_START + 1 }, (_, index) => <span key={index} style={{ top: index * HOUR_HEIGHT }}>{String(CALENDAR_START + index).padStart(2, "0")}:00</span>)}</div>
@@ -212,21 +307,23 @@ function WeekCalendar({ dates, blocks, routines, tasks, streams, onCreate, onEdi
               const stream = block.stream_id ? streamById.get(block.stream_id) : undefined
               const color = stream ? WORKSPACE_COLORS[stream.color_index % WORKSPACE_COLORS.length].value : "#76817c"
               const resizingThis = resizing?.blockId === block.id
-              return <div role="button" tabIndex={0} draggable={!resizingThis} key={`block-${block.id}`} className={`plan-calendar-event is-block${resizingThis ? " is-resizing" : ""}`} style={{ top: topFor(start), height: Math.max(26, (end.getTime() - start.getTime()) / 3600000 * HOUR_HEIGHT), "--event-color": color } as CSSProperties} onDragStart={(event) => { if ((event.target as HTMLElement).closest(".plan-calendar-resize-handle")) return event.preventDefault(); event.dataTransfer.setData("text/planned-block", String(block.id)); event.dataTransfer.effectAllowed = "move" }} onClick={() => { if (suppressBlockClick.current === block.id) { suppressBlockClick.current = null; return } onEdit(block) }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onEdit(block) } }}><time>{start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}–{end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}</time><strong>{block.title}</strong><span role="separator" tabIndex={0} aria-label={`Resize ${block.title}. Use up or down arrows in 30 minute steps.`} className="plan-calendar-resize-handle" onPointerDown={(event) => beginResize(event, block)} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => { if (event.key === "ArrowUp" || event.key === "ArrowDown") { event.preventDefault(); event.stopPropagation(); resizeWithKeyboard(block, event.key === "ArrowUp" ? -30 : 30) } }} /></div>
+              const timeRange = `${start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}–${end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}`
+              return <div role="button" tabIndex={0} draggable={!resizingThis} key={`block-${block.id}`} className={`plan-calendar-event is-block${resizingThis ? " is-resizing" : ""}`} style={{ top: topFor(start), height: Math.max(26, (end.getTime() - start.getTime()) / 3600000 * HOUR_HEIGHT), "--event-color": color } as CSSProperties} {...tooltipProps({ type: "Planned time", title: block.title, description: block.description, meta: timeRange, color })} onDragStart={(event) => { hideTooltip(); if ((event.target as HTMLElement).closest(".plan-calendar-resize-handle")) return event.preventDefault(); event.dataTransfer.setData("text/planned-block", String(block.id)); event.dataTransfer.effectAllowed = "move" }} onClick={() => { if (suppressBlockClick.current === block.id) { suppressBlockClick.current = null; return } onEdit(block) }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onEdit(block) } }}><time>{timeRange}</time><strong>{block.title}</strong><span role="separator" tabIndex={0} aria-label={`Resize ${block.title}. Use up or down arrows in 30 minute steps.`} className="plan-calendar-resize-handle" onPointerDown={(event) => beginResize(event, block)} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => { if (event.key === "ArrowUp" || event.key === "ArrowDown") { event.preventDefault(); event.stopPropagation(); resizeWithKeyboard(block, event.key === "ArrowUp" ? -30 : 30) } }} /></div>
             })}
             {dayRoutines.map((routine) => {
               const [hour = 7, minute = 0] = routine.scheduled_time?.split(":").map(Number) ?? []
               const eventDate = new Date(date); eventDate.setHours(hour, minute, 0, 0)
-              return <button type="button" key={`routine-${routine.id}`} className="plan-calendar-event is-routine" style={{ top: topFor(eventDate), height: 32 }} onClick={() => onEditRoutine(routine)}><time>{routine.scheduled_time?.slice(0, 5) ?? "Anytime"}</time><strong>{routine.title}</strong></button>
+              return <button type="button" key={`routine-${routine.id}`} className="plan-calendar-event is-routine" style={{ top: topFor(eventDate), height: 32 }} {...tooltipProps({ type: "Routine", title: routine.title, description: routine.description, meta: routine.scheduled_time?.slice(0, 5) ?? "Anytime", color: "#67726d" })} onClick={() => onEditRoutine(routine)}><time>{routine.scheduled_time?.slice(0, 5) ?? "Anytime"}</time><strong>{routine.title}</strong></button>
             })}
             {dayTasks.map((task) => {
               const deadline = parseServerTime(task.deadline!)
-              return <button type="button" draggable key={`task-${task.id}`} className="plan-calendar-event is-task" style={{ top: topFor(deadline), height: 27 }} title={`${task.title} — drag to reschedule`} onDragStart={(event) => { event.dataTransfer.setData("text/task-id", String(task.id)); event.dataTransfer.effectAllowed = "move" }} onDragEnd={() => setTaskDrop(null)} onClick={() => onOpenTask(task)}><span>Task</span><strong>{task.title}</strong></button>
+              return <button type="button" draggable key={`task-${task.id}`} className="plan-calendar-event is-task" style={{ top: topFor(deadline), height: 27 }} {...tooltipProps({ type: "Task", title: task.title, description: task.description, meta: `${deadline.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })} · drag to reschedule`, color: "#92815e" })} onDragStart={(event) => { hideTooltip(); event.dataTransfer.setData("text/task-id", String(task.id)); event.dataTransfer.effectAllowed = "move" }} onDragEnd={() => setTaskDrop(null)} onClick={() => onOpenTask(task)}><span>Task</span><strong>{task.title}</strong></button>
             })}
           </div>
         })}
       </div>
     </div>
+    <PlanEntryTooltip tooltip={tooltip} />
     <p className="plan-calendar-hint">Drag a task to schedule it. Double-click empty time to add a plan.</p>
   </div>
 }

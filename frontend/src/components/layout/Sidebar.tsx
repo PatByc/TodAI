@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { Link, useRouterState } from "@tanstack/react-router"
-import { Activity, CalendarDays, ChartNoAxesColumnIncreasing, CheckSquare, ChevronRight, Clock3, FileText, FolderOpen, Home, Inbox, Library, Lightbulb, Repeat2, Settings, Target } from "lucide-react"
+import { Activity, CalendarDays, ChartNoAxesColumnIncreasing, CheckSquare, ChevronRight, ClipboardCheck, Clock3, FileText, FolderOpen, Home, Inbox, Library, Lightbulb, Repeat2, Settings, Target } from "lucide-react"
 import { useSidebarStore } from "@/stores/sidebar"
 import { useCounts } from "@/hooks/useCounts"
 
@@ -72,6 +72,7 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
     { to: "/tasks" as const, label: "Tasks", description: "Track actionable work", icon: CheckSquare, count: counts?.tasks },
   ]
   const progressItems = [
+    { to: "/review" as const, label: "Review", description: "Reflect on progress day by day", icon: ClipboardCheck, count: undefined },
     { to: "/time" as const, label: "Time", description: "Review and adjust tracked time", icon: Clock3, count: undefined },
     { to: "/routines" as const, label: "Routines", description: "Shape repeating practices", icon: Repeat2, count: undefined },
     { to: "/goals" as const, label: "Goals", description: "Track targets for your attention", icon: Target, count: undefined },

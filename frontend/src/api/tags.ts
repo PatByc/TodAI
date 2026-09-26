@@ -10,8 +10,16 @@ export async function searchTags(query: string): Promise<TagResponse[]> {
   return apiClient.get<TagResponse[]>(`/tags/search${qs}`)
 }
 
-export async function createTag(name: string): Promise<TagResponse> {
-  return apiClient.post<TagResponse>("/tags/", { name })
+export async function createTag(name: string, colorIndex?: number): Promise<TagResponse> {
+  return apiClient.post<TagResponse>("/tags/", { name, color_index: colorIndex })
+}
+
+export async function deleteTag(tagId: number): Promise<void> {
+  return apiClient.del<void>(`/tags/${tagId}`)
+}
+
+export async function updateTagColor(tagId: number, colorIndex: number): Promise<TagResponse> {
+  return apiClient.patch<TagResponse>(`/tags/${tagId}`, { color_index: colorIndex })
 }
 
 export async function addTagToEntity(

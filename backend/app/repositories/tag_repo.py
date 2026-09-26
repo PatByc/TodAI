@@ -5,6 +5,7 @@ from typing import Literal
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.colors import WORKSPACE_COLOR_COUNT
 from app.core.exceptions import DuplicateTagError
 from app.models.tag import EntityTag, Tag
 
@@ -19,18 +20,20 @@ class TagRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def create_tag(self, name: str) -> Tag:
+    async def create_tag(self, name: str, color_index: int | None = None) -> Tag:
         """Create a new tag. Raises DuplicateTagError if name already exists."""
         existing = await self.get_tag_by_name(name)
         if existing is not None:
             raise DuplicateTagError(name)
 
-        tag = Tag(name=name, color_index=0)  # Temporary; updated after flush
+        tag = Tag(name=name, color_index=color_index or 0)
         self.session.add(tag)
         await self.session.flush()
 
-        # Auto-assign color_index as id % 12 per RESEARCH open question 3
-        tag.color_index = tag.id % 12
+        # Keep automatic colors for inline tag creation while allowing Settings
+        # to choose explicitly from the shared workspace palette.
+        if color_index is None:
+            tag.color_index = tag.id % WORKSPACE_COLOR_COUNT
         await self.session.flush()
         await self.session.refresh(tag)
         return tag
@@ -38,13 +41,23 @@ class TagRepository:
     async def get_or_create_tag(self, name: str) -> Tag:
         """Get an existing tag by name, or create it if it doesn't exist.
 
-        Auto-assigns color_index as tag.id % 12.
+        Auto-assigns color_index from the shared workspace palette.
         """
         existing = await self.get_tag_by_name(name)
         if existing is not None:
             return existing
 
         return await self.create_tag(name)
+
+    async def update_color(self, tag_id: int, color_index: int) -> Tag | None:
+        """Change a tag's shared workspace-palette color."""
+        tag = await self.get_tag_by_id(tag_id)
+        if tag is None:
+            return None
+        tag.color_index = color_index
+        await self.session.flush()
+        await self.session.refresh(tag)
+        return tag
 
     async def get_tag_by_name(self, name: str) -> Tag | None:
         """Look up a tag by exact name match."""
@@ -55,6 +68,38 @@ class TagRepository:
         """Look up a tag by primary key."""
         result = await self.session.execute(select(Tag).where(Tag.id == tag_id))
         return result.scalar_one_or_none()
+
+    async def list_with_usage(self) -> list[tuple[Tag, int]]:
+        """List all tags with association counts, ordered by name."""
+        result = await self.session.execute(
+            select(Tag, func.count(EntityTag.id))
+            .outerjoin(EntityTag, EntityTag.tag_id == Tag.id)
+            .group_by(Tag.id)
+            .order_by(Tag.name)
+        )
+        return [(tag, int(count)) for tag, count in result.all()]
+
+    async def delete_tag(self, tag_id: int) -> bool:
+        """Delete a shared tag and all of its entity associations."""
+        tag = await self.get_tag_by_id(tag_id)
+        if tag is None:
+            return False
+        links = (
+            await self.session.execute(
+                select(EntityTag.entity_type, EntityTag.entity_id).where(
+                    EntityTag.tag_id == tag_id
+                )
+            )
+        ).all()
+        await self.session.execute(delete(EntityTag).where(EntityTag.tag_id == tag_id))
+        await self.session.delete(tag)
+        await self.session.flush()
+
+        from app.services.search_index_service import queue_reindex
+
+        for entity_type, entity_id in links:
+            queue_reindex(self.session, entity_type, entity_id)
+        return True
 
     async def search_tags(self, query: str, limit: int = 20) -> list[Tag]:
         """Search tags by name prefix for autocomplete.

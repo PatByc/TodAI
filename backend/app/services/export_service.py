@@ -2,8 +2,10 @@
 
 from datetime import datetime, timezone
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.api_usage_cost import APIUsageCost
 from app.repositories.idea_repo import IdeaRepository
 from app.repositories.inbox_repo import InboxRepository
 from app.repositories.note_repo import NoteRepository
@@ -63,6 +65,13 @@ class ExportService:
         export_start = datetime(1970, 1, 1)
         export_end = datetime(9999, 1, 1)
         planned_blocks = await self.planning_repo.list_blocks(export_start, export_end)
+        api_usage_costs = list(
+            (
+                await self.session.execute(
+                    select(APIUsageCost).order_by(APIUsageCost.occurred_at)
+                )
+            ).scalars()
+        )
 
         return {
             "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -157,6 +166,44 @@ class ExportService:
                     "updated_at": block.updated_at.isoformat(),
                 }
                 for block in planned_blocks
+            ],
+            "api_usage_costs": [
+                {
+                    "id": record.id,
+                    "occurred_at": record.occurred_at.isoformat(),
+                    "operation": record.operation,
+                    "provider": record.provider,
+                    "model": record.model,
+                    "request_kind": record.request_kind,
+                    "provider_request_id": record.provider_request_id,
+                    "input_tokens": record.input_tokens,
+                    "cached_input_tokens": record.cached_input_tokens,
+                    "output_tokens": record.output_tokens,
+                    "input_price_per_million_usd": (
+                        str(record.input_price_per_million_usd)
+                        if record.input_price_per_million_usd is not None
+                        else None
+                    ),
+                    "cached_input_price_per_million_usd": (
+                        str(record.cached_input_price_per_million_usd)
+                        if record.cached_input_price_per_million_usd is not None
+                        else None
+                    ),
+                    "output_price_per_million_usd": (
+                        str(record.output_price_per_million_usd)
+                        if record.output_price_per_million_usd is not None
+                        else None
+                    ),
+                    "estimated_cost_usd": (
+                        str(record.estimated_cost_usd)
+                        if record.estimated_cost_usd is not None
+                        else None
+                    ),
+                    "pricing_status": record.pricing_status,
+                    "pricing_version": record.pricing_version,
+                    "created_at": record.created_at.isoformat(),
+                }
+                for record in api_usage_costs
             ],
         }
 
@@ -295,6 +342,16 @@ class ExportService:
             if task.completed_at
             else None,
             "project_id": task.project_id,
+            "recurrence_unit": task.recurrence_unit.value
+            if task.recurrence_unit
+            else None,
+            "recurrence_interval": task.recurrence_interval,
+            "recurrence_end_date": task.recurrence_end_date.isoformat()
+            if task.recurrence_end_date
+            else None,
+            "recurrence_limit": task.recurrence_limit,
+            "recurrence_occurrence": task.recurrence_occurrence,
+            "recurrence_source_id": task.recurrence_source_id,
             "archived_at": task.archived_at.isoformat() if task.archived_at else None,
             "created_at": task.created_at.isoformat(),
             "updated_at": task.updated_at.isoformat(),

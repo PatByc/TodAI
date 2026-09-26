@@ -4,6 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.colors import WORKSPACE_COLOR_MAX_INDEX
+
 
 class _NamedConfiguration(BaseModel):
     name: str = Field(min_length=1, max_length=100)
@@ -19,13 +21,13 @@ class _NamedConfiguration(BaseModel):
 
 class TimeCategoryCreate(_NamedConfiguration):
     stream_id: int = Field(gt=0)
-    color_index: int | None = Field(default=None, ge=0, le=11)
+    color_index: int | None = Field(default=None, ge=0, le=WORKSPACE_COLOR_MAX_INDEX)
 
 
 class TimeCategoryUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     stream_id: int | None = Field(default=None, gt=0)
-    color_index: int | None = Field(default=None, ge=0, le=11)
+    color_index: int | None = Field(default=None, ge=0, le=WORKSPACE_COLOR_MAX_INDEX)
     is_active: bool | None = None
 
     @field_validator("name")
@@ -53,12 +55,12 @@ class TimeCategoryResponse(BaseModel):
 
 
 class TimeStreamCreate(_NamedConfiguration):
-    color_index: int | None = Field(default=None, ge=0, le=11)
+    color_index: int | None = Field(default=None, ge=0, le=WORKSPACE_COLOR_MAX_INDEX)
 
 
 class TimeStreamUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
-    color_index: int | None = Field(default=None, ge=0, le=11)
+    color_index: int | None = Field(default=None, ge=0, le=WORKSPACE_COLOR_MAX_INDEX)
     is_active: bool | None = None
 
     @field_validator("name")

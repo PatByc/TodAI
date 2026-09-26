@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from app.models.idea import IdeaState
 from app.models.project import ProjectStatus
-from app.models.task import TaskStatus
+from app.models.task import TaskRecurrence, TaskStatus
 
 T = TypeVar("T")
 
@@ -17,6 +17,7 @@ __all__ = [
     "PaginatedResponse",
     "PaginationParams",
     "ProjectStatus",
+    "TaskRecurrence",
     "TaskStatus",
 ]
 

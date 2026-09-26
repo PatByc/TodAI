@@ -21,6 +21,7 @@ import { Route as NotesNoteIdRouteImport } from './routes/notes/$noteId'
 import { Route as PlanIndexRouteImport } from './routes/plan/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
+import { Route as ReviewIndexRouteImport } from './routes/review/index'
 import { Route as RoutinesIndexRouteImport } from './routes/routines/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as TasksIndexRouteImport } from './routes/tasks/index'
@@ -87,6 +88,11 @@ const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
   path: '/projects/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReviewIndexRoute = ReviewIndexRouteImport.update({
+  id: '/review/',
+  path: '/review/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoutinesIndexRoute = RoutinesIndexRouteImport.update({
   id: '/routines/',
   path: '/routines/',
@@ -127,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/notes/': typeof NotesIndexRoute
   '/plan/': typeof PlanIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/review/': typeof ReviewIndexRoute
   '/routines/': typeof RoutinesIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/tasks/': typeof TasksIndexRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/notes': typeof NotesIndexRoute
   '/plan': typeof PlanIndexRoute
   '/projects': typeof ProjectsIndexRoute
+  '/review': typeof ReviewIndexRoute
   '/routines': typeof RoutinesIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/tasks': typeof TasksIndexRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/notes/': typeof NotesIndexRoute
   '/plan/': typeof PlanIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/review/': typeof ReviewIndexRoute
   '/routines/': typeof RoutinesIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/tasks/': typeof TasksIndexRoute
@@ -187,6 +196,7 @@ export interface FileRouteTypes {
     | '/notes/'
     | '/plan/'
     | '/projects/'
+    | '/review/'
     | '/routines/'
     | '/settings/'
     | '/tasks/'
@@ -206,6 +216,7 @@ export interface FileRouteTypes {
     | '/notes'
     | '/plan'
     | '/projects'
+    | '/review'
     | '/routines'
     | '/settings'
     | '/tasks'
@@ -225,6 +236,7 @@ export interface FileRouteTypes {
     | '/notes/'
     | '/plan/'
     | '/projects/'
+    | '/review/'
     | '/routines/'
     | '/settings/'
     | '/tasks/'
@@ -245,6 +257,7 @@ export interface RootRouteChildren {
   NotesIndexRoute: typeof NotesIndexRoute
   PlanIndexRoute: typeof PlanIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
+  ReviewIndexRoute: typeof ReviewIndexRoute
   RoutinesIndexRoute: typeof RoutinesIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
   TasksIndexRoute: typeof TasksIndexRoute
@@ -337,6 +350,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/review/': {
+      id: '/review/'
+      path: '/review'
+      fullPath: '/review/'
+      preLoaderRoute: typeof ReviewIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/routines/': {
       id: '/routines/'
       path: '/routines'
@@ -389,6 +409,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotesIndexRoute: NotesIndexRoute,
   PlanIndexRoute: PlanIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
+  ReviewIndexRoute: ReviewIndexRoute,
   RoutinesIndexRoute: RoutinesIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
   TasksIndexRoute: TasksIndexRoute,

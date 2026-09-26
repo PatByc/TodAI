@@ -3,6 +3,7 @@ import {
   Activity,
   CalendarDays,
   CheckSquare,
+  ClipboardCheck,
   Clock3,
   FilePlus2,
   FileText,
@@ -21,7 +22,7 @@ import {
 import type { LucideIcon } from "lucide-react"
 
 export type CapabilityCategory = "Navigate" | "Create" | "Find" | "Review" | "Organize"
-export type CapabilityRoute = "/" | "/plan" | "/time" | "/routines" | "/goals" | "/inbox" | "/tasks" | "/notes" | "/ideas" | "/projects" | "/settings" | "/developer"
+export type CapabilityRoute = "/" | "/plan" | "/review" | "/time" | "/routines" | "/goals" | "/inbox" | "/tasks" | "/notes" | "/ideas" | "/projects" | "/settings" | "/developer"
 
 export interface Capability {
   id: string
@@ -41,6 +42,7 @@ const scopedPrompt = (scope: string, argumentsText: string) =>
 export const capabilities: Capability[] = [
   { id: "today", command: "/today", label: "Today", description: "Open today’s workspace", example: "/today", category: "Navigate", icon: Home, route: "/", prompt: (args) => scopedPrompt("Today", args) },
   { id: "plan", command: "/plan", label: "Plan", description: "Open the planning workspace", example: "/plan", category: "Navigate", icon: CalendarDays, route: "/plan", prompt: (args) => scopedPrompt("Plan", args) },
+  { id: "review", command: "/review", label: "Review", description: "Open the daily progress review", example: "/review", category: "Navigate", icon: ClipboardCheck, route: "/review", prompt: (args) => scopedPrompt("Review", args) },
   { id: "time", command: "/time", label: "Time", description: "Review tracked time", example: "/time", category: "Navigate", icon: Clock3, route: "/time", prompt: (args) => scopedPrompt("Time", args) },
   { id: "routines", command: "/routines", label: "Routines", description: "Open repeating practices", example: "/routines", category: "Navigate", icon: Repeat2, route: "/routines", prompt: (args) => scopedPrompt("Routines", args) },
   { id: "goals", command: "/goals", label: "Goals", description: "Open time goals", example: "/goals", category: "Navigate", icon: Target, route: "/goals", prompt: (args) => scopedPrompt("Goals", args) },

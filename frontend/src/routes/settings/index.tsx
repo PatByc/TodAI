@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useRef, useState } from "react"
-import { Bot, Check, ChevronDown, Clock3, Database, Palette, SlidersHorizontal } from "lucide-react"
+import { Bot, Check, ChevronDown, Clock3, Database, Palette, SlidersHorizontal, Tags } from "lucide-react"
 import { AISettings } from "@/components/settings/AISettings"
 import { SelectDropdown } from "@/components/ui/SelectDropdown"
 import { TimeSettings } from "@/components/settings/TimeSettings"
+import { TagSettings } from "@/components/settings/TagSettings"
 import { ExportButton } from "@/components/export/ExportButton"
 import { readEnabledThemes, saveEnabledThemes, THEMES } from "@/lib/themes"
 import type { ThemeId } from "@/lib/themes"
@@ -78,7 +79,7 @@ export const Route = createFileRoute("/settings/")({
 })
 
 function SettingsPage() {
-  const [activeSection, setActiveSection] = useState<"overall" | "design" | "ai" | "time" | "data">("overall")
+  const [activeSection, setActiveSection] = useState<"overall" | "design" | "ai" | "time" | "tags" | "data">("overall")
   const [language, setLanguage] = useState(() => {
     if (typeof window === "undefined") return "en"
     const stored = window.localStorage.getItem("todai.settings.language")
@@ -140,6 +141,15 @@ function SettingsPage() {
           </button>
           <button
             type="button"
+            className={activeSection === "tags" ? "is-active" : ""}
+            aria-current={activeSection === "tags" ? "page" : undefined}
+            onClick={() => setActiveSection("tags")}
+          >
+            <Tags size={15} strokeWidth={1.7} aria-hidden="true" />
+            <span>Tags</span>
+          </button>
+          <button
+            type="button"
             className={activeSection === "data" ? "is-active" : ""}
             aria-current={activeSection === "data" ? "page" : undefined}
             onClick={() => setActiveSection("data")}
@@ -149,7 +159,7 @@ function SettingsPage() {
           </button>
         </nav>
 
-        {activeSection === "ai" ? <AISettings /> : activeSection === "time" ? <TimeSettings /> : activeSection === "data" ? (
+        {activeSection === "ai" ? <AISettings /> : activeSection === "time" ? <TimeSettings /> : activeSection === "tags" ? <TagSettings /> : activeSection === "data" ? (
           <section className="settings-panel" aria-labelledby="settings-data-title">
             <div className="settings-section-heading">
               <h2 id="settings-data-title">Data</h2>

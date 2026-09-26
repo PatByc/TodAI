@@ -64,3 +64,52 @@ class DeveloperMetricsResponse(BaseModel):
     daily: list[EfficiencyDay]
     recent: list[EfficiencyOperation]
     index: IndexHealth
+
+
+class APICostTotals(BaseModel):
+    requests: int = 0
+    priced_requests: int = 0
+    unpriced_requests: int = 0
+    input_tokens: int = 0
+    cached_input_tokens: int = 0
+    output_tokens: int = 0
+    estimated_cost_usd: float = 0
+
+
+class APICostDay(APICostTotals):
+    date: date
+
+
+class APICostBreakdown(APICostTotals):
+    provider: str
+    model: str
+    request_kind: str
+
+
+class APICostRequest(BaseModel):
+    id: int
+    occurred_at: datetime
+    operation: str
+    provider: str
+    model: str
+    request_kind: str
+    provider_request_id: str | None
+    input_tokens: int
+    cached_input_tokens: int
+    output_tokens: int
+    estimated_cost_usd: float | None
+    pricing_status: str
+    pricing_version: str | None
+    input_price_per_million_usd: float | None
+    cached_input_price_per_million_usd: float | None
+    output_price_per_million_usd: float | None
+
+
+class APICostResponse(BaseModel):
+    period_days: int
+    generated_at: datetime
+    currency: str = "USD"
+    summary: APICostTotals
+    daily: list[APICostDay]
+    by_model: list[APICostBreakdown]
+    recent: list[APICostRequest]

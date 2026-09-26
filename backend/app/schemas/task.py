@@ -1,10 +1,10 @@
 """Task Pydantic schemas for API request/response validation."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
-from app.schemas.common import TaskStatus
+from app.schemas.common import TaskRecurrence, TaskStatus
 from app.schemas.tag import TagResponse
 
 
@@ -15,10 +15,16 @@ class TaskCreate(BaseModel):
     description: str | None = None
     priority: int = Field(default=3, ge=1, le=5, description="Priority 1-5 (D-10)")
     urgency: int = Field(default=3, ge=1, le=5, description="Urgency 1-5 (D-11)")
-    progress: int = Field(default=0, ge=0, le=100, description="Completion progress 0-100")
+    progress: int = Field(
+        default=0, ge=0, le=100, description="Completion progress 0-100"
+    )
     status: TaskStatus = TaskStatus.BACKLOG
     deadline: datetime | None = None
     project_id: int | None = None
+    recurrence_unit: TaskRecurrence | None = None
+    recurrence_interval: int = Field(default=1, ge=1, le=365)
+    recurrence_end_date: date | None = None
+    recurrence_limit: int | None = Field(default=None, ge=2, le=999)
 
 
 class TaskUpdate(BaseModel):
@@ -32,6 +38,10 @@ class TaskUpdate(BaseModel):
     status: TaskStatus | None = None
     deadline: datetime | None = None
     project_id: int | None = None
+    recurrence_unit: TaskRecurrence | None = None
+    recurrence_interval: int | None = Field(default=None, ge=1, le=365)
+    recurrence_end_date: date | None = None
+    recurrence_limit: int | None = Field(default=None, ge=2, le=999)
 
 
 class TaskResponse(BaseModel):
@@ -47,6 +57,12 @@ class TaskResponse(BaseModel):
     deadline: datetime | None
     completed_at: datetime | None
     project_id: int | None
+    recurrence_unit: TaskRecurrence | None
+    recurrence_interval: int
+    recurrence_end_date: date | None
+    recurrence_limit: int | None
+    recurrence_occurrence: int
+    recurrence_source_id: int | None
     archived_at: datetime | None
     created_at: datetime
     updated_at: datetime

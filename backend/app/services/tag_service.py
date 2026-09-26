@@ -2,6 +2,7 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import EntityNotFoundError
 from app.models.tag import Tag
 from app.repositories.tag_repo import TagRepository
 
@@ -13,9 +14,18 @@ class TagService:
         self.session = session
         self.repo = TagRepository(session)
 
-    async def create_tag(self, name: str) -> Tag:
+    async def create_tag(self, name: str, color_index: int | None = None) -> Tag:
         """Create a new tag (raises DuplicateTagError if exists)."""
-        tag = await self.repo.create_tag(name)
+        tag = await self.repo.create_tag(name, color_index)
+        await self.session.commit()
+        await self.session.refresh(tag)
+        return tag
+
+    async def update_tag_color(self, tag_id: int, color_index: int) -> Tag:
+        """Update a tag color and refresh every record that uses it."""
+        tag = await self.repo.update_color(tag_id, color_index)
+        if tag is None:
+            raise EntityNotFoundError("tag", tag_id)
         await self.session.commit()
         await self.session.refresh(tag)
         return tag
@@ -61,3 +71,13 @@ class TagService:
 
         result = await self.session.execute(select(TagModel).order_by(TagModel.name))
         return list(result.scalars().all())
+
+    async def list_tags_with_usage(self) -> list[tuple[Tag, int]]:
+        """List tags and the number of records currently using each one."""
+        return await self.repo.list_with_usage()
+
+    async def delete_tag(self, tag_id: int) -> None:
+        """Permanently remove a tag and detach it from every record."""
+        if not await self.repo.delete_tag(tag_id):
+            raise EntityNotFoundError("tag", tag_id)
+        await self.session.commit()

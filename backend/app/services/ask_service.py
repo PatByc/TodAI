@@ -50,7 +50,7 @@ _REFERENCES = {"it", "its", "that", "this", "they", "those", "them"}
 ProgressCallback = Callable[[str, str], Awaitable[None]]
 
 
-def completion_provider() -> CompletionProvider | None:
+def completion_provider(session: AsyncSession) -> CompletionProvider | None:
     if settings.completion_provider != "openai" or not settings.openai_api_key:
         return None
     return OpenAIProvider(
@@ -58,6 +58,7 @@ def completion_provider() -> CompletionProvider | None:
         embedding_model=settings.embedding_model,
         embedding_dimensions=settings.embedding_dimensions,
         completion_model=settings.completion_model,
+        usage_session=session,
     )
 
 
@@ -85,7 +86,7 @@ class AskService:
         search: SearchIndexService | None = None,
     ) -> None:
         self.session = session
-        self.provider = provider if provider is not None else completion_provider()
+        self.provider = provider if provider is not None else completion_provider(session)
         self.search = search or SearchIndexService(session)
 
     async def ask(

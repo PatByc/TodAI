@@ -6,15 +6,36 @@ from datetime import UTC, date, datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.api_usage_cost import APIUsageCost
 from app.models.efficiency_metric import EfficiencyMetric
 from app.models.search_chunk import SearchChunk
 from app.schemas.developer import (
+    APICostBreakdown,
+    APICostDay,
+    APICostRequest,
+    APICostResponse,
+    APICostTotals,
     DeveloperMetricsResponse,
     EfficiencyDay,
     EfficiencyOperation,
     EfficiencyTotals,
     IndexHealth,
 )
+
+
+def _cost_totals(rows: list[APIUsageCost]) -> APICostTotals:
+    priced = [row for row in rows if row.estimated_cost_usd is not None]
+    return APICostTotals(
+        requests=len(rows),
+        priced_requests=len(priced),
+        unpriced_requests=len(rows) - len(priced),
+        input_tokens=sum(row.input_tokens for row in rows),
+        cached_input_tokens=sum(row.cached_input_tokens for row in rows),
+        output_tokens=sum(row.output_tokens for row in rows),
+        estimated_cost_usd=float(
+            sum((row.estimated_cost_usd for row in priced), start=0)
+        ),
+    )
 
 
 def _totals(rows: list[EfficiencyMetric]) -> EfficiencyTotals:
@@ -127,4 +148,91 @@ class DeveloperService:
                 by_entity_type=dict(by_type),
                 embedding_models=dict(models),
             ),
+        )
+
+    async def costs(self, days: int, recent_limit: int) -> APICostResponse:
+        now = datetime.now(UTC).replace(tzinfo=None)
+        start = now - timedelta(days=days)
+        rows = list(
+            (
+                await self.session.execute(
+                    select(APIUsageCost)
+                    .where(APIUsageCost.occurred_at >= start)
+                    .order_by(APIUsageCost.occurred_at.desc())
+                )
+            ).scalars()
+        )
+
+        grouped_days: dict[date, list[APIUsageCost]] = defaultdict(list)
+        grouped_models: dict[tuple[str, str, str], list[APIUsageCost]] = defaultdict(
+            list
+        )
+        for row in rows:
+            grouped_days[row.occurred_at.date()].append(row)
+            grouped_models[(row.provider, row.model, row.request_kind)].append(row)
+
+        daily = []
+        for offset in reversed(range(days)):
+            day = now.date() - timedelta(days=offset)
+            daily.append(
+                APICostDay(date=day, **_cost_totals(grouped_days[day]).model_dump())
+            )
+
+        by_model = [
+            APICostBreakdown(
+                provider=provider,
+                model=model,
+                request_kind=request_kind,
+                **_cost_totals(group).model_dump(),
+            )
+            for (provider, model, request_kind), group in grouped_models.items()
+        ]
+        by_model.sort(
+            key=lambda item: (item.estimated_cost_usd, item.requests), reverse=True
+        )
+
+        recent = [
+            APICostRequest(
+                id=row.id,
+                occurred_at=row.occurred_at,
+                operation=row.operation,
+                provider=row.provider,
+                model=row.model,
+                request_kind=row.request_kind,
+                provider_request_id=row.provider_request_id,
+                input_tokens=row.input_tokens,
+                cached_input_tokens=row.cached_input_tokens,
+                output_tokens=row.output_tokens,
+                estimated_cost_usd=(
+                    float(row.estimated_cost_usd)
+                    if row.estimated_cost_usd is not None
+                    else None
+                ),
+                pricing_status=row.pricing_status,
+                pricing_version=row.pricing_version,
+                input_price_per_million_usd=(
+                    float(row.input_price_per_million_usd)
+                    if row.input_price_per_million_usd is not None
+                    else None
+                ),
+                cached_input_price_per_million_usd=(
+                    float(row.cached_input_price_per_million_usd)
+                    if row.cached_input_price_per_million_usd is not None
+                    else None
+                ),
+                output_price_per_million_usd=(
+                    float(row.output_price_per_million_usd)
+                    if row.output_price_per_million_usd is not None
+                    else None
+                ),
+            )
+            for row in rows[:recent_limit]
+        ]
+        return APICostResponse(
+            period_days=days,
+            generated_at=now,
+            summary=_cost_totals(rows),
+            daily=daily,
+            by_model=by_model,
+            recent=recent,
         )

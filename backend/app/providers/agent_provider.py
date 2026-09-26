@@ -11,6 +11,7 @@ from typing import Any, Protocol
 
 from mcp import Client
 from openai import AsyncOpenAI
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.services.agent_mcp import TodMCP, mcp_result_json, mutation_names
@@ -84,12 +85,18 @@ def _verified_message(message: str, sources: list[dict[str, Any]]) -> str:
 
 class OpenAIActionPlanner:
     def __init__(
-        self, api_key: str, model: str, mcp: TodMCP, emit: EventEmitter | None = None
+        self,
+        api_key: str,
+        model: str,
+        mcp: TodMCP,
+        emit: EventEmitter | None = None,
+        usage_session: AsyncSession | None = None,
     ) -> None:
         self.client = AsyncOpenAI(api_key=api_key)
         self.model = model
         self.mcp = mcp
         self.emit = emit
+        self.usage_session = usage_session
 
     async def _emit(self, event: str, data: dict[str, Any]) -> None:
         if self.emit:
@@ -153,7 +160,9 @@ class OpenAIActionPlanner:
                     store=False,
                     max_output_tokens=settings.completion_max_output_tokens,
                 )
-                record_completion_usage(response, self.model)
+                record_completion_usage(
+                    response, self.model, session=self.usage_session
+                )
                 calls = [
                     item for item in response.output if item.type == "function_call"
                 ]

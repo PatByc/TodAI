@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useNavigate } from "@tanstack/react-router"
 import {
   CheckSquare,
   FileText,
@@ -34,7 +35,9 @@ const labels: Record<SearchResult["entity_type"], string> = {
 }
 
 export function SearchDialog({ open, onClose }: SearchDialogProps) {
+  const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)
+  const requestSequence = useRef(0)
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<SearchResult[]>([])
   const [selected, setSelected] = useState(0)
@@ -50,25 +53,32 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
   }, [open])
 
   useEffect(() => {
-    if (!open || !query.trim()) {
+    const requestId = ++requestSequence.current
+    const trimmedQuery = query.trim()
+    if (!open || !trimmedQuery) {
       setResults([])
       setLoading(false)
       return
     }
     const controller = new AbortController()
+    setResults([])
+    setLoading(true)
     const timeout = window.setTimeout(async () => {
-      setLoading(true)
       try {
-        const response = await searchEverything(query.trim(), "hybrid", controller.signal)
+        const response = await searchEverything(trimmedQuery, "hybrid", controller.signal)
+        if (requestSequence.current !== requestId) return
         setResults(response.results)
         setSemanticAvailable(response.semantic_available)
         setSelected(0)
       } catch (error) {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
+        if (
+          requestSequence.current === requestId
+          && !(error instanceof DOMException && error.name === "AbortError")
+        ) {
           setResults([])
         }
       } finally {
-        setLoading(false)
+        if (requestSequence.current === requestId) setLoading(false)
       }
     }, 180)
     return () => {
@@ -81,7 +91,18 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
 
   const openResult = (result: SearchResult) => {
     onClose()
-    window.location.assign(result.url)
+    const id = String(result.entity_id)
+    if (result.entity_type === "note") {
+      void navigate({ to: "/notes/$noteId", params: { noteId: id } })
+    } else if (result.entity_type === "task") {
+      void navigate({ to: "/tasks/$taskId", params: { taskId: id } })
+    } else if (result.entity_type === "idea") {
+      void navigate({ to: "/ideas/$ideaId", params: { ideaId: id } })
+    } else if (result.entity_type === "project") {
+      void navigate({ to: "/projects/$projectId", params: { projectId: id } })
+    } else {
+      void navigate({ to: "/inbox" })
+    }
   }
 
   return (
@@ -134,10 +155,18 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
           </button>
         </div>
 
-        <div className="overflow-y-auto p-2" style={{ maxHeight: "calc(68vh - 98px)" }}>
+        <div
+          className="overflow-y-auto p-2"
+          style={{ minHeight: 176, maxHeight: "calc(68vh - 98px)" }}
+        >
           {!query.trim() && (
             <div className="px-4 py-10 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>
               Type a title, keyword, tag, or natural-language description.
+            </div>
+          )}
+          {query.trim() && loading && (
+            <div className="px-4 py-10 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>
+              Searching…
             </div>
           )}
           {query.trim() && !loading && results.length === 0 && (

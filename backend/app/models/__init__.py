@@ -5,6 +5,7 @@ All models are imported here so Alembic can discover them via Base.metadata.
 
 from .agent_proposal import AgentProposal
 from .ai_setting import AISetting
+from .api_usage_cost import APIUsageCost
 from .audit_log import AuditLog
 from .base import Base, SoftDeleteMixin, TimestampMixin
 from .efficiency_metric import EfficiencyMetric
@@ -15,11 +16,12 @@ from .planning import GoalPeriod, PlannedBlock, Routine, RoutineCompletion, Time
 from .project import Project, ProjectStatus
 from .search_chunk import SearchChunk
 from .tag import EntityTag, Tag
-from .task import Task, TaskStatus
+from .task import Task, TaskRecurrence, TaskStatus
 from .time_tracking import TimeCategory, TimeEntry, TimeStream
 
 __all__ = [
     "AISetting",
+    "APIUsageCost",
     "AgentProposal",
     "AuditLog",
     "Base",
@@ -39,6 +41,7 @@ __all__ = [
     "SoftDeleteMixin",
     "Tag",
     "Task",
+    "TaskRecurrence",
     "TaskStatus",
     "TimeCategory",
     "TimeEntry",

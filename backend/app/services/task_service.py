@@ -1,11 +1,13 @@
-"""Task service layer wrapping repository and audit logging."""
+"""Task service layer wrapping repository, recurrence, and audit logging."""
 
-from datetime import datetime, timezone
+import calendar
+from datetime import UTC, date, datetime, timedelta
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import EntityNotFoundError
-from app.models.task import Task, TaskStatus
+from app.core.exceptions import EntityNotFoundError, ValidationError
+from app.models.task import Task, TaskRecurrence, TaskStatus
 from app.repositories.tag_repo import TagRepository
 from app.repositories.task_repo import TaskRepository
 from app.schemas.task import TaskCreate, TaskUpdate
@@ -33,9 +35,14 @@ class TaskService:
     async def create(self, data: TaskCreate) -> Task:
         """Create a new task and log the creation to audit."""
         create_data = data.model_dump()
+        if create_data["recurrence_unit"] is not None:
+            self._validate_recurrence(
+                create_data["deadline"], create_data["recurrence_end_date"]
+            )
+            create_data["recurrence_anchor"] = create_data["deadline"]
         if create_data["status"] == TaskStatus.DONE:
             create_data["progress"] = 100
-            create_data["completed_at"] = datetime.now(timezone.utc).replace(tzinfo=None)
+            create_data["completed_at"] = datetime.now(UTC).replace(tzinfo=None)
         task = await self.repo.create(create_data)
         await self.audit.log(
             entity_type="task",
@@ -48,6 +55,10 @@ class TaskService:
                 "urgency": task.urgency,
                 "progress": task.progress,
                 "status": task.status.value if task.status else None,
+                "deadline": task.deadline.isoformat() if task.deadline else None,
+                "completed_at": (
+                    task.completed_at.isoformat() if task.completed_at else None
+                ),
             },
         )
         await self.session.commit()
@@ -111,10 +122,33 @@ class TaskService:
         and clears it when status changes away from DONE.
         """
         existing = await self.get(task_id)
+        was_done = existing.status == TaskStatus.DONE
 
         update_data = data.model_dump(exclude_unset=True)
         if not update_data:
             return existing
+
+        if "recurrence_unit" in update_data and update_data["recurrence_unit"] is None:
+            update_data.update(
+                recurrence_interval=1,
+                recurrence_end_date=None,
+                recurrence_limit=None,
+                recurrence_anchor=None,
+                recurrence_occurrence=1,
+            )
+        effective_unit = update_data.get("recurrence_unit", existing.recurrence_unit)
+        effective_deadline = update_data.get("deadline", existing.deadline)
+        effective_end_date = update_data.get(
+            "recurrence_end_date", existing.recurrence_end_date
+        )
+        if effective_unit is not None:
+            self._validate_recurrence(effective_deadline, effective_end_date)
+            if existing.recurrence_anchor is None or any(
+                field in update_data
+                for field in ("deadline", "recurrence_unit", "recurrence_interval")
+            ):
+                update_data["recurrence_anchor"] = effective_deadline
+                update_data["recurrence_occurrence"] = 1
 
         # Keep progress and completion state in sync in both directions.
         if "status" in update_data:
@@ -123,9 +157,7 @@ class TaskService:
             if new_status == TaskStatus.DONE:
                 update_data["progress"] = 100
                 if old_status != TaskStatus.DONE:
-                    update_data["completed_at"] = datetime.now(timezone.utc).replace(
-                        tzinfo=None
-                    )
+                    update_data["completed_at"] = datetime.now(UTC).replace(tzinfo=None)
             else:
                 if old_status == TaskStatus.DONE:
                     update_data["completed_at"] = None
@@ -137,9 +169,7 @@ class TaskService:
             new_progress = update_data["progress"]
             if new_progress == 100 and existing.status != TaskStatus.DONE:
                 update_data["status"] = TaskStatus.DONE
-                update_data["completed_at"] = datetime.now(timezone.utc).replace(
-                    tzinfo=None
-                )
+                update_data["completed_at"] = datetime.now(UTC).replace(tzinfo=None)
             elif new_progress < 100 and existing.status == TaskStatus.DONE:
                 update_data["status"] = (
                     TaskStatus.IN_PROGRESS if new_progress > 0 else TaskStatus.TODO
@@ -158,9 +188,9 @@ class TaskService:
                 new_value.value if hasattr(new_value, "value") else new_value
             )
             # Convert datetime to ISO string for JSON serialization
-            if isinstance(old_serialized, datetime):
+            if isinstance(old_serialized, (date, datetime)):
                 old_serialized = old_serialized.isoformat()
-            if isinstance(new_serialized, datetime):
+            if isinstance(new_serialized, (date, datetime)):
                 new_serialized = new_serialized.isoformat()
             if old_serialized != new_serialized:
                 changes[field] = {"old": old_serialized, "new": new_serialized}
@@ -176,10 +206,107 @@ class TaskService:
                 action="update",
                 changes=changes,
             )
+        completed_now = not was_done and task.status == TaskStatus.DONE
+        if completed_now and task.recurrence_unit is not None:
+            await self._create_next_occurrence(task, existing.tags)
         await self.session.commit()
         await self.session.refresh(task)
         await self._attach_tags([task])
         return task
+
+    @staticmethod
+    def _validate_recurrence(
+        deadline: datetime | None, recurrence_end_date: date | None
+    ) -> None:
+        if deadline is None:
+            raise ValidationError("Choose a deadline before making a task repeat.")
+        if recurrence_end_date is not None and recurrence_end_date < deadline.date():
+            raise ValidationError(
+                "The recurrence end date cannot precede the deadline."
+            )
+
+    @staticmethod
+    def _next_recurrence_deadline(
+        anchor: datetime,
+        unit: TaskRecurrence,
+        interval: int,
+        occurrence: int,
+    ) -> datetime:
+        offset = interval * occurrence
+        if unit == TaskRecurrence.DAILY:
+            return anchor + timedelta(days=offset)
+        if unit == TaskRecurrence.WEEKLY:
+            return anchor + timedelta(weeks=offset)
+
+        months = offset * (12 if unit == TaskRecurrence.YEARLY else 1)
+        month_index = anchor.month - 1 + months
+        year = anchor.year + month_index // 12
+        month = month_index % 12 + 1
+        day = min(anchor.day, calendar.monthrange(year, month)[1])
+        return anchor.replace(year=year, month=month, day=day)
+
+    async def _create_next_occurrence(self, task: Task, tags: list) -> Task | None:
+        """Create the next task once, preserving the series schedule and metadata."""
+        existing_next = await self.session.scalar(
+            select(Task).where(Task.recurrence_source_id == task.id)
+        )
+        if existing_next is not None:
+            return existing_next
+        if (
+            task.recurrence_limit is not None
+            and task.recurrence_occurrence >= task.recurrence_limit
+        ):
+            return None
+
+        anchor = task.recurrence_anchor or task.deadline
+        if anchor is None or task.recurrence_unit is None:
+            return None
+        next_deadline = self._next_recurrence_deadline(
+            anchor,
+            task.recurrence_unit,
+            task.recurrence_interval,
+            task.recurrence_occurrence,
+        )
+        if (
+            task.recurrence_end_date is not None
+            and next_deadline.date() > task.recurrence_end_date
+        ):
+            return None
+
+        next_task = await self.repo.create(
+            {
+                "title": task.title,
+                "description": task.description,
+                "priority": task.priority,
+                "urgency": task.urgency,
+                "progress": 0,
+                "status": TaskStatus.TODO,
+                "deadline": next_deadline,
+                "project_id": task.project_id,
+                "recurrence_unit": task.recurrence_unit,
+                "recurrence_interval": task.recurrence_interval,
+                "recurrence_end_date": task.recurrence_end_date,
+                "recurrence_limit": task.recurrence_limit,
+                "recurrence_occurrence": task.recurrence_occurrence + 1,
+                "recurrence_anchor": anchor,
+                "recurrence_source_id": task.id,
+            }
+        )
+        for tag in tags:
+            await self.tag_repo.add_tag_to_entity(tag.id, "task", next_task.id)
+        await self.audit.log(
+            entity_type="task",
+            entity_id=next_task.id,
+            action="create",
+            snapshot={
+                "title": next_task.title,
+                "status": next_task.status.value,
+                "deadline": next_deadline.isoformat(),
+                "recurrence_source_id": task.id,
+                "recurrence_occurrence": next_task.recurrence_occurrence,
+            },
+        )
+        return next_task
 
     async def delete(self, task_id: int) -> None:
         """Delete a task and log the deletion to audit."""

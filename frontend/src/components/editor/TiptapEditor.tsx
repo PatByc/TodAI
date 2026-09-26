@@ -231,6 +231,26 @@ export function TiptapEditor({
           margin: 0.5em 0;
         }
 
+        .todai-editor .tiptap ul:not([data-type="taskList"]) {
+          list-style-type: disc;
+        }
+
+        .todai-editor .tiptap ol {
+          list-style-type: decimal;
+        }
+
+        .todai-editor .tiptap ul:not([data-type="taskList"]) ul {
+          list-style-type: circle;
+        }
+
+        .todai-editor .tiptap ul:not([data-type="taskList"]) ul ul {
+          list-style-type: square;
+        }
+
+        .todai-editor .tiptap ol ol {
+          list-style-type: lower-alpha;
+        }
+
         .todai-editor .tiptap li {
           margin: 0.2em 0;
         }

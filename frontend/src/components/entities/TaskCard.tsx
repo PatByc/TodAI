@@ -5,7 +5,7 @@
  */
 
 import { Link } from "@tanstack/react-router"
-import { Check } from "lucide-react"
+import { Check, Repeat2 } from "lucide-react"
 import { formatRelativeTime } from "@/lib/format"
 import { TagBadge } from "./TagBadge"
 import type { Task } from "@/types/entities"
@@ -88,7 +88,10 @@ export function TaskCard({ task, completing = false, displayFields, onToggle }: 
         {showMeta && (
           <div className="task-card-meta">
             {shows("deadline") && task.deadline && (
-              <span>Due {formatRelativeTime(task.deadline)}</span>
+              <span className="task-card-deadline">
+                {task.recurrence_unit && <Repeat2 size={11} strokeWidth={1.8} aria-label="Recurring task" />}
+                Due {formatRelativeTime(task.deadline)}
+              </span>
             )}
             {shows("archived") && task.archived_at && (
               <span className="task-card-archived">Archived</span>

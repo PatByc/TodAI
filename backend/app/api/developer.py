@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db
-from app.schemas.developer import DeveloperMetricsResponse
+from app.schemas.developer import APICostResponse, DeveloperMetricsResponse
 from app.services.developer_service import DeveloperService
 
 router = APIRouter(prefix="/developer", tags=["developer"])
@@ -20,3 +20,13 @@ async def metrics(
     recent_limit: Annotated[int, Query(ge=1, le=100)] = 30,
 ) -> DeveloperMetricsResponse:
     return await DeveloperService(session).metrics(days, recent_limit)
+
+
+@router.get("/costs", response_model=APICostResponse)
+async def costs(
+    session: DatabaseSession,
+    days: Annotated[int, Query(ge=1, le=365)] = 7,
+    recent_limit: Annotated[int, Query(ge=1, le=100)] = 50,
+) -> APICostResponse:
+    """Return durable, content-free cloud API cost estimates."""
+    return await DeveloperService(session).costs(days, recent_limit)

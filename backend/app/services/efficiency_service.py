@@ -13,7 +13,9 @@ from typing import Any
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.api_usage_cost import APIUsageCost
 from app.models.efficiency_metric import EfficiencyMetric
+from app.services.api_pricing import PRICE_VERSION, estimate_cost, rates_for
 
 
 @dataclass
@@ -60,35 +62,126 @@ def record_db_query(elapsed_ms: float) -> None:
         collector.db_time_ms += elapsed_ms
 
 
-def record_completion_usage(response: Any, model: str) -> None:
-    collector = current_collector()
-    if collector is None:
+def _record_api_usage(
+    response: Any,
+    model: str,
+    request_kind: str,
+    *,
+    provider: str,
+    session: AsyncSession | None,
+    input_tokens: int,
+    cached_input_tokens: int,
+    output_tokens: int,
+    usage_available: bool,
+) -> None:
+    if session is None:
         return
-    usage = getattr(response, "usage", None)
-    collector.model = model
-    collector.completion_requests += 1
-    if usage is None:
-        return
-    collector.input_tokens += int(getattr(usage, "input_tokens", 0) or 0)
-    collector.output_tokens += int(getattr(usage, "output_tokens", 0) or 0)
-    details = getattr(usage, "input_tokens_details", None)
-    collector.cached_input_tokens += int(getattr(details, "cached_tokens", 0) or 0)
-
-
-def record_embedding_usage(response: Any, model: str, inputs: int) -> None:
-    collector = current_collector()
-    if collector is None:
-        return
-    usage = getattr(response, "usage", None)
-    collector.model = collector.model or model
-    collector.embedding_requests += 1
-    collector.embeddings_created += inputs
-    if usage is not None:
-        collector.embedding_tokens += int(
-            getattr(usage, "prompt_tokens", None)
-            or getattr(usage, "total_tokens", 0)
-            or 0
+    rate = rates_for(provider, model, request_kind)
+    if not usage_available:
+        status = "usage_missing"
+        cost = None
+    elif rate is None:
+        status = "unpriced"
+        cost = None
+    else:
+        status = "priced"
+        cost = estimate_cost(
+            rate,
+            input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=output_tokens,
         )
+    collector = current_collector()
+    session.add(
+        APIUsageCost(
+            occurred_at=datetime.now(UTC).replace(tzinfo=None),
+            operation=collector.operation if collector else "provider_request",
+            provider=provider,
+            model=model,
+            request_kind=request_kind,
+            provider_request_id=getattr(response, "id", None),
+            input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=output_tokens,
+            input_price_per_million_usd=(
+                rate.input_per_million_usd if rate else None
+            ),
+            cached_input_price_per_million_usd=(
+                rate.cached_input_per_million_usd if rate else None
+            ),
+            output_price_per_million_usd=(
+                rate.output_per_million_usd if rate else None
+            ),
+            estimated_cost_usd=cost,
+            pricing_status=status,
+            pricing_version=PRICE_VERSION if rate else None,
+        )
+    )
+
+
+def record_completion_usage(
+    response: Any,
+    model: str,
+    *,
+    provider: str = "openai",
+    session: AsyncSession | None = None,
+) -> None:
+    collector = current_collector()
+    usage = getattr(response, "usage", None)
+    input_tokens = int(getattr(usage, "input_tokens", 0) or 0)
+    output_tokens = int(getattr(usage, "output_tokens", 0) or 0)
+    details = getattr(usage, "input_tokens_details", None)
+    cached_input_tokens = int(getattr(details, "cached_tokens", 0) or 0)
+    if collector is not None:
+        collector.model = model
+        collector.completion_requests += 1
+        collector.input_tokens += input_tokens
+        collector.output_tokens += output_tokens
+        collector.cached_input_tokens += cached_input_tokens
+    _record_api_usage(
+        response,
+        model,
+        "completion",
+        provider=provider,
+        session=session,
+        input_tokens=input_tokens,
+        cached_input_tokens=cached_input_tokens,
+        output_tokens=output_tokens,
+        usage_available=usage is not None,
+    )
+
+
+def record_embedding_usage(
+    response: Any,
+    model: str,
+    inputs: int,
+    *,
+    provider: str = "openai",
+    session: AsyncSession | None = None,
+) -> None:
+    collector = current_collector()
+    usage = getattr(response, "usage", None)
+    input_tokens = int(
+        getattr(usage, "prompt_tokens", None)
+        or getattr(usage, "total_tokens", 0)
+        or 0
+    )
+    if collector is not None:
+        collector.model = collector.model or model
+        collector.embedding_requests += 1
+        collector.embeddings_created += inputs
+        collector.embedding_tokens += input_tokens
+    _record_api_usage(
+        response,
+        model,
+        "embedding",
+        provider=provider,
+        session=session,
+        input_tokens=input_tokens,
+        cached_input_tokens=0,
+        output_tokens=0,
+        usage_available=usage is not None,
+    )
 
 
 def record_tool_output(before: int, after: int) -> None:

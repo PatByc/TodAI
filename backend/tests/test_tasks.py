@@ -121,3 +121,108 @@ async def test_filter_by_status(async_client: AsyncClient):
     data = response.json()
     for item in data["items"]:
         assert item["status"] == "backlog"
+
+
+@pytest.mark.asyncio
+async def test_recurring_task_creates_one_linked_successor(async_client: AsyncClient):
+    created = (
+        await async_client.post(
+            "/api/v1/tasks/",
+            json={
+                "title": "Send weekly report",
+                "description": "Include the delivery summary",
+                "priority": 4,
+                "urgency": 5,
+                "deadline": "2026-09-25T09:00:00",
+                "project_id": None,
+                "recurrence_unit": "weekly",
+            },
+        )
+    ).json()
+    tag = (await async_client.post("/api/v1/tags/", json={"name": "Reports"})).json()
+    await async_client.post(
+        "/api/v1/tags/entity",
+        json={"tag_id": tag["id"], "entity_type": "task", "entity_id": created["id"]},
+    )
+
+    completed = await async_client.put(
+        f"/api/v1/tasks/{created['id']}", json={"status": "done"}
+    )
+    assert completed.status_code == 200
+
+    items = (await async_client.get("/api/v1/tasks/?limit=100")).json()["items"]
+    successors = [
+        item for item in items if item["recurrence_source_id"] == created["id"]
+    ]
+    assert len(successors) == 1
+    successor = successors[0]
+    assert successor["deadline"] == "2026-10-02T09:00:00"
+    assert successor["status"] == "todo"
+    assert successor["priority"] == 4
+    assert successor["urgency"] == 5
+    assert successor["description"] == "Include the delivery summary"
+    assert successor["recurrence_occurrence"] == 2
+    assert [item["name"] for item in successor["tags"]] == ["Reports"]
+
+    await async_client.put(f"/api/v1/tasks/{created['id']}", json={"status": "done"})
+    items = (await async_client.get("/api/v1/tasks/?limit=100")).json()["items"]
+    assert (
+        len([item for item in items if item["recurrence_source_id"] == created["id"]])
+        == 1
+    )
+
+
+@pytest.mark.asyncio
+async def test_monthly_recurrence_keeps_anchor_and_respects_limit(
+    async_client: AsyncClient,
+):
+    first = (
+        await async_client.post(
+            "/api/v1/tasks/",
+            json={
+                "title": "Month-end close",
+                "deadline": "2027-01-31T17:30:00",
+                "recurrence_unit": "monthly",
+                "recurrence_limit": 3,
+            },
+        )
+    ).json()
+    await async_client.put(f"/api/v1/tasks/{first['id']}", json={"status": "done"})
+    items = (await async_client.get("/api/v1/tasks/?limit=100")).json()["items"]
+    second = next(item for item in items if item["recurrence_source_id"] == first["id"])
+    assert second["deadline"] == "2027-02-28T17:30:00"
+
+    await async_client.put(f"/api/v1/tasks/{second['id']}", json={"status": "done"})
+    items = (await async_client.get("/api/v1/tasks/?limit=100")).json()["items"]
+    third = next(item for item in items if item["recurrence_source_id"] == second["id"])
+    assert third["deadline"] == "2027-03-31T17:30:00"
+
+    await async_client.put(f"/api/v1/tasks/{third['id']}", json={"status": "done"})
+    items = (await async_client.get("/api/v1/tasks/?limit=100")).json()["items"]
+    assert not any(item["recurrence_source_id"] == third["id"] for item in items)
+
+
+@pytest.mark.asyncio
+async def test_recurrence_requires_deadline_and_honors_end_date(
+    async_client: AsyncClient,
+):
+    invalid = await async_client.post(
+        "/api/v1/tasks/",
+        json={"title": "No schedule", "recurrence_unit": "daily"},
+    )
+    assert invalid.status_code == 409
+
+    task = (
+        await async_client.post(
+            "/api/v1/tasks/",
+            json={
+                "title": "Short run",
+                "deadline": "2026-09-26T08:00:00",
+                "recurrence_unit": "daily",
+                "recurrence_end_date": "2026-09-26",
+            },
+        )
+    ).json()
+    await async_client.put(f"/api/v1/tasks/{task['id']}", json={"status": "done"})
+    items = (await async_client.get("/api/v1/tasks/?limit=100")).json()["items"]
+    assert not any(item["recurrence_source_id"] == task["id"] for item in items)

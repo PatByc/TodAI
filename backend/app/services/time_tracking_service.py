@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.colors import WORKSPACE_COLOR_COUNT
 from app.core.exceptions import EntityNotFoundError, ValidationError
 from app.models.project import Project
 from app.models.time_tracking import TimeCategory, TimeEntry, TimeStream
@@ -33,7 +34,9 @@ class TimeConfigurationService:
         if await self.repo.find_stream_name(data.name):
             raise ValidationError(f"A time stream named '{data.name}' already exists")
         values = data.model_dump(exclude_none=True)
-        values.setdefault("color_index", len(await self.repo.list_streams()) % 12)
+        values.setdefault(
+            "color_index", len(await self.repo.list_streams()) % WORKSPACE_COLOR_COUNT
+        )
         stream = await self.repo.create_stream(values)
         await self.audit.log("time_stream", stream.id, "create", snapshot=values)
         await self.session.commit()
@@ -63,7 +66,8 @@ class TimeConfigurationService:
         values = data.model_dump(exclude_none=True)
         stream = await self._require_stream(data.stream_id)
         values.setdefault(
-            "color_index", (stream.color_index + len(stream.categories)) % 12
+            "color_index",
+            (stream.color_index + len(stream.categories)) % WORKSPACE_COLOR_COUNT,
         )
         category = await self.repo.create_category(values)
         await self.audit.log("time_category", category.id, "create", snapshot=values)

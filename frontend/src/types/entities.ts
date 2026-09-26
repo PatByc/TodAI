@@ -12,6 +12,8 @@ export type TaskStatus =
   | "blocked"
   | "done"
 
+export type TaskRecurrence = "daily" | "weekly" | "monthly" | "yearly"
+
 export type IdeaState =
   | "raw"
   | "developing"
@@ -25,6 +27,7 @@ export interface TagResponse {
   name: string
   color_index: number
   created_at: string
+  usage_count?: number
 }
 
 // ── Note ───────────────────────────────────────────────────────────────
@@ -69,6 +72,12 @@ export interface Task {
   deadline: string | null
   completed_at: string | null
   project_id: number | null
+  recurrence_unit: TaskRecurrence | null
+  recurrence_interval: number
+  recurrence_end_date: string | null
+  recurrence_limit: number | null
+  recurrence_occurrence: number
+  recurrence_source_id: number | null
   archived_at: string | null
   created_at: string
   updated_at: string
@@ -84,6 +93,10 @@ export interface TaskCreate {
   status?: TaskStatus
   deadline?: string
   project_id?: number
+  recurrence_unit?: TaskRecurrence | null
+  recurrence_interval?: number
+  recurrence_end_date?: string | null
+  recurrence_limit?: number | null
 }
 
 export interface TaskUpdate {
@@ -95,6 +108,10 @@ export interface TaskUpdate {
   status?: TaskStatus
   deadline?: string | null
   project_id?: number | null
+  recurrence_unit?: TaskRecurrence | null
+  recurrence_interval?: number
+  recurrence_end_date?: string | null
+  recurrence_limit?: number | null
 }
 
 // ── Idea ───────────────────────────────────────────────────────────────
@@ -396,4 +413,120 @@ export interface PlannedBlockUpdate {
   ends_at?: string
   stream_id?: number | null
   project_id?: number | null
+}
+
+// ── Review ────────────────────────────────────────────────────────────
+
+export interface ReviewTimeSummary {
+  planned_seconds: number
+  tracked_seconds: number
+  variance_seconds: number
+}
+
+export interface ReviewStreamSummary extends ReviewTimeSummary {
+  stream_id: number | null
+  name: string
+  color_index: number | null
+}
+
+export interface ReviewTaskItem {
+  id: number
+  title: string
+  status: string
+  deadline: string | null
+}
+
+export interface ReviewRoutineItem {
+  id: number
+  title: string
+  scheduled_time: string | null
+  completed: boolean
+}
+
+export interface DailyReview {
+  date: string
+  timezone: string
+  is_today: boolean
+  time: ReviewTimeSummary
+  streams: ReviewStreamSummary[]
+  tasks: {
+    completed_count: number
+    unfinished_count: number
+    completed: ReviewTaskItem[]
+    unfinished: ReviewTaskItem[]
+  }
+  routines: {
+    scheduled_count: number
+    completed_count: number
+    completion_rate: number
+    items: ReviewRoutineItem[]
+  }
+  comparison: {
+    previous_date: string
+    planned_delta_seconds: number
+    tracked_delta_seconds: number
+    completed_tasks_delta: number
+    routine_completion_rate_delta: number
+  }
+}
+
+export interface WeeklyReviewDay {
+  date: string
+  planned_seconds: number
+  tracked_seconds: number
+  completed_tasks: number
+  scheduled_routines: number
+  completed_routines: number
+}
+
+export interface WeeklyRoutineItem {
+  id: number
+  title: string
+  scheduled_count: number
+  completed_count: number
+  completion_rate: number
+}
+
+export interface WeeklyReview {
+  week_start: string
+  week_end: string
+  timezone: string
+  is_current_week: boolean
+  time: ReviewTimeSummary
+  streams: ReviewStreamSummary[]
+  tasks: DailyReview["tasks"]
+  routines: {
+    scheduled_count: number
+    completed_count: number
+    completion_rate: number
+    items: WeeklyRoutineItem[]
+  }
+  days: WeeklyReviewDay[]
+  comparison: {
+    previous_week_start: string
+    planned_delta_seconds: number
+    tracked_delta_seconds: number
+    completed_tasks_delta: number
+    routine_completion_rate_delta: number
+  }
+}
+
+export interface PeriodReview {
+  start_date: string
+  end_date: string
+  timezone: string
+  includes_today: boolean
+  time: ReviewTimeSummary
+  streams: ReviewStreamSummary[]
+  tasks: DailyReview["tasks"]
+  routines: WeeklyReview["routines"]
+  days: WeeklyReviewDay[]
+  comparison: {
+    previous_start_date: string
+    previous_end_date: string
+    planned_delta_seconds: number
+    tracked_delta_seconds: number
+    completed_tasks_delta: number
+    routine_completion_rate_delta: number
+  }
 }

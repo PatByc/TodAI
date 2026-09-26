@@ -8,6 +8,8 @@ import {
   fetchTags,
   searchTags,
   createTag,
+  deleteTag,
+  updateTagColor,
   addTagToEntity,
   removeTagFromEntity,
   getEntityTags,
@@ -39,9 +41,37 @@ export function useEntityTags(entityType: string, entityId: number) {
 export function useCreateTag() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (name: string) => createTag(name),
+    mutationFn: (value: string | { name: string; color_index: number }) => typeof value === "string"
+      ? createTag(value)
+      : createTag(value.name, value.color_index),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["tags"] })
+    },
+  })
+}
+
+export function useUpdateTagColor() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ tagId, colorIndex }: { tagId: number; colorIndex: number }) => updateTagColor(tagId, colorIndex),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["tags"] })
+      for (const key of ["notes", "tasks", "ideas", "projects", "inbox"]) {
+        void queryClient.invalidateQueries({ queryKey: [key] })
+      }
+    },
+  })
+}
+
+export function useDeleteTag() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (tagId: number) => deleteTag(tagId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["tags"] })
+      for (const key of ["notes", "tasks", "ideas", "projects", "inbox"]) {
+        void queryClient.invalidateQueries({ queryKey: [key] })
+      }
     },
   })
 }

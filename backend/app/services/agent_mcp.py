@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Awaitable, Callable
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from mcp.server.mcpserver import MCPServer
@@ -22,7 +22,7 @@ from app.models.inbox_item import InboxItem
 from app.models.note import Note
 from app.models.project import Project
 from app.models.tag import Tag
-from app.models.task import Task
+from app.models.task import Task, TaskRecurrence
 from app.services.search_index_service import SearchIndexService
 
 ToolProgress = Callable[[float, float | None, str | None], Awaitable[None]]
@@ -68,6 +68,10 @@ class CreateTaskInput(ToolInput):
     status: str = "backlog"
     deadline: datetime | None = None
     project_id: int | None = Field(default=None, gt=0)
+    recurrence_unit: TaskRecurrence | None = None
+    recurrence_interval: int = Field(default=1, ge=1, le=365)
+    recurrence_end_date: date | None = None
+    recurrence_limit: int | None = Field(default=None, ge=2, le=999)
 
 
 class CreateIdeaInput(ToolInput):
@@ -106,6 +110,10 @@ class UpdateTaskInput(ToolInput):
     status: str | None = None
     deadline: datetime | None = None
     project_id: int | None = Field(default=None, gt=0)
+    recurrence_unit: TaskRecurrence | None = None
+    recurrence_interval: int | None = Field(default=None, ge=1, le=365)
+    recurrence_end_date: date | None = None
+    recurrence_limit: int | None = Field(default=None, ge=2, le=999)
 
 
 class UpdateIdeaInput(ToolInput):

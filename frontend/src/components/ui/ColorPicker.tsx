@@ -26,6 +26,9 @@ export function ColorPicker({
   const listboxId = useId()
   const selectedIndex = Math.min(Math.max(value, 0), colors.length - 1)
   const selected = colors[selectedIndex]
+  const wheelColors = colors
+    .map((color, index) => ({ color, index }))
+    .sort((left, right) => (left.color.wheelOrder ?? left.index) - (right.color.wheelOrder ?? right.index))
 
   useEffect(() => {
     if (!isOpen) return
@@ -77,14 +80,21 @@ export function ColorPicker({
 
       {isOpen && (
         <div id={listboxId} className="ui-color-menu" role="listbox" aria-label={ariaLabel}>
-          <span className="ui-color-menu-label">Choose color</span>
-          <div className="ui-color-grid">
-            {colors.map((color, index) => (
+          <div className="ui-color-wheel">
+            <div className="ui-color-wheel-center">
+              <span style={{ backgroundColor: selected.value, "--selected-color": selected.value } as CSSProperties} />
+              <small>{selected.label}</small>
+            </div>
+            {wheelColors.map(({ color, index }, position) => (
               <button
                 key={color.value}
                 type="button"
                 className="ui-color-option"
-                style={{ "--option-color": color.value } as CSSProperties}
+                style={{
+                  "--option-color": color.value,
+                  "--option-angle": `${position / wheelColors.length * 360}deg`,
+                  "--option-angle-inverse": `${position / wheelColors.length * -360}deg`,
+                } as CSSProperties}
                 onClick={() => choose(index)}
                 role="option"
                 aria-label={color.label}

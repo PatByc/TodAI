@@ -55,7 +55,7 @@ def queue_remove(session: AsyncSession, entity_type: str, entity_id: int) -> Non
     pending[(entity_type, entity_id)] = "remove"
 
 
-def _provider() -> EmbeddingProvider | None:
+def _provider(session: AsyncSession) -> EmbeddingProvider | None:
     if settings.embedding_provider != "openai" or not settings.openai_api_key:
         return None
     return OpenAIProvider(
@@ -63,6 +63,7 @@ def _provider() -> EmbeddingProvider | None:
         embedding_model=settings.embedding_model,
         embedding_dimensions=settings.embedding_dimensions,
         completion_model=settings.completion_model,
+        usage_session=session,
     )
 
 
@@ -96,7 +97,7 @@ class SearchIndexService:
         self, session: AsyncSession, provider: EmbeddingProvider | None = None
     ):
         self.session = session
-        self.provider = provider if provider is not None else _provider()
+        self.provider = provider if provider is not None else _provider(session)
 
     async def apply_pending(self) -> None:
         pending = self.session.info.pop("search_pending", {})

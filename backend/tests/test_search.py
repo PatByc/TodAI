@@ -128,3 +128,52 @@ async def test_migrated_sqlite_uses_native_vector_index(tmp_path):
             assert response.results[0].title == "Time away"
     finally:
         await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_global_search_matches_tag_names_across_entity_types(tmp_path):
+    from app.models.note import Note
+    from app.models.tag import EntityTag, Tag
+    from app.models.task import Task
+
+    database_url = sqlite_url(tmp_path / "content-only-search.db")
+    await asyncio.to_thread(upgrade_database, database_url)
+    engine = create_database_engine(database_url)
+    try:
+        async with TodAISession(bind=engine, expire_on_commit=False) as session:
+            note = Note(
+                title="Quarterly planning",
+                content={"type": "doc"},
+                content_text="Prepare the roadmap review",
+            )
+            task = Task(title="Draft launch agenda")
+            tag = Tag(name="tag-only-marker", color_index=0)
+            session.add_all([note, task, tag])
+            await session.flush()
+            session.add_all(
+                [
+                    EntityTag(
+                        tag_id=tag.id, entity_type="note", entity_id=note.id
+                    ),
+                    EntityTag(
+                        tag_id=tag.id, entity_type="task", entity_id=task.id
+                    ),
+                ]
+            )
+            await session.flush()
+
+            service = SearchIndexService(session, provider=None)
+            await service.rebuild()
+            await session.commit()
+
+            tag_matches = await service.search("tag-only-marker", mode="keyword")
+            content_match = await service.search("roadmap", mode="keyword")
+
+            assert {
+                (result.entity_type, result.entity_id)
+                for result in tag_matches.results
+            } == {("note", note.id), ("task", task.id)}
+            assert content_match.results[0].entity_id == note.id
+            assert content_match.results[0].tags == ["tag-only-marker"]
+    finally:
+        await engine.dispose()

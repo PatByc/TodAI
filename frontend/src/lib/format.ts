@@ -1,6 +1,7 @@
 /**
  * Formatting utilities shared across entity components.
  */
+import { WORKSPACE_COLORS } from "@/lib/colorPalette"
 
 /**
  * Format a date string as relative time per UI-SPEC: 2h, 1d, 3d, 1w
@@ -26,20 +27,7 @@ export function formatRelativeTime(dateString: string): string {
 /**
  * Tag color palette from UI-SPEC (12 nature-named colors).
  */
-export const TAG_COLORS = [
-  "#4EBE5E", // 0: Moss
-  "#5EA8D4", // 1: Sky
-  "#D4A85E", // 2: Amber
-  "#D46E7A", // 3: Rose
-  "#9B7AD4", // 4: Iris
-  "#D48E5E", // 5: Terra
-  "#5ED4C0", // 6: Teal
-  "#D45E90", // 7: Berry
-  "#8ED45E", // 8: Fern
-  "#5E8ED4", // 9: Slate
-  "#D4BE5E", // 10: Gold
-  "#7A5ED4", // 11: Grape
-] as const
+export const TAG_COLORS = WORKSPACE_COLORS.map((color) => color.value)
 
 /**
  * Get the color for a tag based on its color_index.

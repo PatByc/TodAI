@@ -5,16 +5,98 @@ import { PrioritySelect } from "@/components/entities/PrioritySelect"
 import { TagInput } from "@/components/tags/TagInput"
 import { ProjectDropdown } from "@/components/entities/ProjectDropdown"
 import { DatePicker } from "@/components/ui/DatePicker"
+import { SelectDropdown } from "@/components/ui/SelectDropdown"
 import { TaskStateHistory } from "@/components/tasks/TaskStateHistory"
 import { formatRelativeTime } from "@/lib/format"
 import { deriveEntryTitle, shouldAutoName } from "@/lib/entryNaming"
 import { useState, useCallback, useRef, useEffect } from "react"
-import { Archive, ArchiveRestore, ArrowLeft, Trash2 } from "lucide-react"
-import type { TaskStatus } from "@/types/entities"
+import { Archive, ArchiveRestore, ArrowLeft, Repeat2, Trash2 } from "lucide-react"
+import type { Task, TaskRecurrence, TaskStatus, TaskUpdate } from "@/types/entities"
 
 export const Route = createFileRoute("/tasks/$taskId")({
   component: TaskDetailPage,
 })
+
+const RECURRENCE_OPTIONS = [
+  { value: "none", label: "Never", icon: <Repeat2 size={13} /> },
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "yearly", label: "Yearly" },
+  { value: "custom", label: "Custom…" },
+]
+
+const UNIT_OPTIONS = [
+  { value: "daily", label: "days" },
+  { value: "weekly", label: "weeks" },
+  { value: "monthly", label: "months" },
+  { value: "yearly", label: "years" },
+]
+
+function TaskRecurrenceControl({ task, onChange }: { task: Task; onChange: (data: TaskUpdate) => void }) {
+  const hasAdvancedRule = task.recurrence_interval > 1 || Boolean(task.recurrence_end_date) || Boolean(task.recurrence_limit)
+  const [customOpen, setCustomOpen] = useState(hasAdvancedRule)
+  const [endMode, setEndMode] = useState<"never" | "date" | "count">(
+    task.recurrence_end_date ? "date" : task.recurrence_limit ? "count" : "never",
+  )
+  const [interval, setInterval] = useState(String(task.recurrence_interval || 1))
+  const [limit, setLimit] = useState(String(task.recurrence_limit ?? 2))
+
+  useEffect(() => {
+    setCustomOpen(task.recurrence_interval > 1 || Boolean(task.recurrence_end_date) || Boolean(task.recurrence_limit))
+    setEndMode(task.recurrence_end_date ? "date" : task.recurrence_limit ? "count" : "never")
+    setInterval(String(task.recurrence_interval || 1))
+    setLimit(String(task.recurrence_limit ?? 2))
+  }, [task.id])
+
+  if (!task.deadline) {
+    return (
+      <div className="task-recurrence-field">
+        <span>Repeats</span>
+        <button type="button" className="task-recurrence-disabled" disabled><Repeat2 size={13} /> Add a deadline first</button>
+      </div>
+    )
+  }
+
+  const selectedValue = customOpen ? "custom" : task.recurrence_unit ?? "none"
+  const choosePreset = (value: string) => {
+    if (value === "custom") {
+      setCustomOpen(true)
+      if (!task.recurrence_unit) onChange({ recurrence_unit: "weekly", recurrence_interval: 1 })
+      return
+    }
+    setCustomOpen(false)
+    setEndMode("never")
+    onChange(value === "none"
+      ? { recurrence_unit: null, recurrence_interval: 1, recurrence_end_date: null, recurrence_limit: null }
+      : { recurrence_unit: value as TaskRecurrence, recurrence_interval: 1, recurrence_end_date: null, recurrence_limit: null })
+  }
+  const saveInterval = () => {
+    const next = Math.max(1, Math.min(365, Number(interval) || 1))
+    setInterval(String(next))
+    onChange({ recurrence_interval: next })
+  }
+  const saveLimit = () => {
+    const next = Math.max(2, Math.min(999, Number(limit) || 2))
+    setLimit(String(next))
+    onChange({ recurrence_limit: next, recurrence_end_date: null })
+  }
+
+  return (
+    <div className="task-recurrence-field">
+      <span>Repeats</span>
+      <SelectDropdown value={selectedValue} options={RECURRENCE_OPTIONS} ariaLabel="Task recurrence" onChange={choosePreset} />
+      {customOpen && task.recurrence_unit && (
+        <div className="task-recurrence-custom">
+          <div><span>Every</span><input type="number" min="1" max="365" value={interval} onChange={(event) => setInterval(event.target.value)} onBlur={saveInterval} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur() }} /><SelectDropdown size="compact" value={task.recurrence_unit} options={UNIT_OPTIONS} ariaLabel="Recurrence unit" onChange={(value) => onChange({ recurrence_unit: value as TaskRecurrence })} /></div>
+          <div><span>Ends</span><SelectDropdown size="compact" value={endMode} options={[{ value: "never", label: "Never" }, { value: "date", label: "On date" }, { value: "count", label: "After occurrences" }]} ariaLabel="Recurrence ending" onChange={(value) => { const mode = value as typeof endMode; setEndMode(mode); if (mode === "never") onChange({ recurrence_end_date: null, recurrence_limit: null }) }} /></div>
+          {endMode === "date" && <div className="task-recurrence-end"><span>On</span><DatePicker value={task.recurrence_end_date ?? ""} onChange={(value) => onChange({ recurrence_end_date: value || null, recurrence_limit: null })} ariaLabel="Recurrence end date" placeholder="Choose end date" /></div>}
+          {endMode === "count" && <div className="task-recurrence-end"><span>After</span><input type="number" min="2" max="999" value={limit} onChange={(event) => setLimit(event.target.value)} onBlur={saveLimit} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur() }} /><small>occurrences</small></div>}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function TaskDetailPage() {
   const { taskId } = Route.useParams()
@@ -104,6 +186,11 @@ function TaskDetailPage() {
     (projectId: number | null) => {
       updateTask.mutate({ id, data: { project_id: projectId } })
     },
+    [id, updateTask],
+  )
+
+  const handleRecurrenceChange = useCallback(
+    (data: TaskUpdate) => { updateTask.mutate({ id, data }) },
     [id, updateTask],
   )
 
@@ -281,6 +368,7 @@ function TaskDetailPage() {
             ariaLabel="Task deadline"
             placeholder="No deadline"
           />
+          <TaskRecurrenceControl task={task} onChange={handleRecurrenceChange} />
         </div>
 
         <div>
