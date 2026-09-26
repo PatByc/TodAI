@@ -67,4 +67,3 @@ delivery-management suite. The current scope excludes:
 - Real-time multi-user collaboration.
 - A plugin marketplace or general-purpose extension runtime.
 - A dedicated page per tag; cross-type tag discovery belongs in global search.
-
