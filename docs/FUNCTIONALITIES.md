@@ -663,6 +663,19 @@ The visible global search uses hybrid mode and automatically reports/falls back 
 
 Ask Tod is a right-side conversation drawer rather than a separate application page.
 
+### 16.0 First-run onboarding
+
+An empty workspace opens with a five-step introduction led by Tod. The tour
+collects an optional preferred name, a starter project, and its first concrete
+task before spotlighting Today, Plan, and Ask Tod in the real application shell.
+It does not require an AI provider.
+
+Finishing creates the project and linked task atomically through the normal
+application services, including audit records and search indexing. The flow can
+be skipped, and populated existing workspaces do not receive it automatically.
+Preferred name and a non-mutating replay of the educational steps are available
+under Settings → Overall.
+
 ### 16.1 Conversation interface
 
 - User messages appear on the right and Tod's responses on the left.

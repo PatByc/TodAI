@@ -8,6 +8,7 @@ import { useTimeEntries } from "@/hooks/useTimeConfiguration"
 import { playCompletionChime } from "@/lib/completionChime"
 import { durationLabel, parseServerTime } from "@/lib/time"
 import { isThemeActive } from "@/lib/themes"
+import { fetchOnboarding } from "@/api/onboarding"
 import type { GoalPeriod, PaginatedResponse, Task, TaskStatus } from "@/types/entities"
 
 export const Route = createFileRoute("/")({ component: TodayPage })
@@ -74,6 +75,7 @@ function TodayPage() {
   const queryClient = useQueryClient()
   const [completingIds, setCompletingIds] = useState<Set<number>>(() => new Set())
   const [completionError, setCompletionError] = useState("")
+  const { data: workspaceProfile } = useQuery({ queryKey: ["onboarding"], queryFn: fetchOnboarding })
   const now = new Date()
   const autumnTheme = isThemeActive("autumn", now)
   const currentAutumnStage = autumnStage(now.getMonth())
@@ -177,12 +179,12 @@ function TodayPage() {
   return (
     <div className={`home-page${autumnTheme ? " home-season home-season-autumn" : ""}`}>
       {autumnTheme && <AutumnAtmosphere stage={currentAutumnStage} />}
-      <section className="home-hero" aria-labelledby="home-title">
+      <section className="home-hero" aria-labelledby="home-title" data-onboarding-target="today">
         <div>
           <p className="home-date">
             <span>{dateLabel}</span>
           </p>
-          <h1 id="home-title">Today.</h1>
+          <h1 id="home-title">Today{workspaceProfile?.display_name ? `, ${workspaceProfile.display_name}` : ""}.</h1>
           <p>A clear place to decide what comes next.</p>
         </div>
         <div className="home-daymark" aria-hidden="true">{String(now.getDate()).padStart(2, "0")}</div>

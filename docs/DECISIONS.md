@@ -5,7 +5,7 @@ remain stable unless they are explicitly revisited. It complements the current
 feature inventory in [`FEATURES.md`](FEATURES.md) and the detailed behavior in
 [`FUNCTIONALITIES.md`](FUNCTIONALITIES.md).
 
-Last reviewed: 2026-09-26.
+Last reviewed: 2026-10-01.
 
 ## D-001 — Local-first storage is the default
 
@@ -199,3 +199,13 @@ separate unit field. Both support daily, weekly, and monthly targets, but they
 remain separate models so manual values cannot be confused with timer-derived
 measurements. A number goal may target `at least` or `at most`; exceeding an
 upper limit is presented as a warning.
+
+## D-022 — Onboarding is workspace-aware and non-blocking
+
+**Status:** Accepted
+
+Tod leads onboarding only for a genuinely empty workspace. Completion creates
+the starter project and task atomically; skipping is remembered, and the
+educational tour remains replayable from Settings without creating duplicate
+records. Onboarding works without an AI provider, and failure or delay while
+loading its state must never block access to the application.

@@ -29,6 +29,7 @@ from .search_chunk import SearchChunk
 from .tag import EntityTag, Tag
 from .task import Task, TaskRecurrence, TaskStatus
 from .time_tracking import TimeCategory, TimeEntry, TimeStream
+from .workspace_profile import WorkspaceProfile
 
 __all__ = [
     "AISetting",
@@ -64,4 +65,5 @@ __all__ = [
     "TimeGoal",
     "TimeStream",
     "TimestampMixin",
+    "WorkspaceProfile",
 ]

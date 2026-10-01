@@ -19,6 +19,7 @@ from app.api.export import router as export_router
 from app.api.ideas import router as ideas_router
 from app.api.inbox import router as inbox_router
 from app.api.notes import router as notes_router
+from app.api.onboarding import router as onboarding_router
 from app.api.planning import router as planning_router
 from app.api.projects import router as projects_router
 from app.api.review import router as review_router
@@ -116,6 +117,7 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     application.include_router(notes_router, prefix="/api/v1")
+    application.include_router(onboarding_router, prefix="/api/v1")
     application.include_router(tasks_router, prefix="/api/v1")
     application.include_router(ideas_router, prefix="/api/v1")
     application.include_router(tags_router, prefix="/api/v1")

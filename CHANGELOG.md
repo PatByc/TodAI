@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added an offline-safe, Tod-led onboarding tour for empty workspaces with
+  preferred-name personalization, atomic starter project/task creation, skip,
+  responsive spotlight guidance, and replay from Settings.
 - Added unit-free daily, weekly, and monthly number goals with `at least` or
   `at most` targets, inline dated progress, Today visibility, audit history,
   and portable export.

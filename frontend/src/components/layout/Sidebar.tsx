@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router"
 import { Activity, CalendarDays, ChartNoAxesColumnIncreasing, CheckSquare, ChevronRight, ClipboardCheck, Clock3, FileText, FolderOpen, Home, Inbox, Library, Lightbulb, Repeat2, Settings, Target } from "lucide-react"
 import { useSidebarStore } from "@/stores/sidebar"
 import { useCounts } from "@/hooks/useCounts"
+import { useOnboardingStore } from "@/stores/onboarding"
 
 const LIBRARY_STORAGE_KEY = "todai.sidebar.library-open"
 const PROGRESS_STORAGE_KEY = "todai.sidebar.progress-open"
@@ -26,7 +27,9 @@ function useMediaQuery(query: string): boolean {
 export function Sidebar() {
   const isCollapsed = useSidebarStore((state) => state.isCollapsed)
   const setCollapsed = useSidebarStore((state) => state.setCollapsed)
+  const tourTarget = useOnboardingStore((state) => state.activeTarget)
   const isMobile = useMediaQuery("(max-width: 768px)")
+  const effectiveCollapsed = tourTarget === "plan" ? false : isCollapsed
 
   useEffect(() => {
     if (isMobile) setCollapsed(true)
@@ -38,10 +41,10 @@ export function Sidebar() {
 
   return (
     <>
-      {isMobile && !isCollapsed && (
+      {isMobile && !effectiveCollapsed && (
         <button type="button" className="sidebar-backdrop" onClick={() => setCollapsed(true)} aria-label="Close navigation" />
       )}
-      <aside className={`sidebar${isMobile ? " sidebar-mobile" : ""}${isCollapsed ? " sidebar-collapsed" : ""}`}>
+      <aside className={`sidebar${isMobile ? " sidebar-mobile" : ""}${effectiveCollapsed ? " sidebar-collapsed" : ""}`}>
         <SidebarContent onNavClick={closeOnMobile} />
       </aside>
     </>
@@ -98,6 +101,7 @@ function SidebarContent({ onNavClick }: { onNavClick: () => void }) {
         aria-current={active ? "page" : undefined}
         aria-describedby={hintId}
         tabIndex={nested && !groupOpen ? -1 : undefined}
+        data-onboarding-target={label === "Plan" ? "plan" : undefined}
       >
         <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
         <span>{label}</span>

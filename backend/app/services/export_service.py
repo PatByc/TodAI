@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.api_usage_cost import APIUsageCost
 from app.models.review_reflection import ReviewReflection
+from app.models.workspace_profile import WorkspaceProfile
 from app.repositories.idea_repo import IdeaRepository
 from app.repositories.inbox_repo import InboxRepository
 from app.repositories.note_repo import NoteRepository
@@ -87,9 +88,27 @@ class ExportService:
                 )
             ).scalars()
         )
+        workspace_profile = await self.session.get(WorkspaceProfile, 1)
 
         return {
             "exported_at": datetime.now(UTC).isoformat(),
+            "workspace_profile": (
+                {
+                    "display_name": workspace_profile.display_name,
+                    "onboarding_version": workspace_profile.onboarding_version,
+                    "onboarding_outcome": workspace_profile.onboarding_outcome,
+                    "starter_project_id": workspace_profile.starter_project_id,
+                    "starter_task_id": workspace_profile.starter_task_id,
+                    "completed_at": workspace_profile.completed_at.isoformat()
+                    if workspace_profile.completed_at
+                    else None,
+                    "skipped_at": workspace_profile.skipped_at.isoformat()
+                    if workspace_profile.skipped_at
+                    else None,
+                }
+                if workspace_profile
+                else None
+            ),
             "notes": [await self._serialize_note(n) for n in notes],
             "tasks": [await self._serialize_task(t) for t in tasks],
             "ideas": [await self._serialize_idea(i) for i in ideas],

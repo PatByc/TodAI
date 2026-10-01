@@ -4,7 +4,7 @@ This is the compact feature register for TodAI. It records the product areas
 that exist now and the work that is intentionally deferred. Detailed behavior
 is documented in [`FUNCTIONALITIES.md`](FUNCTIONALITIES.md).
 
-Last reviewed against the codebase: 2026-09-26.
+Last reviewed against the codebase: 2026-10-01.
 
 ## Current product
 
@@ -23,7 +23,8 @@ Last reviewed against the codebase: 2026-09-26.
 | Review | Day, week, month, and custom-period summaries covering planned versus actual time, tasks, routines, goals, comparisons, durable reflections, and optional Tod-generated drafts. |
 | Search | Cross-type global keyword search over titles, content, and shared tags, with optional semantic retrieval and source links. |
 | Tod | One agentic chat mode, MCP-style workspace tools, visible live activity, manual or automatic approval, proposals, slash commands, capabilities, and pinned/temporary layouts. |
-| Settings | Language selection, date-aware themes, time streams and colors, tag creation/deletion/recoloring, AI configuration, and data controls. |
+| Onboarding | Offline-safe, Tod-led first-run tour for empty workspaces, optional preferred name, atomic starter project/task creation, skip, and replay. |
+| Settings | Preferred name, onboarding replay, language selection, date-aware themes, time streams and colors, tag creation/deletion/recoloring, AI configuration, and data controls. |
 | Developer | Runtime and efficiency diagnostics plus durable cloud-LLM API usage and estimated cost reporting. |
 | Data | Embedded SQLite by default, verified manual and scheduled SQLite backups with configurable retention, storage and per-snapshot verification reporting, validated restore from stored or uploaded snapshots, pre-restore safety copy and automatic rollback, dry-run and validated database migration, optional PostgreSQL server deployment, migrations, audit records, JSON/Markdown export, and rebuildable search indexes. |
 

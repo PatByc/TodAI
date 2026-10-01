@@ -1,12 +1,25 @@
 import { Outlet, useRouterState } from "@tanstack/react-router"
-import { useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
 import { Topbar } from "./Topbar"
 import { Sidebar } from "./Sidebar"
 import { AskDrawer } from "@/components/ask/AskDrawer"
 import { RestoreBanner } from "@/components/layout/RestoreBanner"
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour"
+import { fetchOnboarding } from "@/api/onboarding"
+import { useOnboardingStore } from "@/stores/onboarding"
 
 export function AppShell() {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const [dismissedForSession, setDismissedForSession] = useState(() => (
+    typeof window !== "undefined" && window.sessionStorage.getItem("todai.onboarding.dismissed-for-session") === "true"
+  ))
+  const replayRequested = useOnboardingStore((state) => state.replayRequested)
+  const onboarding = useQuery({
+    queryKey: ["onboarding"],
+    queryFn: fetchOnboarding,
+    retry: false,
+  })
 
   useEffect(() => {
     const activityTimers = new Map<Element, number>()
@@ -58,12 +71,15 @@ export function AppShell() {
     }
   }, [pathname])
 
+  const showFirstRun = Boolean(onboarding.data?.should_show && !dismissedForSession)
+  const tourActive = Boolean(onboarding.data && (showFirstRun || replayRequested))
+
   return (
     <div className="app-shell">
-      <Topbar />
+      <Topbar inert={tourActive} />
       <RestoreBanner />
 
-      <div className="workspace">
+      <div className="workspace" inert={tourActive ? true : undefined}>
         <Sidebar />
 
         <main className="content-area">
@@ -73,6 +89,13 @@ export function AppShell() {
         </main>
         <AskDrawer />
       </div>
+      {onboarding.data && tourActive && (
+        <OnboardingTour
+          mode={replayRequested ? "replay" : "first-run"}
+          state={onboarding.data}
+          onDismiss={() => setDismissedForSession(true)}
+        />
+      )}
     </div>
   )
 }

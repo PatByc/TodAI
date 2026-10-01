@@ -15,7 +15,8 @@ remains available for an optional server deployment.
 - Rich notes, ideas, projects, and an Inbox conversion workflow.
 - Shared tags, global search, JSON/Markdown export, and versioned migrations.
 - Ask Tod with live activity, reviewable or automatic validated changes, and a
-  pinned workspace layout.
+  pinned workspace layout. See the [MCP tool catalog](docs/MCP_TOOLS.md) for
+  Tod's current read and action capabilities.
 - Local-first SQLite storage with PostgreSQL compatibility.
 
 ## Development setup

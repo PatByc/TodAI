@@ -7,6 +7,7 @@ import { SearchDialog } from "@/components/search/SearchDialog"
 import { AppLogo } from "@/components/AppLogo"
 import { TodLogo } from "@/components/TodLogo"
 import { useActiveTimer, useStartTimer, useStopTimer } from "@/hooks/useTimeConfiguration"
+import { useOnboardingStore } from "@/stores/onboarding"
 
 function formatElapsed(milliseconds: number) {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000))
@@ -16,11 +17,12 @@ function formatElapsed(milliseconds: number) {
   return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":")
 }
 
-export function Topbar() {
+export function Topbar({ inert = false }: { inert?: boolean }) {
   const toggle = useSidebarStore((state) => state.toggle)
   const askOpen = useAskStore((state) => state.isOpen)
   const toggleAsk = useAskStore((state) => state.toggle)
   const askRunning = useAskStore((state) => state.isRunning)
+  const tourTarget = useOnboardingStore((state) => state.activeTarget)
   const [searchOpen, setSearchOpen] = useState(false)
   const activeTimer = useActiveTimer()
   const startTimer = useStartTimer()
@@ -29,6 +31,7 @@ export function Topbar() {
   const [actionsOpen, setActionsOpen] = useState(() => (
     typeof window !== "undefined" && window.localStorage.getItem("todai.topbar.actions-open") === "true"
   ))
+  const effectiveActionsOpen = actionsOpen || tourTarget === "ask"
 
   useEffect(() => {
     window.localStorage.setItem("todai.topbar.actions-open", String(actionsOpen))
@@ -77,7 +80,7 @@ export function Topbar() {
   }, [])
 
   return (
-    <header className="topbar">
+    <header className="topbar" inert={inert ? true : undefined}>
       <div className="topbar-left">
         <button type="button" className="topbar-menu" onClick={toggle} aria-label="Toggle sidebar">
           <Menu size={18} />
@@ -88,8 +91,8 @@ export function Topbar() {
       </div>
 
       <div className="topbar-action-dock">
-        <div id="topbar-actions" className={`topbar-actions${actionsOpen ? " topbar-actions-open" : ""}`} aria-hidden={!actionsOpen}>
-          <button type="button" className="topbar-search" tabIndex={actionsOpen ? 0 : -1} onClick={() => setSearchOpen(true)} aria-label="Search everything">
+        <div id="topbar-actions" className={`topbar-actions${effectiveActionsOpen ? " topbar-actions-open" : ""}`} aria-hidden={!effectiveActionsOpen}>
+          <button type="button" className="topbar-search" tabIndex={effectiveActionsOpen ? 0 : -1} onClick={() => setSearchOpen(true)} aria-label="Search everything">
             <Search size={15} />
             <span>Find anything</span>
             <kbd>Ctrl K</kbd>
@@ -98,7 +101,7 @@ export function Topbar() {
             <button
               type="button"
               className="timer-launcher"
-              tabIndex={actionsOpen ? 0 : -1}
+              tabIndex={effectiveActionsOpen ? 0 : -1}
               onClick={toggleTimer}
               disabled={timerPending}
               aria-label={timerActive ? `Stop timer, ${elapsed} elapsed` : "Start timer"}
@@ -114,8 +117,9 @@ export function Topbar() {
           </div>
           <button
             type="button"
+            data-onboarding-target="ask"
             className={`ask-launcher${askOpen ? " ask-launcher-hidden" : ""}`}
-            tabIndex={actionsOpen && !askOpen ? 0 : -1}
+            tabIndex={effectiveActionsOpen && !askOpen ? 0 : -1}
             onClick={toggleAsk}
             aria-label={askOpen ? "Close Ask Tod" : "Open Ask Tod"}
             aria-expanded={askOpen}
@@ -131,12 +135,12 @@ export function Topbar() {
           type="button"
           className="topbar-actions-toggle"
           onClick={() => setActionsOpen((current) => !current)}
-          aria-label={actionsOpen ? "Close quick actions" : "Open quick actions"}
-          aria-expanded={actionsOpen}
+          aria-label={effectiveActionsOpen ? "Close quick actions" : "Open quick actions"}
+          aria-expanded={effectiveActionsOpen}
           aria-controls="topbar-actions"
         >
-          {actionsOpen ? <X size={17} aria-hidden="true" /> : <Ellipsis size={19} aria-hidden="true" />}
-          {askRunning && !actionsOpen && <span className="topbar-actions-status" aria-label="Tod is working" />}
+          {effectiveActionsOpen ? <X size={17} aria-hidden="true" /> : <Ellipsis size={19} aria-hidden="true" />}
+          {askRunning && !effectiveActionsOpen && <span className="topbar-actions-status" aria-label="Tod is working" />}
         </button>
       </div>
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />

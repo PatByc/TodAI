@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
-import { Bot, Check, ChevronDown, Clock3, Database, Palette, SlidersHorizontal, Tags } from "lucide-react"
+import { Bot, Check, ChevronDown, Clock3, Database, Palette, RotateCcw, SlidersHorizontal, Tags } from "lucide-react"
 import { AISettings } from "@/components/settings/AISettings"
 import { SelectDropdown } from "@/components/ui/SelectDropdown"
 import { TimeSettings } from "@/components/settings/TimeSettings"
@@ -11,6 +12,8 @@ import { RestorePanel } from "@/components/settings/RestorePanel"
 import { ExportButton } from "@/components/export/ExportButton"
 import { readEnabledThemes, saveEnabledThemes, THEMES } from "@/lib/themes"
 import type { ThemeId } from "@/lib/themes"
+import { fetchOnboarding, updateWorkspaceProfile } from "@/api/onboarding"
+import { useOnboardingStore } from "@/stores/onboarding"
 
 const LANGUAGE_OPTIONS = [
   { value: "en", label: "English" },
@@ -74,6 +77,53 @@ function ThemeDropdown({ value, onChange }: { value: ThemeId[]; onChange: (theme
         </div>
       )}
     </div>
+  )
+}
+
+function WorkspaceProfileSettings() {
+  const queryClient = useQueryClient()
+  const requestReplay = useOnboardingStore((state) => state.requestReplay)
+  const { data } = useQuery({ queryKey: ["onboarding"], queryFn: fetchOnboarding })
+  const [name, setName] = useState("")
+  const update = useMutation({
+    mutationFn: () => updateWorkspaceProfile(name.trim() || null),
+    onSuccess: (next) => queryClient.setQueryData(["onboarding"], next),
+  })
+
+  useEffect(() => setName(data?.display_name ?? ""), [data?.display_name])
+
+  return (
+    <>
+      <div className="settings-row">
+        <div>
+          <strong>Preferred name</strong>
+          <span>Used in Tod’s welcome and your Today heading.</span>
+        </div>
+        <div className="settings-profile-control">
+          <input
+            value={name}
+            maxLength={80}
+            aria-label="Preferred name"
+            placeholder="Optional"
+            onChange={(event) => setName(event.target.value)}
+            onKeyDown={(event) => { if (event.key === "Enter") update.mutate() }}
+          />
+          <button type="button" onClick={() => update.mutate()} disabled={update.isPending}>
+            {update.isPending ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+      <div className="settings-row">
+        <div>
+          <strong>Onboarding tour</strong>
+          <span>Replay Tod’s introduction without creating another starter project.</span>
+        </div>
+        <button type="button" className="settings-replay-button" onClick={requestReplay}>
+          <RotateCcw size={14} /> Replay
+        </button>
+      </div>
+      {update.error && <p className="settings-inline-state settings-inline-error" role="alert">Could not save your preferred name.</p>}
+    </>
   )
 }
 
@@ -216,6 +266,7 @@ function SettingsPage() {
                 ariaLabel="Application language"
               />
             </div>
+            <WorkspaceProfileSettings />
           </section>
         ) : (
           <section className="settings-panel" aria-labelledby="settings-design-title">
