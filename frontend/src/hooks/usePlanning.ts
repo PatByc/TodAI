@@ -8,23 +8,30 @@ import {
   deletePlannedBlock,
   deleteRoutine,
   deleteTimeGoal,
+  fetchEveningSummary,
   fetchMetricGoals,
+  fetchMorningSummary,
   fetchPlannedBlocks,
   fetchRoutines,
   fetchTimeGoals,
   recordMetricProgress,
+  reorderMorningRoutines,
+  reorderEveningRoutines,
+  saveEveningReflection,
   setRoutineCompletion,
   updatePlannedBlock,
   updateRoutine,
   updateTimeGoal,
   updateMetricGoal,
 } from "@/api/planning"
-import type { MetricGoalCreate, MetricGoalUpdate, MetricProgressCreate, PlannedBlockCreate, PlannedBlockUpdate, RoutineCompletionUpdate, RoutineCreate, RoutineUpdate, TimeGoalCreate, TimeGoalUpdate } from "@/types/entities"
+import type { EveningReflectionUpdate, MetricGoalCreate, MetricGoalUpdate, MetricProgressCreate, PlannedBlockCreate, PlannedBlockUpdate, RoutineCompletionUpdate, RoutineCreate, RoutineUpdate, TimeGoalCreate, TimeGoalUpdate } from "@/types/entities"
 
 const routineKey = ["plan", "routines"] as const
 const goalKey = ["plan", "goals"] as const
 const metricGoalKey = ["plan", "metric-goals"] as const
 const blockKey = ["plan", "blocks"] as const
+const morningKey = ["plan", "morning"] as const
+const eveningKey = ["plan", "evening"] as const
 
 export function usePlannedBlocks(fromAt: string, toAt: string) {
   return useQuery({ queryKey: [...blockKey, fromAt, toAt], queryFn: () => fetchPlannedBlocks(fromAt, toAt) })
@@ -51,22 +58,45 @@ export function useRoutines(includeInactive = true) {
 
 export function useCreateRoutine() {
   const client = useQueryClient()
-  return useMutation({ mutationFn: (data: RoutineCreate) => createRoutine(data), onSuccess: () => client.invalidateQueries({ queryKey: routineKey }) })
+  return useMutation({ mutationFn: (data: RoutineCreate) => createRoutine(data), onSuccess: () => { void client.invalidateQueries({ queryKey: routineKey }); void client.invalidateQueries({ queryKey: morningKey }); void client.invalidateQueries({ queryKey: eveningKey }) } })
 }
 
 export function useUpdateRoutine() {
   const client = useQueryClient()
-  return useMutation({ mutationFn: ({ id, data }: { id: number; data: RoutineUpdate }) => updateRoutine(id, data), onSuccess: () => client.invalidateQueries({ queryKey: routineKey }) })
+  return useMutation({ mutationFn: ({ id, data }: { id: number; data: RoutineUpdate }) => updateRoutine(id, data), onSuccess: () => { void client.invalidateQueries({ queryKey: routineKey }); void client.invalidateQueries({ queryKey: morningKey }); void client.invalidateQueries({ queryKey: eveningKey }) } })
 }
 
 export function useDeleteRoutine() {
   const client = useQueryClient()
-  return useMutation({ mutationFn: deleteRoutine, onSuccess: () => client.invalidateQueries({ queryKey: routineKey }) })
+  return useMutation({ mutationFn: deleteRoutine, onSuccess: () => { void client.invalidateQueries({ queryKey: routineKey }); void client.invalidateQueries({ queryKey: morningKey }); void client.invalidateQueries({ queryKey: eveningKey }) } })
 }
 
 export function useSetRoutineCompletion() {
   const client = useQueryClient()
-  return useMutation({ mutationFn: ({ id, data }: { id: number; data: RoutineCompletionUpdate }) => setRoutineCompletion(id, data), onSuccess: () => client.invalidateQueries({ queryKey: routineKey }) })
+  return useMutation({ mutationFn: ({ id, data }: { id: number; data: RoutineCompletionUpdate }) => setRoutineCompletion(id, data), onSuccess: () => { void client.invalidateQueries({ queryKey: routineKey }); void client.invalidateQueries({ queryKey: morningKey }); void client.invalidateQueries({ queryKey: eveningKey }) } })
+}
+
+export function useMorningSummary(date: string, timezone: string) {
+  return useQuery({ queryKey: [...morningKey, date, timezone], queryFn: () => fetchMorningSummary(date, timezone), refetchInterval: 60_000 })
+}
+
+export function useReorderMorningRoutines() {
+  const client = useQueryClient()
+  return useMutation({ mutationFn: reorderMorningRoutines, onSuccess: () => { void client.invalidateQueries({ queryKey: routineKey }); void client.invalidateQueries({ queryKey: morningKey }) } })
+}
+
+export function useEveningSummary(date: string, timezone: string) {
+  return useQuery({ queryKey: [...eveningKey, date, timezone], queryFn: () => fetchEveningSummary(date, timezone), refetchInterval: 60_000 })
+}
+
+export function useReorderEveningRoutines() {
+  const client = useQueryClient()
+  return useMutation({ mutationFn: reorderEveningRoutines, onSuccess: () => { void client.invalidateQueries({ queryKey: routineKey }); void client.invalidateQueries({ queryKey: eveningKey }) } })
+}
+
+export function useSaveEveningReflection() {
+  const client = useQueryClient()
+  return useMutation({ mutationFn: (data: EveningReflectionUpdate) => saveEveningReflection(data), onSuccess: () => client.invalidateQueries({ queryKey: eveningKey }) })
 }
 
 export function useTimeGoals(includeInactive = true) {

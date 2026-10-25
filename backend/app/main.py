@@ -29,6 +29,7 @@ from app.api.system import router as system_router
 from app.api.tags import router as tags_router
 from app.api.tasks import router as tasks_router
 from app.api.time_tracking import router as time_tracking_router
+from app.api.twelve_week import router as twelve_week_router
 from app.config import settings
 from app.core.exceptions import EntityNotFoundError, ValidationError
 from app.database import AsyncSessionLocal, engine
@@ -133,6 +134,7 @@ def create_app() -> FastAPI:
     application.include_router(activity_router, prefix="/api/v1")
     application.include_router(time_tracking_router, prefix="/api/v1")
     application.include_router(planning_router, prefix="/api/v1")
+    application.include_router(twelve_week_router, prefix="/api/v1")
     application.include_router(review_router, prefix="/api/v1")
 
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"

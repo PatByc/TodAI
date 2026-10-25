@@ -1,7 +1,17 @@
 """Integration coverage for routines and measurable goals."""
 
+from datetime import UTC, datetime
+
 import pytest
 from httpx import AsyncClient
+
+
+class _MorningDatetime(datetime):
+    current = datetime(2026, 10, 18, 5, 0, tzinfo=UTC)
+
+    @classmethod
+    def now(cls, tz=None):
+        return cls.current.astimezone(tz) if tz else cls.current.replace(tzinfo=None)
 
 
 @pytest.mark.asyncio
@@ -44,6 +54,179 @@ async def test_routine_crud_and_daily_completion(async_client: AsyncClient):
         "/api/v1/plan/routines", params={"include_inactive": False}
     )
     assert active.json() == []
+
+
+@pytest.mark.asyncio
+async def test_morning_routines_order_summary_and_same_day_late_logging(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr("app.services.planning_service.datetime", _MorningDatetime)
+    first = (
+        await async_client.post(
+            "/api/v1/plan/routines",
+            json={
+                "title": "Twenty push-ups",
+                "weekdays": [6],
+                "is_morning": True,
+            },
+        )
+    ).json()
+    second = (
+        await async_client.post(
+            "/api/v1/plan/routines",
+            json={"title": "Read", "weekdays": [6], "is_morning": True},
+        )
+    ).json()
+    assert first["morning_position"] == 1
+    assert second["morning_position"] == 2
+
+    reordered = await async_client.put(
+        "/api/v1/plan/routines/morning-order",
+        json={"routine_ids": [second["id"], first["id"]]},
+    )
+    assert reordered.status_code == 200
+    positions = {item["id"]: item["morning_position"] for item in reordered.json()}
+    assert positions == {second["id"]: 1, first["id"]: 2}
+
+    completed = await async_client.put(
+        f"/api/v1/plan/routines/{second['id']}/completion",
+        json={
+            "completed_on": "2026-10-18",
+            "completed": True,
+            "timezone": "Europe/Warsaw",
+        },
+    )
+    assert completed.status_code == 200
+    summary = await async_client.get(
+        "/api/v1/plan/mornings/summary",
+        params={"date": "2026-10-18", "timezone": "Europe/Warsaw"},
+    )
+    assert summary.status_code == 200
+    assert summary.json()["phase"] == "active"
+    assert [item["title"] for item in summary.json()["items"]] == [
+        "Read",
+        "Twenty push-ups",
+    ]
+    assert summary.json()["completed_count"] == 1
+
+    _MorningDatetime.current = datetime(2026, 10, 18, 7, 0, tzinfo=UTC)
+    logged_later = await async_client.put(
+        f"/api/v1/plan/routines/{first['id']}/completion",
+        json={
+            "completed_on": "2026-10-18",
+            "completed": True,
+            "timezone": "Europe/Warsaw",
+        },
+    )
+    assert logged_later.status_code == 200
+    assert logged_later.json()["completed_dates"] == ["2026-10-18"]
+
+
+@pytest.mark.asyncio
+async def test_morning_settings_validation(async_client: AsyncClient):
+    defaults = await async_client.get("/api/v1/settings/morning")
+    assert defaults.json() == {"start_time": "06:00:00", "end_time": "09:00:00"}
+    updated = await async_client.put(
+        "/api/v1/settings/morning",
+        json={"start_time": "05:30", "end_time": "08:45"},
+    )
+    assert updated.status_code == 200
+    invalid = await async_client.put(
+        "/api/v1/settings/morning",
+        json={"start_time": "09:00", "end_time": "06:00"},
+    )
+    assert invalid.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_evening_routines_reflection_and_same_day_late_logging(
+    async_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr("app.services.planning_service.datetime", _MorningDatetime)
+    _MorningDatetime.current = datetime(2026, 10, 18, 18, 30, tzinfo=UTC)
+    review = (
+        await async_client.post(
+            "/api/v1/plan/routines",
+            json={"title": "Review the day", "weekdays": [6], "is_evening": True},
+        )
+    ).json()
+    reading = (
+        await async_client.post(
+            "/api/v1/plan/routines",
+            json={"title": "Read", "weekdays": [6], "is_evening": True},
+        )
+    ).json()
+    assert review["evening_position"] == 1
+    assert reading["evening_position"] == 2
+
+    reordered = await async_client.put(
+        "/api/v1/plan/routines/evening-order",
+        json={"routine_ids": [reading["id"], review["id"]]},
+    )
+    assert reordered.status_code == 200
+    assert {item["id"]: item["evening_position"] for item in reordered.json()} == {
+        reading["id"]: 1,
+        review["id"]: 2,
+    }
+
+    completed = await async_client.put(
+        f"/api/v1/plan/routines/{review['id']}/completion",
+        json={
+            "completed_on": "2026-10-18",
+            "completed": True,
+            "timezone": "Europe/Warsaw",
+        },
+    )
+    assert completed.status_code == 200
+    reflection = await async_client.put(
+        "/api/v1/plan/evenings/reflection",
+        json={
+            "reflected_on": "2026-10-18",
+            "score": 4,
+            "journal": "Good progress. Prepare tomorrow's first task.",
+            "timezone": "Europe/Warsaw",
+        },
+    )
+    assert reflection.status_code == 200
+    assert reflection.json()["score"] == 4
+    assert reflection.json()["journal"].startswith("Good progress")
+    assert [item["title"] for item in reflection.json()["items"]] == [
+        "Read",
+        "Review the day",
+    ]
+
+    _MorningDatetime.current = datetime(2026, 10, 18, 21, 59, 30, tzinfo=UTC)
+    logged_later = await async_client.put(
+        f"/api/v1/plan/routines/{reading['id']}/completion",
+        json={
+            "completed_on": "2026-10-18",
+            "completed": True,
+            "timezone": "Europe/Warsaw",
+        },
+    )
+    assert logged_later.status_code == 200
+    assert logged_later.json()["completed_dates"] == ["2026-10-18"]
+
+
+@pytest.mark.asyncio
+async def test_evening_settings_and_exclusive_time_blocks(async_client: AsyncClient):
+    defaults = await async_client.get("/api/v1/settings/evening")
+    assert defaults.json() == {"start_time": "20:00:00", "end_time": "23:59:00"}
+    invalid = await async_client.put(
+        "/api/v1/settings/evening",
+        json={"start_time": "23:00", "end_time": "20:00"},
+    )
+    assert invalid.status_code == 422
+    both = await async_client.post(
+        "/api/v1/plan/routines",
+        json={
+            "title": "Impossible block",
+            "weekdays": [0],
+            "is_morning": True,
+            "is_evening": True,
+        },
+    )
+    assert both.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -136,9 +319,7 @@ async def test_metric_goal_crud_and_period_progress(async_client: AsyncClient):
     )
     assert weekly.json()[0]["current_value"] == 40.5
 
-    history = await async_client.get(
-        f"/api/v1/plan/metric-goals/{goal['id']}/progress"
-    )
+    history = await async_client.get(f"/api/v1/plan/metric-goals/{goal['id']}/progress")
     assert history.status_code == 200
     assert len(history.json()) == 3
 

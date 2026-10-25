@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Check, Plus, X } from "lucide-react"
+import { fetchEveningSettings, fetchMorningSettings, updateEveningSettings, updateMorningSettings } from "@/api/settings"
 import { ColorPicker } from "@/components/ui/ColorPicker"
 import {
   useCreateTimeCategory,
@@ -10,6 +12,40 @@ import {
 } from "@/hooks/useTimeConfiguration"
 import type { TimeCategory, TimeStream } from "@/types/entities"
 import { WORKSPACE_COLORS } from "@/lib/colorPalette"
+
+function RoutineWindowSettings({ period }: { period: "morning" | "evening" }) {
+  const client = useQueryClient()
+  const isMorning = period === "morning"
+  const label = isMorning ? "Morning" : "Evening"
+  const { data, isLoading } = useQuery({ queryKey: ["settings", period], queryFn: isMorning ? fetchMorningSettings : fetchEveningSettings })
+  const [start, setStart] = useState(isMorning ? "06:00" : "20:00")
+  const [end, setEnd] = useState(isMorning ? "09:00" : "23:59")
+  const [message, setMessage] = useState("")
+  useEffect(() => {
+    if (!data) return
+    setStart(data.start_time.slice(0, 5))
+    setEnd(data.end_time.slice(0, 5))
+  }, [data])
+  const update = useMutation({
+    mutationFn: () => (isMorning ? updateMorningSettings : updateEveningSettings)({ start_time: start, end_time: end }),
+    onSuccess: (next) => {
+      client.setQueryData(["settings", period], next)
+      void client.invalidateQueries({ queryKey: ["plan", period] })
+      setMessage(`${label} window saved.`)
+    },
+    onError: (error) => setMessage(error instanceof Error ? error.message : `Could not save the ${label} window.`),
+  })
+  return <div className={`morning-settings-row is-${period}`}>
+    <div><strong>{label} window</strong><span>{label} routines can start early, but unfinished items freeze at the end.</span></div>
+    <div className="morning-settings-control">
+      <label><span>Starts</span><input type="time" value={start} disabled={isLoading} onChange={(event) => { setStart(event.target.value); setMessage("") }} /></label>
+      <i aria-hidden="true">→</i>
+      <label><span>Ends</span><input type="time" value={end} disabled={isLoading} onChange={(event) => { setEnd(event.target.value); setMessage("") }} /></label>
+      <button type="button" disabled={isLoading || update.isPending || start >= end} onClick={() => update.mutate()}>{update.isPending ? "Saving…" : "Save"}</button>
+    </div>
+    {message && <p role="status" className={update.isError ? "is-error" : ""}>{message}</p>}
+  </div>
+}
 
 function Toggle({ checked, label, onChange, disabled = false }: {
   checked: boolean
@@ -213,8 +249,10 @@ export function TimeSettings() {
     <section className="settings-panel" aria-labelledby="settings-time-title">
       <div className="settings-section-heading">
         <h2 id="settings-time-title">Time</h2>
-        <p>Organize tracked time into streams and their categories.</p>
+        <p>Set the boundaries and categories that shape your day.</p>
       </div>
+      <RoutineWindowSettings period="morning" />
+      <RoutineWindowSettings period="evening" />
       <div className="time-config-list">
         {isLoading && <p className="time-config-state">Loading time settings…</p>}
         {error && <p className="time-config-error" role="alert">Could not load time settings.</p>}

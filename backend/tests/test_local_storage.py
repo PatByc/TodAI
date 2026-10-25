@@ -82,19 +82,22 @@ async def test_alembic_history_builds_fresh_sqlite_database(tmp_path):
         assert {
             "alembic_version",
             "ai_settings",
-                "api_usage_costs",
-                "audit_log",
+            "api_usage_costs",
+            "audit_log",
             "backup_settings",
             "efficiency_metrics",
+            "evening_reflections",
+            "evening_settings",
             "entity_tags",
             "ideas",
             "inbox_items",
             "metric_goal_progress",
             "metric_goals",
+            "morning_settings",
             "notes",
             "planned_blocks",
-                "projects",
-                "review_reflections",
+            "projects",
+            "review_reflections",
             "routine_completions",
             "routines",
             "search_chunks",
@@ -104,9 +107,16 @@ async def test_alembic_history_builds_fresh_sqlite_database(tmp_path):
             "time_entries",
             "time_goals",
             "time_streams",
+            "twelve_week_block_instances",
+            "twelve_week_cycles",
+            "twelve_week_goals",
+            "twelve_week_model_blocks",
+            "twelve_week_occurrences",
+            "twelve_week_tactics",
+            "twelve_week_weeks",
             "workspace_profiles",
         }.issubset(tables)
-        assert revision == "a13f7c9d2e41"
+        assert revision == "a8d3f6c2e941"
         assert any(key["referred_table"] == "projects" for key in foreign_keys)
         assert created_at is not None
 

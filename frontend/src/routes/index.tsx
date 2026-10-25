@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Check, ArrowUpRight } from "lucide-react"
 import { useState } from "react"
 import { fetchTasks, updateTask } from "@/api/tasks"
+import { MorningChecklist } from "@/components/routines/MorningChecklist"
+import { EveningChecklist } from "@/components/routines/EveningChecklist"
 import { useMetricGoals, usePlannedBlocks, useRoutines, useSetRoutineCompletion, useTimeGoals } from "@/hooks/usePlanning"
 import { useTimeEntries } from "@/hooks/useTimeConfiguration"
 import { playCompletionChime } from "@/lib/completionChime"
@@ -27,6 +29,22 @@ function AutumnAtmosphere({ stage }: { stage: "early" | "turning" | "late" }) {
       </div>
     </div>
   )
+}
+
+const NO_DEADLINE_GROUP = "9999-12-31"
+
+function taskDeadlineDate(task: Task) {
+  return task.deadline?.slice(0, 10) ?? NO_DEADLINE_GROUP
+}
+
+function taskDateGroupLabel(date: string, today: string) {
+  if (date === NO_DEADLINE_GROUP) return "No date"
+  if (date === today) return "Today"
+  return new Intl.DateTimeFormat("en", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${date}T12:00:00`))
 }
 
 function HomeTaskRow({
@@ -111,17 +129,23 @@ function TodayPage() {
   const nextTasks = allTasks
     .filter((task) => task.status !== "done" || completingIds.has(task.id))
     .sort((first, second) => {
-      const firstDeadline = first.deadline?.slice(0, 10) ?? "9999-12-31"
-      const secondDeadline = second.deadline?.slice(0, 10) ?? "9999-12-31"
-      return firstDeadline.localeCompare(secondDeadline)
+      const deadlineOrder = taskDeadlineDate(first).localeCompare(taskDeadlineDate(second))
+      return deadlineOrder || first.created_at.localeCompare(second.created_at)
     })
+  const taskDateGroups = nextTasks.reduce<Array<{ date: string; tasks: Task[] }>>((groups, task) => {
+    const date = taskDeadlineDate(task)
+    const current = groups.at(-1)
+    if (current?.date === date) current.tasks.push(task)
+    else groups.push({ date, tasks: [task] })
+    return groups
+  }, [])
   const completedTasks = allTasks
     .filter((task) => task.status === "done"
       && !completingIds.has(task.id)
       && task.completed_at?.slice(0, 10) === today)
     .sort((first, second) => (second.completed_at ?? second.updated_at).localeCompare(first.completed_at ?? first.updated_at))
   const weekday = (now.getDay() + 6) % 7
-  const todayRoutines = routines.filter((routine) => routine.weekdays.includes(weekday))
+  const todayRoutines = routines.filter((routine) => !routine.is_morning && !routine.is_evening && routine.weekdays.includes(weekday))
   const todayMetricGoals = metricGoals.filter((goal) => goal.period === "daily")
   const goalProgress = (period: GoalPeriod, streamId: number | null) => {
     let start: Date
@@ -190,6 +214,8 @@ function TodayPage() {
         <div className="home-daymark" aria-hidden="true">{String(now.getDate()).padStart(2, "0")}</div>
       </section>
 
+      <MorningChecklist />
+
       <section className="home-section" aria-labelledby="next-up-title">
         <div className="home-section-head">
           <h2 id="next-up-title">Next up</h2>
@@ -199,14 +225,19 @@ function TodayPage() {
           <div className="home-empty"><p>Loading your tasks…</p></div>
         ) : nextTasks.length > 0 ? (
           <div className="home-task-list">
-            {nextTasks.map((task) => (
-              <HomeTaskRow
-                key={task.id}
-                task={task}
-                today={today}
-                completing={completingIds.has(task.id)}
-                onToggle={() => void completeTask(task.id)}
-              />
+            {taskDateGroups.map((group) => (
+              <div className="home-task-date-group" key={group.date} role="group" aria-label={taskDateGroupLabel(group.date, today)}>
+                <div className="home-task-date-head"><span>{taskDateGroupLabel(group.date, today)}</span></div>
+                {group.tasks.map((task) => (
+                  <HomeTaskRow
+                    key={task.id}
+                    task={task}
+                    today={today}
+                    completing={completingIds.has(task.id)}
+                    onToggle={() => void completeTask(task.id)}
+                  />
+                ))}
+              </div>
             ))}
           </div>
         ) : (
@@ -237,6 +268,8 @@ function TodayPage() {
           return <div key={`metric-${goal.id}`} className={overLimit ? "is-over-limit" : ""}><span><strong>{goal.title}</strong><small>{new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(goal.current_value)} / {new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(goal.target_value)}</small></span><i><b style={{ width: `${Math.min(100, goal.current_value / goal.target_value * 100)}%` }} /></i></div>
         })}</div>}
       </section>}
+
+      <EveningChecklist />
 
       {completedTasks.length > 0 && (
         <section className="home-section home-completed" aria-labelledby="completed-title">

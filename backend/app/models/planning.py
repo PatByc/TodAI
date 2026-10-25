@@ -43,6 +43,10 @@ class Routine(TimestampMixin, Base):
     scheduled_time: Mapped[time | None] = mapped_column(Time(), nullable=True)
     weekdays: Mapped[list[int]] = mapped_column(JSON, default=list)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    is_morning: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    morning_position: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    is_evening: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    evening_position: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     completions: Mapped[list[RoutineCompletion]] = relationship(
         back_populates="routine", cascade="all, delete-orphan"
@@ -126,6 +130,7 @@ class PlannedBlock(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(160))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    block_kind: Mapped[str] = mapped_column(String(20), default="standard")
     starts_at: Mapped[datetime] = mapped_column(index=True)
     ends_at: Mapped[datetime] = mapped_column(index=True)
     stream_id: Mapped[int | None] = mapped_column(

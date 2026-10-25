@@ -17,6 +17,7 @@ import {
 import { useTimeEntries, useTimeStreams } from "@/hooks/useTimeConfiguration"
 import { durationLabel, localDateValue, parseServerTime } from "@/lib/time"
 import type { GoalPeriod, MetricGoal, MetricGoalDirection, TimeGoal } from "@/types/entities"
+import { TwelveWeekWorkspace } from "@/components/goals/TwelveWeekWorkspace"
 
 export const Route = createFileRoute("/goals/")({ component: GoalsPage })
 
@@ -122,6 +123,7 @@ function MetricGoalRow({ goal, onEdit }: { goal: MetricGoal; onEdit: () => void 
 }
 
 function GoalsPage() {
+  const [view, setView] = useState<"twelve" | "time" | "metric">("twelve")
   const today = localDateValue()
   const { data: goals = [], isLoading } = useTimeGoals()
   const { data: metricGoals = [], isLoading: metricLoading } = useMetricGoals(true, today)
@@ -143,20 +145,22 @@ function GoalsPage() {
     return [goal.id, seconds]
   })), [goals, monthEntries])
 
-  return <div className="plan-page progress-page">
-    <header className="plan-page-head"><div><h1>Goals</h1><p>Measure the commitments that matter, in time or numbers.</p></div><div className="plan-head-actions"><button type="button" onClick={() => setEditor({})}><Plus size={14} /> New goal</button></div></header>
-    {editor && <GoalForm timeGoal={editor.timeGoal} metricGoal={editor.metricGoal} initialKind={editor.kind} onClose={() => setEditor(null)} />}
-    <section aria-labelledby="time-goals-title">
+  return <div className="plan-page progress-page goals-hub">
+    <header className="plan-page-head"><div><h1>Goals</h1><p>{view === "twelve" ? "Turn vision into a week you can execute." : "Measure the commitments that matter, in time or numbers."}</p></div>{view !== "twelve" && <div className="plan-head-actions"><button type="button" onClick={() => setEditor({ kind: view })}><Plus size={14} /> New goal</button></div>}</header>
+    <nav className="goals-view-tabs" aria-label="Goal views"><button className={view === "twelve" ? "is-active" : ""} onClick={() => { setView("twelve"); setEditor(null) }}>12 Week Year</button><button className={view === "time" ? "is-active" : ""} onClick={() => { setView("time"); setEditor(null) }}>Time goals</button><button className={view === "metric" ? "is-active" : ""} onClick={() => { setView("metric"); setEditor(null) }}>Number goals</button></nav>
+    {view === "twelve" && <TwelveWeekWorkspace />}
+    {editor && view !== "twelve" && <GoalForm timeGoal={editor.timeGoal} metricGoal={editor.metricGoal} initialKind={editor.kind} onClose={() => setEditor(null)} />}
+    {view === "time" && <section aria-labelledby="time-goals-title">
       <div className="plan-section-head"><div><h2 id="time-goals-title">Time goals</h2><span>Measured from the timer</span></div></div>
       {isLoading ? <p className="plan-state">Loading goals…</p> : goals.length === 0 ? <button type="button" className="plan-empty" onClick={() => setEditor({ kind: "time" })}><strong>No time goals yet</strong><span>Set a target calculated from tracked time.</span></button> : <div className="plan-goal-list">{goals.map((goal) => {
         const progress = progressByGoal.get(goal.id) ?? 0
         const percent = Math.min(100, progress / goal.target_seconds * 100)
         return <article key={goal.id} className={goal.is_active ? "" : "is-inactive"}><div className="plan-goal-copy"><span><Clock3 size={13} /> {goal.period}</span><strong>{goal.title}</strong><small>{goal.stream_id ? streamById.get(goal.stream_id)?.name ?? "Removed stream" : "All tracked time"}</small></div><div className="plan-goal-progress"><div><span style={{ width: `${percent}%` }} /></div><p><strong>{durationLabel(Math.round(progress))}</strong><span>of {durationLabel(goal.target_seconds)}</span></p></div><div className="plan-row-actions"><button type="button" onClick={() => update.mutate({ id: goal.id, data: { is_active: !goal.is_active } })} aria-label={`${goal.is_active ? "Pause" : "Activate"} ${goal.title}`}><Power size={13} /></button><button type="button" onClick={() => setEditor({ timeGoal: goal })} aria-label={`Edit ${goal.title}`}><Pencil size={13} /></button><button type="button" onClick={() => remove.mutate(goal.id)} aria-label={`Delete ${goal.title}`}><Trash2 size={13} /></button></div></article>
       })}</div>}
-    </section>
-    <section className="metric-goals-section" aria-labelledby="metric-goals-title">
+    </section>}
+    {view === "metric" && <section className="metric-goals-section" aria-labelledby="metric-goals-title">
       <div className="plan-section-head"><div><h2 id="metric-goals-title">Number goals</h2><span>Progress you record</span></div></div>
       {metricLoading ? <p className="plan-state">Loading goals…</p> : metricGoals.length === 0 ? <button type="button" className="plan-empty" onClick={() => setEditor({ kind: "metric" })}><strong>No number goals yet</strong><span>Track repetitions, distance, earnings, or any other number.</span></button> : <div className="plan-goal-list metric-goal-list">{metricGoals.map((goal) => <MetricGoalRow key={goal.id} goal={goal} onEdit={() => setEditor({ metricGoal: goal })} />)}</div>}
-    </section>
+    </section>}
   </div>
 }

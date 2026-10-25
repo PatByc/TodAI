@@ -1,10 +1,13 @@
 """Business rules for Plan routines and measurable goals."""
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import EntityNotFoundError, ValidationError
+from app.models.evening_setting import EveningReflection
 from app.models.planning import (
     MetricGoal,
     MetricGoalProgress,
@@ -17,9 +20,14 @@ from app.models.project import Project
 from app.models.time_tracking import TimeStream
 from app.repositories.planning_repo import PlanningRepository
 from app.schemas.planning import (
+    EveningReflectionUpdate,
+    EveningSummaryResponse,
     MetricGoalCreate,
     MetricGoalUpdate,
     MetricProgressCreate,
+    MorningDayResponse,
+    MorningItemResponse,
+    MorningSummaryResponse,
     PlannedBlockCreate,
     PlannedBlockUpdate,
     RoutineCompletionRequest,
@@ -29,6 +37,8 @@ from app.schemas.planning import (
     TimeGoalUpdate,
 )
 from app.services.audit_service import AuditService
+from app.services.evening_settings_service import load_evening_settings
+from app.services.morning_settings_service import load_morning_settings
 
 
 class PlanningService:
@@ -42,6 +52,10 @@ class PlanningService:
 
     async def create_routine(self, data: RoutineCreate) -> Routine:
         values = data.model_dump()
+        if values["is_morning"]:
+            values["morning_position"] = await self._next_morning_position()
+        if values["is_evening"]:
+            values["evening_position"] = await self._next_evening_position()
         routine = await self.repo.create_routine(values)
         await self.audit.log(
             "routine", routine.id, "create", snapshot=self._serializable(values)
@@ -52,6 +66,18 @@ class PlanningService:
     async def update_routine(self, routine_id: int, data: RoutineUpdate) -> Routine:
         routine = await self._require_routine(routine_id)
         values = data.model_dump(exclude_unset=True)
+        if values.get("is_morning") is True and not routine.is_morning:
+            values["morning_position"] = await self._next_morning_position()
+            values["is_evening"] = False
+            values["evening_position"] = None
+        elif values.get("is_morning") is False:
+            values["morning_position"] = None
+        if values.get("is_evening") is True and not routine.is_evening:
+            values["evening_position"] = await self._next_evening_position()
+            values["is_morning"] = False
+            values["morning_position"] = None
+        elif values.get("is_evening") is False:
+            values["evening_position"] = None
         changes = self._apply(routine, values)
         if changes:
             await self.audit.log(
@@ -69,7 +95,21 @@ class PlanningService:
     async def set_completion(
         self, routine_id: int, data: RoutineCompletionRequest
     ) -> Routine:
-        await self._require_routine(routine_id)
+        routine = await self._require_routine(routine_id)
+        if routine.is_morning:
+            timezone = self._timezone(data.timezone or "UTC")
+            local_now = datetime.now(UTC).astimezone(timezone)
+            if data.completed_on != local_now.date():
+                raise ValidationError("Morning routines can only be changed for today")
+            if data.completed_on.weekday() not in routine.weekdays:
+                raise ValidationError("This Morning routine is not scheduled today")
+        elif routine.is_evening:
+            timezone = self._timezone(data.timezone or "UTC")
+            local_now = datetime.now(UTC).astimezone(timezone)
+            if data.completed_on != local_now.date():
+                raise ValidationError("Evening routines can only be changed for today")
+            if data.completed_on.weekday() not in routine.weekdays:
+                raise ValidationError("This Evening routine is not scheduled today")
         completion = await self.repo.get_completion(routine_id, data.completed_on)
         if data.completed and completion is None:
             self.session.add(
@@ -91,6 +131,262 @@ class PlanningService:
             )
         await self.session.commit()
         return await self._require_routine(routine_id)
+
+    async def reorder_morning_routines(self, routine_ids: list[int]) -> list[Routine]:
+        routines = await self.list_routines(include_inactive=True)
+        morning = [routine for routine in routines if routine.is_morning]
+        by_id = {routine.id: routine for routine in morning}
+        if len(routine_ids) != len(set(routine_ids)) or any(
+            routine_id not in by_id for routine_id in routine_ids
+        ):
+            raise ValidationError("Morning order contains an invalid routine")
+        remaining = [
+            routine
+            for routine in sorted(
+                morning, key=lambda item: (item.morning_position or 1_000_000, item.id)
+            )
+            if routine.id not in routine_ids
+        ]
+        ordered = [by_id[routine_id] for routine_id in routine_ids] + remaining
+        for position, routine in enumerate(ordered, start=1):
+            routine.morning_position = position
+        await self.audit.log(
+            "routine",
+            0,
+            "reorder_morning",
+            snapshot={"routine_ids": [item.id for item in ordered]},
+        )
+        await self.session.commit()
+        return await self.list_routines(include_inactive=True)
+
+    async def reorder_evening_routines(self, routine_ids: list[int]) -> list[Routine]:
+        routines = await self.list_routines(include_inactive=True)
+        evening = [routine for routine in routines if routine.is_evening]
+        by_id = {routine.id: routine for routine in evening}
+        if len(routine_ids) != len(set(routine_ids)) or any(
+            routine_id not in by_id for routine_id in routine_ids
+        ):
+            raise ValidationError("Evening order contains an invalid routine")
+        remaining = [
+            routine
+            for routine in sorted(
+                evening, key=lambda item: (item.evening_position or 1_000_000, item.id)
+            )
+            if routine.id not in routine_ids
+        ]
+        ordered = [by_id[routine_id] for routine_id in routine_ids] + remaining
+        for position, routine in enumerate(ordered, start=1):
+            routine.evening_position = position
+        await self.audit.log(
+            "routine",
+            0,
+            "reorder_evening",
+            snapshot={"routine_ids": [item.id for item in ordered]},
+        )
+        await self.session.commit()
+        return await self.list_routines(include_inactive=True)
+
+    async def morning_summary(
+        self, selected_date: date, timezone_name: str
+    ) -> MorningSummaryResponse:
+        timezone = self._timezone(timezone_name)
+        local_now = datetime.now(UTC).astimezone(timezone)
+        settings = await load_morning_settings(self.session)
+        routines = [
+            routine
+            for routine in await self.list_routines(include_inactive=False)
+            if routine.is_morning
+        ]
+        routines.sort(key=lambda item: (item.morning_position or 1_000_000, item.id))
+
+        def scheduled(on_date: date) -> list[Routine]:
+            return [item for item in routines if on_date.weekday() in item.weekdays]
+
+        def day_summary(on_date: date) -> MorningDayResponse:
+            items = scheduled(on_date)
+            completed = sum(
+                on_date in {entry.completed_on for entry in item.completions}
+                for item in items
+            )
+            return MorningDayResponse(
+                date=on_date,
+                scheduled_count=len(items),
+                completed_count=completed,
+                success=bool(items) and completed == len(items),
+                neutral=not items,
+            )
+
+        days = [
+            day_summary(selected_date - timedelta(days=offset))
+            for offset in range(6, -1, -1)
+        ]
+        today = days[-1]
+        local_time = local_now.time().replace(tzinfo=None)
+        if selected_date != local_now.date() or local_time >= settings.end_time:
+            phase = "closed"
+        elif today.success:
+            phase = "complete"
+        elif local_time < settings.start_time:
+            phase = "early"
+        else:
+            phase = "active"
+
+        streak = 0
+        cursor = selected_date
+        if selected_date == local_now.date() and not today.success:
+            cursor -= timedelta(days=1)
+        for _ in range(3660):
+            result = day_summary(cursor)
+            if result.neutral:
+                cursor -= timedelta(days=1)
+                continue
+            if not result.success:
+                break
+            streak += 1
+            cursor -= timedelta(days=1)
+
+        today_items = scheduled(selected_date)
+        return MorningSummaryResponse(
+            date=selected_date,
+            phase=phase,
+            start_time=settings.start_time,
+            end_time=settings.end_time,
+            scheduled_count=today.scheduled_count,
+            completed_count=today.completed_count,
+            streak=streak,
+            items=[
+                MorningItemResponse(
+                    id=item.id,
+                    title=item.title,
+                    description=item.description,
+                    position=item.morning_position or index,
+                    completed=selected_date
+                    in {entry.completed_on for entry in item.completions},
+                )
+                for index, item in enumerate(today_items, start=1)
+            ],
+            days=days,
+        )
+
+    async def evening_summary(
+        self, selected_date: date, timezone_name: str
+    ) -> EveningSummaryResponse:
+        timezone = self._timezone(timezone_name)
+        local_now = datetime.now(UTC).astimezone(timezone)
+        settings = await load_evening_settings(self.session)
+        routines = [
+            routine
+            for routine in await self.list_routines(include_inactive=False)
+            if routine.is_evening
+        ]
+        routines.sort(key=lambda item: (item.evening_position or 1_000_000, item.id))
+
+        def scheduled(on_date: date) -> list[Routine]:
+            return [item for item in routines if on_date.weekday() in item.weekdays]
+
+        def day_summary(on_date: date) -> MorningDayResponse:
+            items = scheduled(on_date)
+            completed = sum(
+                on_date in {entry.completed_on for entry in item.completions}
+                for item in items
+            )
+            return MorningDayResponse(
+                date=on_date,
+                scheduled_count=len(items),
+                completed_count=completed,
+                success=bool(items) and completed == len(items),
+                neutral=not items,
+            )
+
+        days = [
+            day_summary(selected_date - timedelta(days=offset))
+            for offset in range(6, -1, -1)
+        ]
+        today = days[-1]
+        local_time = local_now.time().replace(tzinfo=None)
+        if selected_date != local_now.date() or local_time >= settings.end_time:
+            phase = "closed"
+        elif today.success:
+            phase = "complete"
+        elif local_time < settings.start_time:
+            phase = "early"
+        else:
+            phase = "active"
+
+        streak = 0
+        cursor = selected_date
+        if selected_date == local_now.date() and not today.success:
+            cursor -= timedelta(days=1)
+        for _ in range(3660):
+            result = day_summary(cursor)
+            if result.neutral:
+                cursor -= timedelta(days=1)
+                continue
+            if not result.success:
+                break
+            streak += 1
+            cursor -= timedelta(days=1)
+
+        reflection = await self.session.scalar(
+            select(EveningReflection).where(
+                EveningReflection.reflected_on == selected_date
+            )
+        )
+        today_items = scheduled(selected_date)
+        return EveningSummaryResponse(
+            date=selected_date,
+            phase=phase,
+            start_time=settings.start_time,
+            end_time=settings.end_time,
+            scheduled_count=today.scheduled_count,
+            completed_count=today.completed_count,
+            streak=streak,
+            score=reflection.score if reflection else None,
+            journal=reflection.journal if reflection else "",
+            items=[
+                MorningItemResponse(
+                    id=item.id,
+                    title=item.title,
+                    description=item.description,
+                    position=item.evening_position or index,
+                    completed=selected_date
+                    in {entry.completed_on for entry in item.completions},
+                )
+                for index, item in enumerate(today_items, start=1)
+            ],
+            days=days,
+        )
+
+    async def save_evening_reflection(
+        self, data: EveningReflectionUpdate
+    ) -> EveningReflection:
+        timezone = self._timezone(data.timezone)
+        local_now = datetime.now(UTC).astimezone(timezone)
+        if data.reflected_on != local_now.date():
+            raise ValidationError("Evening reflections can only be changed for today")
+        reflection = await self.session.scalar(
+            select(EveningReflection).where(
+                EveningReflection.reflected_on == data.reflected_on
+            )
+        )
+        if reflection is None:
+            reflection = EveningReflection(reflected_on=data.reflected_on)
+            self.session.add(reflection)
+        reflection.score = data.score
+        reflection.journal = data.journal.strip()
+        await self.audit.log(
+            "evening_reflection",
+            reflection.id or 0,
+            "save",
+            snapshot={
+                "reflected_on": data.reflected_on.isoformat(),
+                "score": data.score,
+                "journal": reflection.journal,
+            },
+        )
+        await self.session.commit()
+        await self.session.refresh(reflection)
+        return reflection
 
     async def list_goals(self, include_inactive: bool = True) -> list[TimeGoal]:
         return await self.repo.list_goals(include_inactive)
@@ -127,7 +423,9 @@ class PlanningService:
         goals = await self.repo.list_metric_goals(include_inactive)
         if not goals:
             return []
-        bounds = {goal.id: self._metric_bounds(goal.period.value, on_date) for goal in goals}
+        bounds = {
+            goal.id: self._metric_bounds(goal.period.value, on_date) for goal in goals
+        }
         entries = await self.repo.list_metric_progress(
             min(start for start, _ in bounds.values()),
             max(end for _, end in bounds.values()),
@@ -261,6 +559,41 @@ class PlanningService:
         if routine is None:
             raise EntityNotFoundError("routine", routine_id)
         return routine
+
+    async def _next_morning_position(self) -> int:
+        routines = await self.list_routines(include_inactive=True)
+        return (
+            max(
+                (
+                    routine.morning_position or 0
+                    for routine in routines
+                    if routine.is_morning
+                ),
+                default=0,
+            )
+            + 1
+        )
+
+    async def _next_evening_position(self) -> int:
+        routines = await self.list_routines(include_inactive=True)
+        return (
+            max(
+                (
+                    routine.evening_position or 0
+                    for routine in routines
+                    if routine.is_evening
+                ),
+                default=0,
+            )
+            + 1
+        )
+
+    @staticmethod
+    def _timezone(name: str) -> ZoneInfo:
+        try:
+            return ZoneInfo(name)
+        except ZoneInfoNotFoundError as exc:
+            raise ValidationError(f"Unknown timezone '{name}'") from exc
 
     async def _require_goal(self, goal_id: int) -> TimeGoal:
         goal = await self.repo.get_goal(goal_id)

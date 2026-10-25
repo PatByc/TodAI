@@ -1,10 +1,13 @@
 import { apiClient, buildQueryString } from "./client"
 import type {
+  EveningReflectionUpdate,
+  EveningSummary,
   MetricGoal,
   MetricGoalCreate,
   MetricGoalUpdate,
   MetricProgress,
   MetricProgressCreate,
+  MorningSummary,
   PlannedBlock,
   PlannedBlockCreate,
   PlannedBlockUpdate,
@@ -51,6 +54,26 @@ export function deleteRoutine(id: number): Promise<void> {
 
 export function setRoutineCompletion(id: number, data: RoutineCompletionUpdate): Promise<Routine> {
   return apiClient.put<Routine>(`/plan/routines/${id}/completion`, data)
+}
+
+export function reorderMorningRoutines(routineIds: number[]): Promise<Routine[]> {
+  return apiClient.put<Routine[]>("/plan/routines/morning-order", { routine_ids: routineIds })
+}
+
+export function fetchMorningSummary(date: string, timezone: string): Promise<MorningSummary> {
+  return apiClient.get<MorningSummary>(`/plan/mornings/summary${buildQueryString({ date, timezone })}`)
+}
+
+export function reorderEveningRoutines(routineIds: number[]): Promise<Routine[]> {
+  return apiClient.put<Routine[]>("/plan/routines/evening-order", { routine_ids: routineIds })
+}
+
+export function fetchEveningSummary(date: string, timezone: string): Promise<EveningSummary> {
+  return apiClient.get<EveningSummary>(`/plan/evenings/summary${buildQueryString({ date, timezone })}`)
+}
+
+export function saveEveningReflection(data: EveningReflectionUpdate): Promise<EveningSummary> {
+  return apiClient.put<EveningSummary>("/plan/evenings/reflection", data)
 }
 
 export function fetchTimeGoals(includeInactive = true): Promise<TimeGoal[]> {

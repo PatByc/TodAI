@@ -32,8 +32,16 @@ export async function fetchTask(id: number): Promise<Task> {
   return apiClient.get<Task>(`/tasks/${id}`)
 }
 
+function localToday() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+}
+
 export async function createTask(data: TaskCreate): Promise<Task> {
-  return apiClient.post<Task>("/tasks/", data)
+  return apiClient.post<Task>("/tasks/", {
+    ...data,
+    deadline: data.deadline ?? localToday(),
+  })
 }
 
 export async function updateTask(id: number, data: TaskUpdate): Promise<Task> {

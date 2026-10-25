@@ -10,8 +10,10 @@ from .audit_log import AuditLog
 from .backup_setting import BackupSetting
 from .base import Base, SoftDeleteMixin, TimestampMixin
 from .efficiency_metric import EfficiencyMetric
+from .evening_setting import EveningReflection, EveningSetting
 from .idea import Idea, IdeaState
 from .inbox_item import InboxItem
+from .morning_setting import MorningSetting
 from .note import Note
 from .planning import (
     GoalPeriod,
@@ -29,6 +31,15 @@ from .search_chunk import SearchChunk
 from .tag import EntityTag, Tag
 from .task import Task, TaskRecurrence, TaskStatus
 from .time_tracking import TimeCategory, TimeEntry, TimeStream
+from .twelve_week import (
+    TwelveWeekBlockInstance,
+    TwelveWeekCycle,
+    TwelveWeekGoal,
+    TwelveWeekModelBlock,
+    TwelveWeekOccurrence,
+    TwelveWeekTactic,
+    TwelveWeekWeek,
+)
 from .workspace_profile import WorkspaceProfile
 
 __all__ = [
@@ -40,6 +51,8 @@ __all__ = [
     "Base",
     "EfficiencyMetric",
     "EntityTag",
+    "EveningReflection",
+    "EveningSetting",
     "GoalPeriod",
     "Idea",
     "IdeaState",
@@ -47,6 +60,7 @@ __all__ = [
     "MetricGoal",
     "MetricGoalDirection",
     "MetricGoalProgress",
+    "MorningSetting",
     "Note",
     "PlannedBlock",
     "Project",
@@ -65,5 +79,12 @@ __all__ = [
     "TimeGoal",
     "TimeStream",
     "TimestampMixin",
+    "TwelveWeekBlockInstance",
+    "TwelveWeekCycle",
+    "TwelveWeekGoal",
+    "TwelveWeekModelBlock",
+    "TwelveWeekOccurrence",
+    "TwelveWeekTactic",
+    "TwelveWeekWeek",
     "WorkspaceProfile",
 ]

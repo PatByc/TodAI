@@ -334,6 +334,10 @@ export interface Routine {
   scheduled_time: string | null
   weekdays: number[]
   is_active: boolean
+  is_morning: boolean
+  morning_position: number | null
+  is_evening: boolean
+  evening_position: number | null
   completed_dates: string[]
   created_at: string
   updated_at: string
@@ -344,6 +348,8 @@ export interface RoutineCreate {
   description?: string
   scheduled_time?: string
   weekdays: number[]
+  is_morning?: boolean
+  is_evening?: boolean
 }
 
 export interface RoutineUpdate {
@@ -352,11 +358,40 @@ export interface RoutineUpdate {
   scheduled_time?: string | null
   weekdays?: number[]
   is_active?: boolean
+  is_morning?: boolean
+  is_evening?: boolean
 }
 
 export interface RoutineCompletionUpdate {
   completed_on: string
   completed: boolean
+  timezone?: string
+}
+
+export type MorningPhase = "early" | "active" | "complete" | "closed"
+
+export interface MorningSummary {
+  date: string
+  phase: MorningPhase
+  start_time: string
+  end_time: string
+  scheduled_count: number
+  completed_count: number
+  streak: number
+  items: Array<{ id: number; title: string; description: string | null; position: number; completed: boolean }>
+  days: Array<{ date: string; scheduled_count: number; completed_count: number; success: boolean; neutral: boolean }>
+}
+
+export interface EveningSummary extends MorningSummary {
+  score: number | null
+  journal: string
+}
+
+export interface EveningReflectionUpdate {
+  reflected_on: string
+  score: number | null
+  journal: string
+  timezone: string
 }
 
 export interface TimeGoal {
@@ -435,9 +470,25 @@ export interface PlannedBlock {
   ends_at: string
   stream_id: number | null
   project_id: number | null
+  block_kind: "standard" | "strategic" | "buffer" | "breakout" | "wam"
   created_at: string
   updated_at: string
 }
+
+export type TwelveWeekStatus = "draft" | "active" | "completed" | "abandoned"
+export type TwelveWeekRule = "manual" | "task_done" | "routine_count" | "time_goal_reached" | "metric_goal_reached"
+export interface TwelveWeekOccurrence { id: number; tactic_id: number; week_number: number; completed: boolean; completion_source: string; evidence: Record<string, unknown>; manual_completed: boolean | null; manual_note: string; linked_task_id: number | null }
+export interface TwelveWeekTactic { id: number; goal_id: number; position: number; title: string; notes: string; due_weeks: number[]; rule_kind: TwelveWeekRule; rule_config: Record<string, unknown>; occurrences: TwelveWeekOccurrence[] }
+export interface TwelveWeekGoal { id: number; cycle_id: number; position: number; title: string; success_criteria: string; mind_map: string[]; linked_time_goal_id: number | null; linked_metric_goal_id: number | null; tactics: TwelveWeekTactic[] }
+export interface TwelveWeekWeek { id: number; week_number: number; starts_on: string; ends_on: string; review: Partial<TwelveWeekWeekReview>; score: number | null; finalized_at: string | null; occurrences: TwelveWeekOccurrence[] }
+export interface TwelveWeekModelBlock { id: number; weekday: number; starts_at: string; duration_minutes: number; kind: "strategic" | "buffer" | "breakout" | "wam"; title: string; description: string; materialized_weeks: number[] }
+export interface TwelveWeekCycleSummary { id: number; title: string; start_date: string; end_date: string; status: TwelveWeekStatus; timezone: string; created_at: string; updated_at: string }
+export interface TwelveWeekCycle extends TwelveWeekCycleSummary { workbook_version: number; workbook_answers: Record<string, unknown>; activated_at: string | null; closed_at: string | null; goals: TwelveWeekGoal[]; weeks: TwelveWeekWeek[]; model_blocks: TwelveWeekModelBlock[] }
+export interface TwelveWeekGoalWrite { position: number; title: string; success_criteria: string; mind_map: string[]; linked_time_goal_id: number | null; linked_metric_goal_id: number | null }
+export interface TwelveWeekTacticWrite { position: number; title: string; notes: string; due_weeks: number[]; rule_kind: TwelveWeekRule; rule_config: Record<string, unknown> }
+export interface TwelveWeekOccurrenceUpdate { completed: boolean | null; note: string; linked_task_id: number | null }
+export interface TwelveWeekWeekReview { results: string; working: string; struggling: string; feedback: string; adjustment: string }
+export interface TwelveWeekModelBlockWrite { weekday: number; starts_at: string; duration_minutes: number; kind: "strategic" | "buffer" | "breakout" | "wam"; title: string; description: string }
 
 export interface PlannedBlockCreate {
   title: string

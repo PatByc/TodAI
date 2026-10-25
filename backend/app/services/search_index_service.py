@@ -12,6 +12,7 @@ from typing import Any, Literal
 
 from sqlalchemy import delete, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.models.idea import Idea
@@ -21,13 +22,16 @@ from app.models.project import Project
 from app.models.search_chunk import SearchChunk
 from app.models.tag import EntityTag, Tag
 from app.models.task import Task
+from app.models.twelve_week import TwelveWeekCycle, TwelveWeekGoal
 from app.providers.openai_provider import OpenAIProvider
 from app.providers.protocols import EmbeddingProvider
 from app.schemas.search import SearchResponse, SearchResult
 from app.services.efficiency_service import record_indexing
 
 logger = logging.getLogger(__name__)
-EntityType = Literal["note", "task", "idea", "project", "inbox_item"]
+EntityType = Literal[
+    "note", "task", "idea", "project", "inbox_item", "twelve_week_cycle"
+]
 
 ENTITY_MODELS: dict[str, type] = {
     "note": Note,
@@ -35,6 +39,7 @@ ENTITY_MODELS: dict[str, type] = {
     "idea": Idea,
     "project": Project,
     "inbox_item": InboxItem,
+    "twelve_week_cycle": TwelveWeekCycle,
 }
 ENTITY_PATHS = {
     "note": "notes",
@@ -42,6 +47,7 @@ ENTITY_PATHS = {
     "idea": "ideas",
     "project": "projects",
     "inbox_item": "inbox",
+    "twelve_week_cycle": "goals",
 }
 
 
@@ -149,9 +155,14 @@ class SearchIndexService:
                 )
             return 0
         if entities is None:
-            result = await self.session.execute(
-                select(model).where(model.id.in_(unique_ids))
-            )
+            query = select(model).where(model.id.in_(unique_ids))
+            if entity_type == "twelve_week_cycle":
+                query = query.options(
+                    selectinload(TwelveWeekCycle.goals).selectinload(
+                        TwelveWeekGoal.tactics
+                    )
+                )
+            result = await self.session.execute(query)
             entities = list(result.scalars())
         by_id = {entity.id: entity for entity in entities}
         tags_by_id = await self._tags_many(entity_type, unique_ids)
@@ -289,7 +300,14 @@ class SearchIndexService:
     async def rebuild(self) -> int:
         count = 0
         for entity_type, model in ENTITY_MODELS.items():
-            result = await self.session.execute(select(model))
+            query = select(model)
+            if entity_type == "twelve_week_cycle":
+                query = query.options(
+                    selectinload(TwelveWeekCycle.goals).selectinload(
+                        TwelveWeekGoal.tactics
+                    )
+                )
+            result = await self.session.execute(query)
             entities = list(result.scalars())
             count += await self._index_entities(
                 entity_type,
@@ -364,6 +382,18 @@ class SearchIndexService:
                 )
             )
             return entity.name, body, None
+        if entity_type == "twelve_week_cycle":
+            body = "\n".join(
+                [
+                    str(value)
+                    for value in entity.workbook_answers.values()
+                    if isinstance(value, str)
+                ]
+                + [goal.title for goal in entity.goals]
+                + [goal.success_criteria for goal in entity.goals]
+                + [tactic.title for goal in entity.goals for tactic in goal.tactics]
+            )
+            return entity.title, body, None
         body = entity.content_text or ""
         return (body[:100] or "Inbox item"), body, None
 
@@ -551,8 +581,8 @@ class SearchIndexService:
             path = ENTITY_PATHS[chunk.entity_type]
             url = (
                 f"/{path}/{chunk.entity_id}"
-                if chunk.entity_type != "inbox_item"
-                else "/inbox"
+                if chunk.entity_type not in {"inbox_item", "twelve_week_cycle"}
+                else f"/{path}"
             )
             results.append(
                 SearchResult(

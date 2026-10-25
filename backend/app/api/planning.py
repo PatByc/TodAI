@@ -8,11 +8,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_db
 from app.models.planning import MetricGoal, Routine
 from app.schemas.planning import (
+    EveningOrderUpdate,
+    EveningReflectionUpdate,
+    EveningSummaryResponse,
     MetricGoalCreate,
     MetricGoalResponse,
     MetricGoalUpdate,
     MetricProgressCreate,
     MetricProgressResponse,
+    MorningOrderUpdate,
+    MorningSummaryResponse,
     PlannedBlockCreate,
     PlannedBlockResponse,
     PlannedBlockUpdate,
@@ -41,13 +46,19 @@ def routine_response(routine: Routine) -> RoutineResponse:
         scheduled_time=routine.scheduled_time,
         weekdays=routine.weekdays,
         is_active=routine.is_active,
+        is_morning=routine.is_morning,
+        morning_position=routine.morning_position,
+        is_evening=routine.is_evening,
+        evening_position=routine.evening_position,
         completed_dates=sorted(item.completed_on for item in routine.completions),
         created_at=routine.created_at,
         updated_at=routine.updated_at,
     )
 
 
-def metric_goal_response(goal: MetricGoal, current_value: float = 0) -> MetricGoalResponse:
+def metric_goal_response(
+    goal: MetricGoal, current_value: float = 0
+) -> MetricGoalResponse:
     return MetricGoalResponse(
         id=goal.id,
         title=goal.title,
@@ -80,6 +91,26 @@ async def create_routine(
     return routine_response(await service.create_routine(data))
 
 
+@router.put("/routines/morning-order", response_model=list[RoutineResponse])
+async def reorder_morning_routines(
+    data: MorningOrderUpdate, service: PlanningService = Depends(get_service)
+) -> list[RoutineResponse]:
+    return [
+        routine_response(item)
+        for item in await service.reorder_morning_routines(data.routine_ids)
+    ]
+
+
+@router.put("/routines/evening-order", response_model=list[RoutineResponse])
+async def reorder_evening_routines(
+    data: EveningOrderUpdate, service: PlanningService = Depends(get_service)
+) -> list[RoutineResponse]:
+    return [
+        routine_response(item)
+        for item in await service.reorder_evening_routines(data.routine_ids)
+    ]
+
+
 @router.put("/routines/{routine_id}", response_model=RoutineResponse)
 async def update_routine(
     routine_id: int,
@@ -103,6 +134,33 @@ async def set_routine_completion(
     service: PlanningService = Depends(get_service),
 ) -> RoutineResponse:
     return routine_response(await service.set_completion(routine_id, data))
+
+
+@router.get("/mornings/summary", response_model=MorningSummaryResponse)
+async def get_morning_summary(
+    date_value: date = Query(..., alias="date"),
+    timezone: str = Query(..., min_length=1, max_length=100),
+    service: PlanningService = Depends(get_service),
+) -> MorningSummaryResponse:
+    return await service.morning_summary(date_value, timezone)
+
+
+@router.get("/evenings/summary", response_model=EveningSummaryResponse)
+async def get_evening_summary(
+    date_value: date = Query(..., alias="date"),
+    timezone: str = Query(..., min_length=1, max_length=100),
+    service: PlanningService = Depends(get_service),
+) -> EveningSummaryResponse:
+    return await service.evening_summary(date_value, timezone)
+
+
+@router.put("/evenings/reflection", response_model=EveningSummaryResponse)
+async def save_evening_reflection(
+    data: EveningReflectionUpdate,
+    service: PlanningService = Depends(get_service),
+) -> EveningSummaryResponse:
+    await service.save_evening_reflection(data)
+    return await service.evening_summary(data.reflected_on, data.timezone)
 
 
 @router.get("/goals", response_model=list[TimeGoalResponse])
@@ -173,9 +231,7 @@ async def update_metric_goal(
     return metric_goal_response(await service.update_metric_goal(goal_id, data))
 
 
-@router.delete(
-    "/metric-goals/{goal_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@router.delete("/metric-goals/{goal_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_metric_goal(
     goal_id: int, service: PlanningService = Depends(get_service)
 ) -> None:

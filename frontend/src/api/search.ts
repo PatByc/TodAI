@@ -3,7 +3,7 @@ import { apiClient, buildQueryString } from "./client"
 export type SearchMode = "keyword" | "semantic" | "hybrid"
 
 export interface SearchResult {
-  entity_type: "note" | "task" | "idea" | "project" | "inbox_item"
+  entity_type: "note" | "task" | "idea" | "project" | "inbox_item" | "twelve_week_cycle"
   entity_id: number
   chunk_index: number
   title: string

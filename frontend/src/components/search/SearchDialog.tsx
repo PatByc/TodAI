@@ -8,6 +8,7 @@ import {
   LoaderCircle,
   Search,
   Sparkles,
+  Target,
   X,
   type LucideIcon,
 } from "lucide-react"
@@ -24,6 +25,7 @@ const icons: Record<SearchResult["entity_type"], LucideIcon> = {
   idea: Lightbulb,
   project: Sparkles,
   inbox_item: Inbox,
+  twelve_week_cycle: Target,
 }
 
 const labels: Record<SearchResult["entity_type"], string> = {
@@ -32,6 +34,7 @@ const labels: Record<SearchResult["entity_type"], string> = {
   idea: "Idea",
   project: "Project",
   inbox_item: "Inbox",
+  twelve_week_cycle: "12 Week Year",
 }
 
 export function SearchDialog({ open, onClose }: SearchDialogProps) {
@@ -100,8 +103,10 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
       void navigate({ to: "/ideas/$ideaId", params: { ideaId: id } })
     } else if (result.entity_type === "project") {
       void navigate({ to: "/projects/$projectId", params: { projectId: id } })
-    } else {
+    } else if (result.entity_type === "inbox_item") {
       void navigate({ to: "/inbox" })
+    } else {
+      void navigate({ to: "/goals" })
     }
   }
 

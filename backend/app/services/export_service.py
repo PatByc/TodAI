@@ -4,9 +4,13 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.api_usage_cost import APIUsageCost
+from app.models.evening_setting import EveningReflection, EveningSetting
+from app.models.morning_setting import MorningSetting
 from app.models.review_reflection import ReviewReflection
+from app.models.twelve_week import TwelveWeekCycle, TwelveWeekGoal, TwelveWeekModelBlock
 from app.models.workspace_profile import WorkspaceProfile
 from app.repositories.idea_repo import IdeaRepository
 from app.repositories.inbox_repo import InboxRepository
@@ -89,6 +93,32 @@ class ExportService:
             ).scalars()
         )
         workspace_profile = await self.session.get(WorkspaceProfile, 1)
+        morning_settings = await self.session.get(MorningSetting, 1)
+        evening_settings = await self.session.get(EveningSetting, 1)
+        evening_reflections = list(
+            (
+                await self.session.execute(
+                    select(EveningReflection).order_by(EveningReflection.reflected_on)
+                )
+            ).scalars()
+        )
+        twelve_week_cycles = list(
+            (
+                await self.session.execute(
+                    select(TwelveWeekCycle)
+                    .options(
+                        selectinload(TwelveWeekCycle.goals).selectinload(
+                            TwelveWeekGoal.tactics
+                        ),
+                        selectinload(TwelveWeekCycle.weeks),
+                        selectinload(TwelveWeekCycle.model_blocks).selectinload(
+                            TwelveWeekModelBlock.instances
+                        ),
+                    )
+                    .order_by(TwelveWeekCycle.start_date)
+                )
+            ).scalars()
+        )
 
         return {
             "exported_at": datetime.now(UTC).isoformat(),
@@ -109,6 +139,32 @@ class ExportService:
                 if workspace_profile
                 else None
             ),
+            "morning_settings": (
+                {
+                    "start_time": morning_settings.start_time.isoformat(),
+                    "end_time": morning_settings.end_time.isoformat(),
+                }
+                if morning_settings
+                else None
+            ),
+            "evening_settings": (
+                {
+                    "start_time": evening_settings.start_time.isoformat(),
+                    "end_time": evening_settings.end_time.isoformat(),
+                }
+                if evening_settings
+                else None
+            ),
+            "evening_reflections": [
+                {
+                    "reflected_on": reflection.reflected_on.isoformat(),
+                    "score": reflection.score,
+                    "journal": reflection.journal,
+                    "created_at": reflection.created_at.isoformat(),
+                    "updated_at": reflection.updated_at.isoformat(),
+                }
+                for reflection in evening_reflections
+            ],
             "notes": [await self._serialize_note(n) for n in notes],
             "tasks": [await self._serialize_task(t) for t in tasks],
             "ideas": [await self._serialize_idea(i) for i in ideas],
@@ -165,6 +221,10 @@ class ExportService:
                     else None,
                     "weekdays": routine.weekdays,
                     "is_active": routine.is_active,
+                    "is_morning": routine.is_morning,
+                    "morning_position": routine.morning_position,
+                    "is_evening": routine.is_evening,
+                    "evening_position": routine.evening_position,
                     "completed_dates": [
                         completion.completed_on.isoformat()
                         for completion in routine.completions
@@ -218,10 +278,72 @@ class ExportService:
                     "ends_at": block.ends_at.isoformat(),
                     "stream_id": block.stream_id,
                     "project_id": block.project_id,
+                    "block_kind": block.block_kind,
                     "created_at": block.created_at.isoformat(),
                     "updated_at": block.updated_at.isoformat(),
                 }
                 for block in planned_blocks
+            ],
+            "twelve_week_cycles": [
+                {
+                    "id": cycle.id,
+                    "title": cycle.title,
+                    "start_date": cycle.start_date.isoformat(),
+                    "end_date": cycle.end_date.isoformat(),
+                    "status": cycle.status,
+                    "timezone": cycle.timezone,
+                    "workbook_version": cycle.workbook_version,
+                    "workbook_answers": cycle.workbook_answers,
+                    "goals": [
+                        {
+                            "id": goal.id,
+                            "position": goal.position,
+                            "title": goal.title,
+                            "success_criteria": goal.success_criteria,
+                            "mind_map": goal.mind_map,
+                            "linked_time_goal_id": goal.linked_time_goal_id,
+                            "linked_metric_goal_id": goal.linked_metric_goal_id,
+                            "tactics": [
+                                {
+                                    "id": tactic.id,
+                                    "position": tactic.position,
+                                    "title": tactic.title,
+                                    "notes": tactic.notes,
+                                    "due_weeks": tactic.due_weeks,
+                                    "rule_kind": tactic.rule_kind,
+                                    "rule_config": tactic.rule_config,
+                                }
+                                for tactic in goal.tactics
+                            ],
+                        }
+                        for goal in cycle.goals
+                    ],
+                    "weeks": [
+                        {
+                            "week_number": week.week_number,
+                            "starts_on": week.starts_on.isoformat(),
+                            "ends_on": week.ends_on.isoformat(),
+                            "review": week.review,
+                            "score": week.score,
+                            "finalized_at": week.finalized_at.isoformat()
+                            if week.finalized_at
+                            else None,
+                        }
+                        for week in cycle.weeks
+                    ],
+                    "model_blocks": [
+                        {
+                            "weekday": block.weekday,
+                            "starts_at": block.starts_at.isoformat(),
+                            "duration_minutes": block.duration_minutes,
+                            "kind": block.kind,
+                            "title": block.title,
+                            "description": block.description,
+                        }
+                        for block in cycle.model_blocks
+                    ],
+                }
+                for cycle in twelve_week_cycles
             ],
             "review_reflections": [
                 {
@@ -381,6 +503,51 @@ class ExportService:
                     f"Created: {item.created_at.strftime('%Y-%m-%d')}\n\n---\n"
                 )
 
+        routines = await self.planning_repo.list_routines(include_inactive=True)
+        morning_settings = await self.session.get(MorningSetting, 1)
+        evening_settings = await self.session.get(EveningSetting, 1)
+        if routines:
+            sections.append("# Routines\n")
+            if morning_settings:
+                sections.append(
+                    "Morning window: "
+                    f"{morning_settings.start_time.strftime('%H:%M')}–"
+                    f"{morning_settings.end_time.strftime('%H:%M')}\n"
+                )
+            if evening_settings:
+                sections.append(
+                    "Evening window: "
+                    f"{evening_settings.start_time.strftime('%H:%M')}–"
+                    f"{evening_settings.end_time.strftime('%H:%M')}\n"
+                )
+            for routine in routines:
+                days = ", ".join(str(day) for day in routine.weekdays)
+                sections.append(
+                    f"## {routine.title}\n\n"
+                    f"{routine.description or ''}\n\n"
+                    f"Morning: {'yes' if routine.is_morning else 'no'}\n"
+                    f"Evening: {'yes' if routine.is_evening else 'no'}\n"
+                    f"Weekdays (Monday = 0): {days}\n"
+                    f"Active: {'yes' if routine.is_active else 'no'}\n"
+                    f"Completed dates: {', '.join(item.completed_on.isoformat() for item in routine.completions) or 'none'}\n\n---\n"
+                )
+
+        evening_reflections = list(
+            (
+                await self.session.execute(
+                    select(EveningReflection).order_by(EveningReflection.reflected_on)
+                )
+            ).scalars()
+        )
+        if evening_reflections:
+            sections.append("# Evening reflections\n")
+            for reflection in evening_reflections:
+                sections.append(
+                    f"## {reflection.reflected_on.isoformat()}\n\n"
+                    f"Score: {reflection.score or 'not scored'} / 5\n\n"
+                    f"{reflection.journal}\n\n---\n"
+                )
+
         time_goals = await self.planning_repo.list_goals(include_inactive=True)
         metric_goals = await self.planning_repo.list_metric_goals(include_inactive=True)
         if time_goals or metric_goals:
@@ -395,10 +562,13 @@ class ExportService:
                 )
             for goal in metric_goals:
                 entries = await self.planning_repo.list_goal_metric_progress(goal.id)
-                history = "\n".join(
-                    f"- {entry.recorded_on.isoformat()}: {entry.value:g}"
-                    for entry in entries
-                ) or "none"
+                history = (
+                    "\n".join(
+                        f"- {entry.recorded_on.isoformat()}: {entry.value:g}"
+                        for entry in entries
+                    )
+                    or "none"
+                )
                 sections.append(
                     f"## {goal.title}\n\n"
                     f"Type: number\n"
@@ -424,10 +594,13 @@ class ExportService:
                 period = reflection.start_date.isoformat()
                 if reflection.end_date != reflection.start_date:
                     period = f"{period} to {reflection.end_date.isoformat()}"
-                patterns = "\n".join(
-                    f"- {pattern.get('text', '')} — {pattern.get('evidence', '')}"
-                    for pattern in reflection.patterns
-                ) or "none"
+                patterns = (
+                    "\n".join(
+                        f"- {pattern.get('text', '')} — {pattern.get('evidence', '')}"
+                        for pattern in reflection.patterns
+                    )
+                    or "none"
+                )
                 sections.append(
                     f"## {reflection.scope.title()}: {period}\n\n"
                     f"What worked: {reflection.what_worked or 'none'}\n\n"
@@ -435,6 +608,40 @@ class ExportService:
                     f"Adjustment: {reflection.adjustment or 'none'}\n\n"
                     f"Patterns:\n{patterns}\n\n---\n"
                 )
+
+        cycles = list(
+            (
+                await self.session.execute(
+                    select(TwelveWeekCycle)
+                    .options(
+                        selectinload(TwelveWeekCycle.goals).selectinload(
+                            TwelveWeekGoal.tactics
+                        ),
+                        selectinload(TwelveWeekCycle.weeks),
+                    )
+                    .order_by(TwelveWeekCycle.start_date)
+                )
+            ).scalars()
+        )
+        if cycles:
+            sections.append("# 12 Week Year\n")
+            for cycle in cycles:
+                sections.append(
+                    f"## {cycle.title}\n\n{cycle.start_date.isoformat()} to {cycle.end_date.isoformat()} · {cycle.status}\n"
+                )
+                for goal in cycle.goals:
+                    sections.append(
+                        f"### Goal {goal.position}: {goal.title}\n\n{goal.success_criteria}\n"
+                    )
+                    sections.extend(
+                        f"- {tactic.title} (weeks {', '.join(map(str, tactic.due_weeks))})\n"
+                        for tactic in goal.tactics
+                    )
+                scores = "\n".join(
+                    f"- Week {week.week_number}: {week.score if week.score is not None else 'not finalized'}"
+                    for week in cycle.weeks
+                )
+                sections.append(f"\nWeekly scores:\n{scores}\n\n---\n")
 
         return "\n".join(sections)
 
